@@ -20,8 +20,6 @@ An MCP (Model Context Protocol) server that enables AI assistants to interact wi
 
 ## Quick Start
 
-> **Note:** You must login with your `_microsoft` GitHub account and have SSO enabled for the `serverless-paas-balam` org.
-
 ### Prerequisites
 
 - [Azure CLI](https://aka.ms/installazurecli) installed and authenticated (`az login`)
@@ -30,22 +28,13 @@ An MCP (Model Context Protocol) server that enables AI assistants to interact wi
 ### Install
 
 ```bash
-# 1. Authenticate with GitHub (if not already)
-gh auth login --hostname github.com
-# Select: Login with a web browser
-# Authenticate with your _microsoft account
+# 1. Install globally
+npm install -g @laveeshb/logicapps-mcp
 
-# 2. Configure npm to use GitHub Packages
-gh auth setup-git
-echo "@serverless-paas-balam:registry=https://npm.pkg.github.com" >> ~/.npmrc
-
-# 3. Install globally
-npm install -g @serverless-paas-balam/logicapps-mcp
-
-# 4. Login to Azure CLI
+# 2. Login to Azure CLI
 az login
 
-# 5. Add to your AI assistant (see sections below) and restart
+# 3. Add to your AI assistant (see sections below) and restart
 ```
 
 ## Features
@@ -58,31 +47,22 @@ az login
 
 ## Installation
 
-### Via npm (GitHub Packages)
-
-Authenticate with GitHub CLI (recommended):
+### Via npm
 
 ```bash
-gh auth login
-echo "@serverless-paas-balam:registry=https://npm.pkg.github.com" >> ~/.npmrc
-```
-
-Then install:
-
-```bash
-npm install -g @serverless-paas-balam/logicapps-mcp
+npm install -g @laveeshb/logicapps-mcp
 ```
 
 Or use directly with npx:
 
 ```bash
-npx @serverless-paas-balam/logicapps-mcp
+npx @laveeshb/logicapps-mcp
 ```
 
 ### From Source
 
 ```bash
-git clone https://github.com/serverless-paas-balam/logicapps-mcp.git
+git clone https://github.com/laveeshb/logicapps-mcp.git
 cd logicapps-mcp
 npm install
 npm run build
@@ -129,7 +109,7 @@ Add to your Claude Desktop configuration:
   "mcpServers": {
     "logicapps": {
       "command": "npx",
-      "args": ["@serverless-paas-balam/logicapps-mcp"]
+      "args": ["@laveeshb/logicapps-mcp"]
     }
   }
 }
@@ -169,7 +149,7 @@ Or if installed globally:
    }
    ```
 
-3. **Reload VS Code** (`Ctrl+Shift+P` → "Developer: Reload Window")
+3. **Reload VS Code** (`Ctrl+Shift+P`  "Developer: Reload Window")
 
 4. **Use in Copilot Chat**: Open Copilot Chat and ask questions like:
    - "List my Azure subscriptions"
@@ -248,13 +228,13 @@ npm run test:watch
 
 ```
 src/
-├── index.ts           # MCP server entry point
-├── server.ts          # Tool registration
-├── auth/              # Azure CLI token management
-├── config/            # Azure cloud endpoints & settings
-├── tools/             # MCP tool implementations (18 tools)
-├── types/             # TypeScript type definitions
-└── utils/             # HTTP client & error handling
+ index.ts           # MCP server entry point
+ server.ts          # Tool registration
+ auth/              # Azure CLI token management
+ config/            # Azure cloud endpoints & settings
+ tools/             # MCP tool implementations (18 tools)
+ types/             # TypeScript type definitions
+ utils/             # HTTP client & error handling
 ```
 
 ## License
