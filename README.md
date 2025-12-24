@@ -27,7 +27,7 @@ An MCP (Model Context Protocol) server that enables AI assistants to interact wi
 
 ### Install
 
-```bash
+``bash
 # 1. Install globally
 npm install -g @laveeshb/logicapps-mcp
 
@@ -35,7 +35,7 @@ npm install -g @laveeshb/logicapps-mcp
 az login
 
 # 3. Add to your AI assistant (see sections below) and restart
-```
+``
 
 ## Features
 
@@ -49,24 +49,24 @@ az login
 
 ### Via npm
 
-```bash
+``bash
 npm install -g @laveeshb/logicapps-mcp
-```
+``
 
 Or use directly with npx:
 
-```bash
+``bash
 npx @laveeshb/logicapps-mcp
-```
+``
 
 ### From Source
 
-```bash
+``bash
 git clone https://github.com/laveeshb/logicapps-mcp.git
 cd logicapps-mcp
 npm install
 npm run build
-```
+``
 
 ## Configuration
 
@@ -84,13 +84,13 @@ npm run build
 
 Create `~/.logicapps-mcp/config.json`:
 
-```json
+``json
 {
   "tenantId": "your-tenant-id",
   "clientId": "your-client-id",
   "defaultSubscriptionId": "your-subscription-id"
 }
-```
+``
 
 ### Azure Cloud Options
 
@@ -104,7 +104,7 @@ Add to your Claude Desktop configuration:
 - **macOS**: `~/.config/claude/claude_desktop_config.json`
 - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 
-```json
+``json
 {
   "mcpServers": {
     "logicapps": {
@@ -113,11 +113,11 @@ Add to your Claude Desktop configuration:
     }
   }
 }
-```
+``
 
 Or if installed globally:
 
-```json
+``json
 {
   "mcpServers": {
     "logicapps": {
@@ -125,7 +125,7 @@ Or if installed globally:
     }
   }
 }
-```
+``
 
 ## Usage with GitHub Copilot in VS Code
 
@@ -138,7 +138,7 @@ Or if installed globally:
 
    Alternatively, create/edit `.vscode/mcp.json` in your workspace:
 
-   ```json
+   ``json
    {
      "servers": {
        "logicapps": {
@@ -147,7 +147,7 @@ Or if installed globally:
        }
      }
    }
-   ```
+   ``
 
 3. **Reload VS Code** (`Ctrl+Shift+P`  "Developer: Reload Window")
 
@@ -162,9 +162,9 @@ Or if installed globally:
 
 This MCP server uses Azure CLI for authentication. Before using it, ensure you're logged in:
 
-```bash
+``bash
 az login
-```
+``
 
 The MCP server will automatically use the Azure CLI's tokens. Tokens are refreshed automatically by Azure CLI.
 
@@ -213,7 +213,7 @@ Once configured with an AI assistant, you can ask:
 
 ## Development
 
-```bash
+``bash
 # Run in development mode
 npm run dev
 
@@ -222,11 +222,11 @@ npm test
 
 # Run tests in watch mode
 npm run test:watch
-```
+``
 
 ## Architecture
 
-```
+``
 src/
  index.ts           # MCP server entry point
  server.ts          # Tool registration
@@ -235,8 +235,9 @@ src/
  tools/             # MCP tool implementations (18 tools)
  types/             # TypeScript type definitions
  utils/             # HTTP client & error handling
-```
+``
 
 ## License
 
 MIT
+
