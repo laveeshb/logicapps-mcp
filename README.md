@@ -29,7 +29,7 @@ An MCP (Model Context Protocol) server that enables AI assistants to interact wi
 
 ```bash
 # 1. Install globally
-npm install -g @laveeshb/logicapps-mcp
+npm install -g github:laveeshb/logicapps-mcp
 
 # 2. Login to Azure CLI
 az login
@@ -47,16 +47,16 @@ az login
 
 ## Installation
 
-### Via npm
+### Via npm (from GitHub)
 
 ```bash
-npm install -g @laveeshb/logicapps-mcp
+npm install -g github:laveeshb/logicapps-mcp
 ```
 
 Or use directly with npx:
 
 ```bash
-npx @laveeshb/logicapps-mcp
+npx github:laveeshb/logicapps-mcp
 ```
 
 ### From Source
@@ -109,7 +109,7 @@ Add to your Claude Desktop configuration:
   "mcpServers": {
     "logicapps": {
       "command": "npx",
-      "args": ["@laveeshb/logicapps-mcp"]
+      "args": ["github:laveeshb/logicapps-mcp"]
     }
   }
 }
