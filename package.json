@@ -1,5 +1,5 @@
 {
-  "name": "@serverless-paas-balam/logicapps-mcp",
+  "name": "@laveeshb/logicapps-mcp",
   "version": "0.1.0",
   "description": "MCP server for Azure Logic Apps",
   "type": "module",
@@ -12,7 +12,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/serverless-paas-balam/logicapps-mcp.git"
+    "url": "https://github.com/laveeshb/logicapps-mcp.git"
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
