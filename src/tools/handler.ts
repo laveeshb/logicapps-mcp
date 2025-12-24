@@ -11,14 +11,15 @@ import {
   getWorkflowDefinition,
   getWorkflowTriggers,
   listWorkflowVersions,
+  getWorkflowVersion,
 } from "./workflows.js";
 import { getTriggerHistory, getTriggerCallbackUrl } from "./triggers.js";
-import { listRunHistory, getRunDetails, getRunActions } from "./runs.js";
+import { listRunHistory, getRunDetails, getRunActions, getActionIO, searchRuns } from "./runs.js";
 import { getActionRepetitions, getScopeRepetitions } from "./repetitions.js";
 import { getActionRequestHistory } from "./requestHistory.js";
 import { getExpressionTraces } from "./expressions.js";
 import { getWorkflowSwagger } from "./swagger.js";
-import { getConnections } from "./connections.js";
+import { getConnections, getConnectionDetails, testConnection } from "./connections.js";
 import { getHostStatus } from "./host.js";
 import { McpError, formatError } from "../utils/errors.js";
 
@@ -181,6 +182,52 @@ export async function handleToolCall(
           args.resourceGroupName as string,
           args.logicAppName as string,
           args.workflowName as string | undefined
+        );
+        break;
+      case "get_action_io":
+        result = await getActionIO(
+          args.subscriptionId as string,
+          args.resourceGroupName as string,
+          args.logicAppName as string,
+          args.runId as string,
+          args.actionName as string,
+          args.workflowName as string | undefined,
+          args.type as "inputs" | "outputs" | "both" | undefined
+        );
+        break;
+      case "search_runs":
+        result = await searchRuns(
+          args.subscriptionId as string,
+          args.resourceGroupName as string,
+          args.logicAppName as string,
+          args.workflowName as string | undefined,
+          args.status as "Succeeded" | "Failed" | "Cancelled" | "Running" | undefined,
+          args.startTime as string | undefined,
+          args.endTime as string | undefined,
+          args.clientTrackingId as string | undefined,
+          args.top as number | undefined
+        );
+        break;
+      case "get_workflow_version":
+        result = await getWorkflowVersion(
+          args.subscriptionId as string,
+          args.resourceGroupName as string,
+          args.logicAppName as string,
+          args.versionId as string
+        );
+        break;
+      case "get_connection_details":
+        result = await getConnectionDetails(
+          args.subscriptionId as string,
+          args.resourceGroupName as string,
+          args.connectionName as string
+        );
+        break;
+      case "test_connection":
+        result = await testConnection(
+          args.subscriptionId as string,
+          args.resourceGroupName as string,
+          args.connectionName as string
         );
         break;
       default:

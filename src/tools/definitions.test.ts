@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import { TOOL_DEFINITIONS } from "./definitions.js";
 
 describe("tool definitions", () => {
-  it("should have all 18 tools defined", () => {
-    expect(TOOL_DEFINITIONS).toHaveLength(18);
+  it("should have all 23 tools defined", () => {
+    expect(TOOL_DEFINITIONS).toHaveLength(23);
   });
 
   it("should have unique tool names", () => {
@@ -106,6 +106,88 @@ describe("tool definitions", () => {
     it("should require subscriptionId and resourceGroupName", () => {
       expect(tool?.inputSchema.required).toContain("subscriptionId");
       expect(tool?.inputSchema.required).toContain("resourceGroupName");
+    });
+  });
+
+  describe("get_action_io", () => {
+    const tool = TOOL_DEFINITIONS.find((t) => t.name === "get_action_io");
+
+    it("should be defined", () => {
+      expect(tool).toBeDefined();
+    });
+
+    it("should require subscriptionId, resourceGroupName, logicAppName, runId, and actionName", () => {
+      expect(tool?.inputSchema.required).toContain("subscriptionId");
+      expect(tool?.inputSchema.required).toContain("resourceGroupName");
+      expect(tool?.inputSchema.required).toContain("logicAppName");
+      expect(tool?.inputSchema.required).toContain("runId");
+      expect(tool?.inputSchema.required).toContain("actionName");
+    });
+
+    it("should have optional type parameter with enum", () => {
+      expect(tool?.inputSchema.properties?.type).toBeDefined();
+      const typeProperty = tool?.inputSchema.properties?.type as { enum?: string[] };
+      expect(typeProperty?.enum).toEqual(["inputs", "outputs", "both"]);
+    });
+  });
+
+  describe("search_runs", () => {
+    const tool = TOOL_DEFINITIONS.find((t) => t.name === "search_runs");
+
+    it("should be defined", () => {
+      expect(tool).toBeDefined();
+    });
+
+    it("should require subscriptionId, resourceGroupName, and logicAppName", () => {
+      expect(tool?.inputSchema.required).toContain("subscriptionId");
+      expect(tool?.inputSchema.required).toContain("resourceGroupName");
+      expect(tool?.inputSchema.required).toContain("logicAppName");
+    });
+
+    it("should have optional status parameter with enum", () => {
+      const statusProperty = tool?.inputSchema.properties?.status as { enum?: string[] };
+      expect(statusProperty?.enum).toEqual(["Succeeded", "Failed", "Cancelled", "Running"]);
+    });
+
+    it("should have optional time range parameters", () => {
+      expect(tool?.inputSchema.properties?.startTime).toBeDefined();
+      expect(tool?.inputSchema.properties?.endTime).toBeDefined();
+    });
+  });
+
+  describe("get_workflow_version", () => {
+    const tool = TOOL_DEFINITIONS.find((t) => t.name === "get_workflow_version");
+
+    it("should be defined", () => {
+      expect(tool).toBeDefined();
+    });
+
+    it("should require versionId", () => {
+      expect(tool?.inputSchema.required).toContain("versionId");
+    });
+  });
+
+  describe("get_connection_details", () => {
+    const tool = TOOL_DEFINITIONS.find((t) => t.name === "get_connection_details");
+
+    it("should be defined", () => {
+      expect(tool).toBeDefined();
+    });
+
+    it("should require connectionName", () => {
+      expect(tool?.inputSchema.required).toContain("connectionName");
+    });
+  });
+
+  describe("test_connection", () => {
+    const tool = TOOL_DEFINITIONS.find((t) => t.name === "test_connection");
+
+    it("should be defined", () => {
+      expect(tool).toBeDefined();
+    });
+
+    it("should require connectionName", () => {
+      expect(tool?.inputSchema.required).toContain("connectionName");
     });
   });
 });

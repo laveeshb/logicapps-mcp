@@ -264,3 +264,49 @@ export async function listWorkflowVersions(
     })),
   };
 }
+
+export interface GetWorkflowVersionResult {
+  version: string;
+  createdTime: string;
+  changedTime: string;
+  state: string;
+  definition: WorkflowDefinition;
+  parameters?: Record<string, unknown>;
+}
+
+/**
+ * Get a specific historical version's definition (Consumption SKU only).
+ */
+export async function getWorkflowVersion(
+  subscriptionId: string,
+  resourceGroupName: string,
+  logicAppName: string,
+  versionId: string
+): Promise<GetWorkflowVersionResult> {
+  const sku = await detectLogicAppSku(
+    subscriptionId,
+    resourceGroupName,
+    logicAppName
+  );
+
+  if (sku !== "consumption") {
+    throw new McpError(
+      "InvalidParameter",
+      "Workflow versions are only available for Consumption Logic Apps. Standard Logic Apps store versions in source control."
+    );
+  }
+
+  const version = await armRequest<WorkflowVersion>(
+    `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}/versions/${versionId}`,
+    { queryParams: { "api-version": "2019-05-01" } }
+  );
+
+  return {
+    version: version.name,
+    createdTime: version.properties.createdTime,
+    changedTime: version.properties.changedTime,
+    state: version.properties.state,
+    definition: version.properties.definition,
+    parameters: version.properties.parameters,
+  };
+}

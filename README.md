@@ -40,7 +40,7 @@ az login
 ## Features
 
 - **Dual SKU Support**: Works with both Consumption (`Microsoft.Logic/workflows`) and Standard (`Microsoft.Web/sites`) Logic Apps
-- **18 Read-Only Tools**: Comprehensive toolset for subscriptions, logic apps, workflows, triggers, runs, actions, connections, and more
+- **23 Read-Only Tools**: Comprehensive toolset for subscriptions, logic apps, workflows, triggers, runs, actions, connections, and more
 - **Multi-Cloud**: Supports Azure Public, Government, and China clouds
 - **Secure Authentication**: Uses Azure CLI tokens with automatic refresh
 - **No Azure SDK**: Pure REST API implementation with minimal dependencies
@@ -189,9 +189,14 @@ The authenticated user needs:
 | `list_run_history` | Get run history with optional filtering |
 | `get_run_details` | Get details of a specific run |
 | `get_run_actions` | Get action execution details for a run |
+| `get_action_io` | Get actual input/output content for a run action |
+| `search_runs` | Search runs with friendly parameters (status, time range, tracking ID) |
 | `get_connections` | List API connections in a resource group |
+| `get_connection_details` | Get detailed information about a specific API connection |
+| `test_connection` | Test if an API connection is valid and healthy |
 | `get_host_status` | Get host status for Standard Logic Apps (runtime version, diagnostics) |
 | `list_workflow_versions` | List all versions of a Consumption Logic App |
+| `get_workflow_version` | Get a specific historical version's definition (Consumption only) |
 | `get_trigger_history` | Get execution history of a specific trigger |
 | `get_action_repetitions` | Get iteration details for loop actions (ForEach, Until) |
 | `get_action_request_history` | Get HTTP request/response details for webhook actions |
@@ -232,7 +237,7 @@ src/
  server.ts          # Tool registration
  auth/              # Azure CLI token management
  config/            # Azure cloud endpoints & settings
- tools/             # MCP tool implementations (18 tools)
+ tools/             # MCP tool implementations (23 tools)
  types/             # TypeScript type definitions
  utils/             # HTTP client & error handling
 ```
