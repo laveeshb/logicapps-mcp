@@ -1,4 +1,4 @@
-# logicapps-mcp
+# Azure Logic Apps MCP Server
 
 <img src="https://raw.githubusercontent.com/benc-uk/icon-collection/master/azure-icons/Logic-Apps.svg" alt="Azure Logic Apps" width="80" align="right">
 
