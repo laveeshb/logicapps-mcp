@@ -534,4 +534,165 @@ export const TOOL_DEFINITIONS: Tool[] = [
       required: ["subscriptionId", "resourceGroupName", "logicAppName"],
     },
   },
+  {
+    name: "get_action_io",
+    description:
+      "Get the actual input/output content for a run action. Fetches the content from inputsLink/outputsLink URLs. Essential for debugging data issues.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        subscriptionId: {
+          type: "string",
+          description: "Azure subscription ID",
+        },
+        resourceGroupName: {
+          type: "string",
+          description: "Resource group name",
+        },
+        logicAppName: {
+          type: "string",
+          description: "Logic App resource name",
+        },
+        runId: {
+          type: "string",
+          description: "Run ID",
+        },
+        actionName: {
+          type: "string",
+          description: "Action name",
+        },
+        workflowName: {
+          type: "string",
+          description: "Workflow name (required for Standard SKU)",
+        },
+        type: {
+          type: "string",
+          enum: ["inputs", "outputs", "both"],
+          description: "Which content to fetch (default: both)",
+        },
+      },
+      required: ["subscriptionId", "resourceGroupName", "logicAppName", "runId", "actionName"],
+    },
+  },
+  {
+    name: "search_runs",
+    description:
+      "Search run history with friendly parameters instead of raw OData filter syntax. Uses server-side filtering for performance.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        subscriptionId: {
+          type: "string",
+          description: "Azure subscription ID",
+        },
+        resourceGroupName: {
+          type: "string",
+          description: "Resource group name",
+        },
+        logicAppName: {
+          type: "string",
+          description: "Logic App resource name",
+        },
+        workflowName: {
+          type: "string",
+          description: "Workflow name (required for Standard SKU)",
+        },
+        status: {
+          type: "string",
+          enum: ["Succeeded", "Failed", "Cancelled", "Running"],
+          description: "Filter by run status",
+        },
+        startTime: {
+          type: "string",
+          description: "Filter runs starting after this ISO timestamp (e.g., 2025-12-24T00:00:00Z)",
+        },
+        endTime: {
+          type: "string",
+          description: "Filter runs starting before this ISO timestamp",
+        },
+        clientTrackingId: {
+          type: "string",
+          description: "Filter by correlation/tracking ID",
+        },
+        top: {
+          type: "number",
+          description: "Number of runs to return (default: 25, max: 100)",
+        },
+      },
+      required: ["subscriptionId", "resourceGroupName", "logicAppName"],
+    },
+  },
+  {
+    name: "get_workflow_version",
+    description:
+      "Get a specific historical version's definition. Only available for Consumption Logic Apps. Use list_workflow_versions to see available versions.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        subscriptionId: {
+          type: "string",
+          description: "Azure subscription ID",
+        },
+        resourceGroupName: {
+          type: "string",
+          description: "Resource group name",
+        },
+        logicAppName: {
+          type: "string",
+          description: "Logic App resource name",
+        },
+        versionId: {
+          type: "string",
+          description: "Version ID (from list_workflow_versions)",
+        },
+      },
+      required: ["subscriptionId", "resourceGroupName", "logicAppName", "versionId"],
+    },
+  },
+  {
+    name: "get_connection_details",
+    description:
+      "Get detailed information about a specific API connection including status, configuration, and test links.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        subscriptionId: {
+          type: "string",
+          description: "Azure subscription ID",
+        },
+        resourceGroupName: {
+          type: "string",
+          description: "Resource group name",
+        },
+        connectionName: {
+          type: "string",
+          description: "API connection name",
+        },
+      },
+      required: ["subscriptionId", "resourceGroupName", "connectionName"],
+    },
+  },
+  {
+    name: "test_connection",
+    description:
+      "Test if an API connection is valid and healthy. Checks connection status and attempts to validate using test links if available.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        subscriptionId: {
+          type: "string",
+          description: "Azure subscription ID",
+        },
+        resourceGroupName: {
+          type: "string",
+          description: "Resource group name",
+        },
+        connectionName: {
+          type: "string",
+          description: "API connection name",
+        },
+      },
+      required: ["subscriptionId", "resourceGroupName", "connectionName"],
+    },
+  },
 ];

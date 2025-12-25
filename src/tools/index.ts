@@ -15,22 +15,28 @@ export {
   listWorkflows,
   getWorkflowDefinition,
   getWorkflowTriggers,
+  listWorkflowVersions,
+  getWorkflowVersion,
 } from "./workflows.js";
 export type {
   ListWorkflowsResult,
   GetWorkflowDefinitionResult,
   GetWorkflowTriggersResult,
+  ListWorkflowVersionsResult,
+  GetWorkflowVersionResult,
 } from "./workflows.js";
 
-export { listRunHistory, getRunDetails, getRunActions } from "./runs.js";
+export { listRunHistory, getRunDetails, getRunActions, getActionIO, searchRuns } from "./runs.js";
 export type {
   ListRunHistoryResult,
   GetRunDetailsResult,
   GetRunActionsResult,
+  GetActionIOResult,
+  SearchRunsResult,
 } from "./runs.js";
 
-export { getConnections } from "./connections.js";
-export type { GetConnectionsResult } from "./connections.js";
+export { getConnections, getConnectionDetails, testConnection } from "./connections.js";
+export type { GetConnectionsResult, GetConnectionDetailsResult, TestConnectionResult } from "./connections.js";
 
 export { getTriggerHistory, getTriggerCallbackUrl } from "./triggers.js";
 export type {

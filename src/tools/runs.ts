@@ -341,3 +341,158 @@ async function getRunActionsStandard(
     })),
   };
 }
+
+export interface GetActionIOResult {
+  actionName: string;
+  inputs?: unknown;
+  outputs?: unknown;
+}
+
+/**
+ * Get the actual input/output content for a run action.
+ * Follows the inputsLink/outputsLink URLs to fetch the content.
+ */
+export async function getActionIO(
+  subscriptionId: string,
+  resourceGroupName: string,
+  logicAppName: string,
+  runId: string,
+  actionName: string,
+  workflowName?: string,
+  type: "inputs" | "outputs" | "both" = "both"
+): Promise<GetActionIOResult> {
+  const sku = await detectLogicAppSku(
+    subscriptionId,
+    resourceGroupName,
+    logicAppName
+  );
+
+  let action: RunAction;
+
+  if (sku === "consumption") {
+    action = await armRequest<RunAction>(
+      `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}/runs/${runId}/actions/${actionName}`,
+      { queryParams: { "api-version": "2019-05-01" } }
+    );
+  } else {
+    if (!workflowName) {
+      throw new McpError(
+        "InvalidParameter",
+        "workflowName is required for Standard Logic Apps"
+      );
+    }
+
+    const { hostname, masterKey } = await getStandardAppAccess(
+      subscriptionId,
+      resourceGroupName,
+      logicAppName
+    );
+    action = await workflowMgmtRequest<RunAction>(
+      hostname,
+      `/runtime/webhooks/workflow/api/management/workflows/${workflowName}/runs/${runId}/actions/${actionName}?api-version=2020-05-01-preview`,
+      masterKey
+    );
+  }
+
+  const result: GetActionIOResult = { actionName };
+
+  // Fetch inputs if requested
+  if ((type === "inputs" || type === "both") && action.properties.inputsLink?.uri) {
+    result.inputs = await fetchContentLink(action.properties.inputsLink.uri);
+  }
+
+  // Fetch outputs if requested
+  if ((type === "outputs" || type === "both") && action.properties.outputsLink?.uri) {
+    result.outputs = await fetchContentLink(action.properties.outputsLink.uri);
+  }
+
+  return result;
+}
+
+/**
+ * Fetch content from an inputsLink/outputsLink URL.
+ * These URLs include SAS tokens so no additional auth is needed.
+ */
+async function fetchContentLink(url: string): Promise<unknown> {
+  const response = await fetch(url);
+  
+  if (!response.ok) {
+    throw new McpError(
+      "ServiceError",
+      `Failed to fetch content link: ${response.status} ${response.statusText}`
+    );
+  }
+
+  return response.json();
+}
+
+export interface SearchRunsResult {
+  runs: Array<{
+    id: string;
+    name: string;
+    status: string;
+    startTime: string;
+    endTime?: string;
+    trigger: {
+      name: string;
+    };
+    correlation?: {
+      clientTrackingId: string;
+    };
+  }>;
+  count: number;
+}
+
+/**
+ * Search runs with friendly parameters instead of raw OData filter syntax.
+ * Uses server-side filtering for performance.
+ */
+export async function searchRuns(
+  subscriptionId: string,
+  resourceGroupName: string,
+  logicAppName: string,
+  workflowName?: string,
+  status?: "Succeeded" | "Failed" | "Cancelled" | "Running",
+  startTime?: string,
+  endTime?: string,
+  clientTrackingId?: string,
+  top: number = 25
+): Promise<SearchRunsResult> {
+  // Build OData filter from friendly parameters
+  const filterParts: string[] = [];
+
+  if (status) {
+    filterParts.push(`status eq '${status}'`);
+  }
+  if (startTime) {
+    filterParts.push(`startTime ge ${startTime}`);
+  }
+  if (endTime) {
+    filterParts.push(`startTime le ${endTime}`);
+  }
+
+  const filter = filterParts.length > 0 ? filterParts.join(" and ") : undefined;
+
+  // Use existing listRunHistory with the constructed filter
+  const result = await listRunHistory(
+    subscriptionId,
+    resourceGroupName,
+    logicAppName,
+    workflowName,
+    top,
+    filter
+  );
+
+  // Client-side filter for clientTrackingId if provided (API doesn't support it in filter)
+  let runs = result.runs;
+  if (clientTrackingId) {
+    runs = runs.filter(
+      (run) => run.correlation?.clientTrackingId === clientTrackingId
+    );
+  }
+
+  return {
+    runs,
+    count: runs.length,
+  };
+}
