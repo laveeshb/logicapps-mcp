@@ -221,6 +221,122 @@ For connector-specific operations, use `get_connector_swagger` tool instead of d
 | 429 Too Many Requests | Rate limited | Add retry policy |
 | InvalidTemplate | Expression syntax error | Check expression syntax |
 | ActionFailed | Upstream action failed | Check `runAfter` dependencies |
+| "The browser is closed" | OAuth consent popup blocked/closed | Re-auth connection in portal |
+| Integration account required | JavaScript action needs integration account | Attach integration account to Logic App |
+| getConfiguration is not a function | VS Code extension bug | Restart VS Code, update extension |
+
+---
+
+## Frequently Asked Questions (from customer issues)
+
+These are the most common issues from Stack Overflow and GitHub:
+
+### Expression Patterns
+
+**Null checks in conditions:**
+```
+@equals(body('Http')?['field'], null)           -- Check if null
+@not(equals(body('Http')?['field'], null))      -- Check if NOT null
+@coalesce(body('Http')?['field'], 'default')    -- Provide default value
+```
+
+**Access query parameters from HTTP trigger:**
+```
+@triggerOutputs()['queries']['paramName']       -- Get query param
+@triggerOutputs()['headers']['headerName']      -- Get header
+@workflow().run.name                            -- Get current run ID
+```
+
+**Type conversions:**
+```
+@json(body('action'))                           -- Parse string to JSON
+@string(body('action'))                         -- Convert to string
+@int(triggerBody()['count'])                    -- Convert to integer
+@base64(body('GetBlob'))                        -- Encode as base64
+@base64ToString(body('action'))                 -- Decode base64
+```
+
+### HTTP/REST Patterns
+
+**x-www-form-urlencoded POST:**
+```json
+{
+  "type": "Http",
+  "inputs": {
+    "method": "POST",
+    "uri": "https://example.com/token",
+    "headers": { "Content-Type": "application/x-www-form-urlencoded" },
+    "body": "grant_type=client_credentials&client_id=xxx&client_secret=yyy"
+  }
+}
+```
+
+**Blob content as email attachment:**
+```json
+{
+  "Attachments": [{
+    "Name": "@{body('Get_blob')?['Name']}",
+    "ContentBytes": "@{body('Get_blob_content')['$content']}"
+  }]
+}
+```
+
+### Loop/Control Flow Patterns
+
+**ForEach with concurrency control:**
+```json
+{
+  "type": "Foreach",
+  "foreach": "@body('Get_items')",
+  "actions": { ... },
+  "operationOptions": "Sequential",
+  "runtimeConfiguration": { "concurrency": { "repetitions": 1 } }
+}
+```
+
+**Do-Until with max iterations:**
+```json
+{
+  "type": "Until",
+  "expression": "@equals(body('Check_status')['status'], 'complete')",
+  "limit": { "count": 60, "timeout": "PT1H" },
+  "actions": { "Check_status": { ... }, "Delay": { "type": "Wait", "inputs": { "interval": { "count": 30, "unit": "Second" } } } }
+}
+```
+
+### Connection/Auth Patterns
+
+**ARM template for OAuth connections (Office 365, etc.):**
+- Create connection resource
+- Connection will be in "Unauthenticated" state
+- User must click "Authorize" in Azure Portal to complete OAuth
+- Cannot fully automate OAuth connections via ARM/API
+
+**Managed Identity for HTTP calls:**
+```json
+{
+  "type": "Http",
+  "inputs": {
+    "method": "GET",
+    "uri": "https://management.azure.com/...",
+    "authentication": {
+      "type": "ManagedServiceIdentity",
+      "audience": "https://management.azure.com/"
+    }
+  }
+}
+```
+
+### Known Limitations (tell users proactively)
+
+| Limitation | Details |
+|------------|---------|
+| One trigger per workflow | Can't have multiple triggers; use multiple workflows |
+| Can't rename Logic Apps | Create new one with new name, copy definition, delete old |
+| JavaScript needs Integration Account | Consumption only, requires Standard/Premium tier integration account |
+| OAuth can't be fully automated | User must authorize interactively for OAuth connectors |
+| Delays/Until can hang | Known issue; use timeout limits and error handling |
+| Run history may not appear in Log Analytics | Standard SKU logging gap; check diagnostic settings |
 
 ---
 
