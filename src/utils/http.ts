@@ -123,6 +123,43 @@ export async function workflowMgmtRequest<T>(
   return (await response.json()) as T;
 }
 
+/**
+ * Make a request to the VFS (Kudu) API for Standard Logic Apps.
+ * Used for creating, updating, and deleting workflow files.
+ */
+export async function vfsRequest(
+  logicAppHostname: string,
+  path: string,
+  masterKey: string,
+  options: {
+    method?: "GET" | "PUT" | "DELETE";
+    body?: unknown;
+  } = {}
+): Promise<void> {
+  const url = `https://${logicAppHostname}${path}`;
+
+  const response = await fetch(url, {
+    method: options.method ?? "GET",
+    headers: {
+      "x-functions-key": masterKey,
+      "Content-Type": "application/json",
+      // VFS API requires If-Match header for PUT/DELETE operations
+      ...(options.method === "PUT" || options.method === "DELETE"
+        ? { "If-Match": "*" }
+        : {}),
+    },
+    body: options.body ? JSON.stringify(options.body) : undefined,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => "");
+    throw new McpError(
+      "ServiceError",
+      `VFS API error: ${response.status} ${response.statusText}${errorText ? ` - ${errorText}` : ""}`
+    );
+  }
+}
+
 async function handleArmError(response: Response): Promise<never> {
   let errorData: { error?: { code?: string; message?: string } } = {};
 

@@ -5,6 +5,7 @@
 import {
   armRequest,
   armRequestAllPages,
+  vfsRequest,
   workflowMgmtRequest,
 } from "../utils/http.js";
 import {
@@ -527,24 +528,26 @@ export async function createWorkflow(
     };
   }
 
-  // Standard: Create workflow within existing Logic App using ARM API
-  const workflowPayload: StandardWorkflowUpdatePayload = {
-    properties: {
-      files: {
-        "workflow.json": {
-          definition,
-          kind: kind ?? "Stateful",
-        },
-      },
-    },
+  // Standard: Create workflow within existing Logic App using VFS API
+  const { hostname, masterKey } = await getStandardAppAccess(
+    subscriptionId,
+    resourceGroupName,
+    logicAppName
+  );
+
+  const workflowContent: StandardWorkflowDefinitionFile = {
+    definition,
+    kind: kind ?? "Stateful",
   };
 
-  await armRequest(
-    `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Web/sites/${logicAppName}/workflows/${workflowName}`,
+  // Use VFS API to create the workflow.json file
+  await vfsRequest(
+    hostname,
+    `/admin/vfs/site/wwwroot/${workflowName}/workflow.json`,
+    masterKey,
     {
       method: "PUT",
-      queryParams: { "api-version": "2024-04-01" },
-      body: workflowPayload,
+      body: workflowContent,
     }
   );
 
@@ -663,24 +666,26 @@ export async function updateWorkflow(
     );
   }
 
-  // Standard: Update workflow using ARM API
-  const workflowPayload: StandardWorkflowUpdatePayload = {
-    properties: {
-      files: {
-        "workflow.json": {
-          definition,
-          kind: kind ?? "Stateful",
-        },
-      },
-    },
+  // Standard: Update workflow using VFS API
+  const { hostname, masterKey } = await getStandardAppAccess(
+    subscriptionId,
+    resourceGroupName,
+    logicAppName
+  );
+
+  const workflowContent: StandardWorkflowDefinitionFile = {
+    definition,
+    kind: kind ?? "Stateful",
   };
 
-  await armRequest(
-    `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Web/sites/${logicAppName}/workflows/${workflowName}`,
+  // Use VFS API to update the workflow.json file
+  await vfsRequest(
+    hostname,
+    `/admin/vfs/site/wwwroot/${workflowName}/workflow.json`,
+    masterKey,
     {
       method: "PUT",
-      queryParams: { "api-version": "2024-04-01" },
-      body: workflowPayload,
+      body: workflowContent,
     }
   );
 
@@ -738,12 +743,20 @@ export async function deleteWorkflow(
     );
   }
 
-  // Standard: Delete workflow using ARM API
-  await armRequest(
-    `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Web/sites/${logicAppName}/workflows/${workflowName}`,
+  // Standard: Delete workflow using VFS API (delete the workflow folder)
+  const { hostname, masterKey } = await getStandardAppAccess(
+    subscriptionId,
+    resourceGroupName,
+    logicAppName
+  );
+
+  // Delete the workflow folder (recursive)
+  await vfsRequest(
+    hostname,
+    `/admin/vfs/site/wwwroot/${workflowName}/?recursive=true`,
+    masterKey,
     {
       method: "DELETE",
-      queryParams: { "api-version": "2024-04-01" },
     }
   );
 
