@@ -9,7 +9,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "list_subscriptions",
     description:
-      "List all Azure subscriptions accessible to the authenticated user",
+      "List all Azure subscriptions accessible to the authenticated user. Use this first to discover available subscriptions, then use list_logic_apps to find Logic Apps.",
     inputSchema: {
       type: "object",
       properties: {},
@@ -19,7 +19,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "list_logic_apps",
     description:
-      "List all Logic Apps (Consumption and Standard) in a subscription or resource group",
+      "List all Logic Apps in a subscription or resource group. Returns both Consumption and Standard SKUs. Consumption Logic Apps have a single workflow; Standard Logic Apps can have multiple workflows (use list_workflows to see them).",
     inputSchema: {
       type: "object",
       properties: {
@@ -43,7 +43,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "list_workflows",
     description:
-      "List workflows within a Standard Logic App (Standard SKU can have multiple workflows)",
+      "List workflows within a Logic App. Standard SKU can have multiple workflows; Consumption SKU returns a single workflow with the same name as the Logic App. Use this to discover workflow names before calling other workflow-specific tools.",
     inputSchema: {
       type: "object",
       properties: {
@@ -66,7 +66,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_workflow_definition",
     description:
-      "Get the full workflow definition (JSON) for a Logic App workflow",
+      "Get the full workflow definition JSON for a Logic App workflow. For Consumption SKU, omit workflowName. For Standard SKU, workflowName is required. Use update_workflow to modify the definition.",
     inputSchema: {
       type: "object",
       properties: {
@@ -94,7 +94,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_workflow_triggers",
     description:
-      "Get trigger information for a workflow including last/next execution times",
+      "Get trigger information for a workflow including last/next execution times. For Standard SKU, workflowName is required. Use run_trigger to manually fire a trigger, or get_trigger_history to see past executions.",
     inputSchema: {
       type: "object",
       properties: {
@@ -120,7 +120,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   },
   {
     name: "list_run_history",
-    description: "Get the run history for a workflow with optional filtering",
+    description: "Get the run history for a workflow with optional filtering. For Standard SKU, workflowName is required. Use search_runs for easier filtering by status/date. After finding a run, use get_run_details and get_run_actions to debug.",
     inputSchema: {
       type: "object",
       properties: {
@@ -154,7 +154,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   },
   {
     name: "get_run_details",
-    description: "Get detailed information about a specific workflow run",
+    description: "Get detailed information about a specific workflow run including status, timing, and error summary. For Standard SKU, workflowName is required. Use get_run_actions to see which specific action failed.",
     inputSchema: {
       type: "object",
       properties: {
@@ -189,7 +189,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   },
   {
     name: "get_run_actions",
-    description: "Get the action execution details for a specific workflow run",
+    description: "Get the action execution details for a specific workflow run including status, timing, and trackedProperties. For Standard SKU, workflowName is required. Use get_action_io to see actual inputs/outputs for an action.",
     inputSchema: {
       type: "object",
       properties: {
@@ -223,7 +223,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   },
   {
     name: "get_connections",
-    description: "List API connections used by Logic Apps in a resource group",
+    description: "List API connections (e.g., Office 365, SQL, Service Bus) in a resource group. Connections are shared resources used by Logic Apps for authentication. Use get_connection_details or test_connection for more info.",
     inputSchema: {
       type: "object",
       properties: {
@@ -331,7 +331,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_action_repetitions",
     description:
-      "Get iteration details for actions inside loops (ForEach, Until). Each iteration is a 'repetition' with its own status, inputs, and outputs.",
+      "Get iteration details for actions inside loops (ForEach, Until). Each iteration is a 'repetition' with its own status, inputs, outputs, and trackedProperties. For Standard SKU, workflowName is required. Essential for debugging loop failures.",
     inputSchema: {
       type: "object",
       properties: {
@@ -370,7 +370,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_action_request_history",
     description:
-      "Get HTTP request/response details for connector actions. Shows the actual HTTP calls made to external services including headers, body size, and response codes.",
+      "Get HTTP request/response details for connector actions including retries. Shows actual HTTP calls made to external services with headers, status codes, and timing. For Standard SKU, workflowName is required. Useful for debugging API failures.",
     inputSchema: {
       type: "object",
       properties: {
@@ -409,7 +409,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_trigger_callback_url",
     description:
-      "Get the callback URL for request-based triggers (HTTP, manual). This is the URL that must be called to invoke the workflow. Contains SAS token for authentication.",
+      "Get the callback URL for request-based triggers (HTTP, manual). Returns the URL with SAS token for invoking the workflow. For Standard SKU, workflowName is required. Use run_trigger to test the workflow instead of calling the URL directly.",
     inputSchema: {
       type: "object",
       properties: {
@@ -440,7 +440,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_scope_repetitions",
     description:
-      "Get execution details for scope action iterations (Scope, Switch, Condition). Shows which branch executed and its status.",
+      "Get execution details for scope action iterations (Scope, Switch, Condition). Shows which branch executed, status, and trackedProperties. For Standard SKU, workflowName is required.",
     inputSchema: {
       type: "object",
       properties: {
@@ -475,7 +475,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_expression_traces",
     description:
-      "Get expression evaluation traces for an action. Shows how workflow expressions were evaluated at runtime, including the expression text, result value, and any errors.",
+      "Get expression evaluation traces for an action. Shows how workflow expressions (e.g., @body(), @variables()) were evaluated at runtime, including the expression text, result value, and any errors. For Standard SKU, workflowName is required. Essential for debugging expression failures.",
     inputSchema: {
       type: "object",
       properties: {
@@ -510,7 +510,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_workflow_swagger",
     description:
-      "Get the OpenAPI/Swagger definition for a workflow. Shows available triggers and their schemas for API documentation and client SDK generation.",
+      "Get the OpenAPI/Swagger definition for a workflow. Shows trigger schemas and request/response formats. For Standard SKU, workflowName is required. Useful for API documentation or generating client SDKs.",
     inputSchema: {
       type: "object",
       properties: {
@@ -537,7 +537,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_action_io",
     description:
-      "Get the actual input/output content for a run action. Fetches the content from inputsLink/outputsLink URLs. Essential for debugging data issues.",
+      "Get the actual input/output data for a run action. Fetches content from inputsLink/outputsLink URLs. For Standard SKU, workflowName is required. Essential for debugging data transformation issues.",
     inputSchema: {
       type: "object",
       properties: {
@@ -577,7 +577,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "search_runs",
     description:
-      "Search run history with friendly parameters instead of raw OData filter syntax. Uses server-side filtering for performance.",
+      "Search run history with friendly parameters (status, startTime, endTime, clientTrackingId) instead of raw OData filter syntax. For Standard SKU, workflowName is required. Use this instead of list_run_history when filtering by specific criteria.",
     inputSchema: {
       type: "object",
       properties: {
@@ -652,7 +652,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_connection_details",
     description:
-      "Get detailed information about a specific API connection including status, configuration, and test links.",
+      "Get detailed information about a specific API connection including authentication status, configuration, and API reference. Use test_connection to verify the connection is working.",
     inputSchema: {
       type: "object",
       properties: {
@@ -675,7 +675,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "test_connection",
     description:
-      "Test if an API connection is valid and healthy. Checks connection status and attempts to validate using test links if available.",
+      "Test if an API connection is valid and working. Checks connection status and validates authentication. Use this to diagnose connector failures in workflow runs.",
     inputSchema: {
       type: "object",
       properties: {
@@ -755,7 +755,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "run_trigger",
     description:
-      "Manually run a workflow trigger to start a new workflow run. This fires the specified trigger immediately, bypassing any schedule or event condition. Useful for testing workflows or triggering on-demand runs.",
+      "Manually fire a workflow trigger to start a new run immediately, bypassing any schedule or event condition. For Standard SKU, workflowName is required. Use get_workflow_triggers first to find available trigger names. Then use list_run_history to see the result.",
     inputSchema: {
       type: "object",
       properties: {
@@ -786,7 +786,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "cancel_run",
     description:
-      "Cancel a running or waiting workflow run. Only runs that are currently in 'Running' or 'Waiting' status can be cancelled. Completed runs cannot be cancelled.",
+      "Cancel a running or waiting workflow run. Only runs in 'Running' or 'Waiting' status can be cancelled. For Standard SKU, workflowName is required. Use list_run_history or search_runs to find running runs first.",
     inputSchema: {
       type: "object",
       properties: {
@@ -857,7 +857,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "update_workflow",
     description:
-      "Update an existing workflow's definition. This replaces the entire workflow definition with the new one provided.",
+      "Update an existing workflow's definition. Replaces the entire definition with the new one. For Standard SKU, workflowName is required. Use get_workflow_definition first to get the current definition, modify it, then update.",
     inputSchema: {
       type: "object",
       properties: {
