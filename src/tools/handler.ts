@@ -14,6 +14,9 @@ import {
   getWorkflowVersion,
   enableWorkflow,
   disableWorkflow,
+  createWorkflow,
+  updateWorkflow,
+  deleteWorkflow,
 } from "./workflows.js";
 import { getTriggerHistory, getTriggerCallbackUrl, runTrigger } from "./triggers.js";
 import { listRunHistory, getRunDetails, getRunActions, getActionIO, searchRuns, cancelRun } from "./runs.js";
@@ -264,6 +267,35 @@ export async function handleToolCall(
           args.resourceGroupName as string,
           args.logicAppName as string,
           args.runId as string,
+          args.workflowName as string | undefined
+        );
+        break;
+      case "create_workflow":
+        result = await createWorkflow(
+          args.subscriptionId as string,
+          args.resourceGroupName as string,
+          args.logicAppName as string,
+          args.definition as import("../types/logicApp.js").WorkflowDefinition,
+          args.location as string | undefined,
+          args.workflowName as string | undefined,
+          args.kind as string | undefined
+        );
+        break;
+      case "update_workflow":
+        result = await updateWorkflow(
+          args.subscriptionId as string,
+          args.resourceGroupName as string,
+          args.logicAppName as string,
+          args.definition as import("../types/logicApp.js").WorkflowDefinition,
+          args.workflowName as string | undefined,
+          args.kind as string | undefined
+        );
+        break;
+      case "delete_workflow":
+        result = await deleteWorkflow(
+          args.subscriptionId as string,
+          args.resourceGroupName as string,
+          args.logicAppName as string,
           args.workflowName as string | undefined
         );
         break;

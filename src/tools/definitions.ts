@@ -814,4 +814,107 @@ export const TOOL_DEFINITIONS: Tool[] = [
       required: ["subscriptionId", "resourceGroupName", "logicAppName", "runId"],
     },
   },
+  {
+    name: "create_workflow",
+    description:
+      "Create a new workflow. For Consumption SKU, creates a new Logic App resource. For Standard SKU, creates a new workflow within an existing Logic App. Requires a valid workflow definition JSON that follows the Logic Apps schema.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        subscriptionId: {
+          type: "string",
+          description: "Azure subscription ID",
+        },
+        resourceGroupName: {
+          type: "string",
+          description: "Resource group name",
+        },
+        logicAppName: {
+          type: "string",
+          description: "Logic App resource name (for Consumption, this becomes the new Logic App name)",
+        },
+        definition: {
+          type: "object",
+          description: "The workflow definition JSON following the Logic Apps schema",
+        },
+        location: {
+          type: "string",
+          description: "Azure region (required for Consumption SKU, e.g., 'westus2', 'eastus')",
+        },
+        workflowName: {
+          type: "string",
+          description: "Workflow name (required for Standard SKU)",
+        },
+        kind: {
+          type: "string",
+          enum: ["Stateful", "Stateless"],
+          description: "Workflow kind for Standard SKU (default: 'Stateful')",
+        },
+      },
+      required: ["subscriptionId", "resourceGroupName", "logicAppName", "definition"],
+    },
+  },
+  {
+    name: "update_workflow",
+    description:
+      "Update an existing workflow's definition. This replaces the entire workflow definition with the new one provided.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        subscriptionId: {
+          type: "string",
+          description: "Azure subscription ID",
+        },
+        resourceGroupName: {
+          type: "string",
+          description: "Resource group name",
+        },
+        logicAppName: {
+          type: "string",
+          description: "Logic App resource name",
+        },
+        definition: {
+          type: "object",
+          description: "The new workflow definition JSON following the Logic Apps schema",
+        },
+        workflowName: {
+          type: "string",
+          description: "Workflow name (required for Standard SKU)",
+        },
+        kind: {
+          type: "string",
+          enum: ["Stateful", "Stateless"],
+          description: "Workflow kind for Standard SKU (default: 'Stateful')",
+        },
+      },
+      required: ["subscriptionId", "resourceGroupName", "logicAppName", "definition"],
+    },
+  },
+  {
+    name: "delete_workflow",
+    description:
+      "Delete a workflow. For Consumption SKU, deletes the entire Logic App resource. For Standard SKU, deletes a specific workflow within the Logic App. Use with caution as this action cannot be undone.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        subscriptionId: {
+          type: "string",
+          description: "Azure subscription ID",
+        },
+        resourceGroupName: {
+          type: "string",
+          description: "Resource group name",
+        },
+        logicAppName: {
+          type: "string",
+          description: "Logic App resource name",
+        },
+        workflowName: {
+          type: "string",
+          description: "Workflow name (required for Standard SKU)",
+        },
+      },
+      required: ["subscriptionId", "resourceGroupName", "logicAppName"],
+    },
+  },
 ];

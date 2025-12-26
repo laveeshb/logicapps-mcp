@@ -11,6 +11,7 @@ import {
   ConsumptionLogicApp,
   StandardWorkflow,
   StandardWorkflowDefinitionFile,
+  StandardWorkflowUpdatePayload,
   TriggerState,
   WorkflowDefinition,
   WorkflowVersion,
@@ -439,5 +440,252 @@ export async function disableWorkflow(
     name: workflowName,
     state: "Disabled",
     message: `Standard workflow '${workflowName}' in '${logicAppName}' has been disabled.`,
+  };
+}
+
+export interface CreateWorkflowResult {
+  success: boolean;
+  name: string;
+  message: string;
+}
+
+/**
+ * Create a new workflow.
+ * - Consumption: Creates a new Logic App resource via ARM PUT
+ * - Standard: Creates a new workflow within an existing Logic App
+ */
+export async function createWorkflow(
+  subscriptionId: string,
+  resourceGroupName: string,
+  logicAppName: string,
+  definition: WorkflowDefinition,
+  location?: string,
+  workflowName?: string,
+  kind?: string
+): Promise<CreateWorkflowResult> {
+  // Try to detect if this is an existing Standard app
+  let sku: "consumption" | "standard" = "consumption";
+  try {
+    sku = await detectLogicAppSku(subscriptionId, resourceGroupName, logicAppName);
+  } catch {
+    // If detection fails, assume Consumption (creating new Logic App)
+    sku = "consumption";
+  }
+
+  if (sku === "consumption" || !workflowName) {
+    // Consumption: Create/update the entire Logic App resource
+    if (!location) {
+      throw new McpError(
+        "InvalidParameter",
+        "location is required when creating a Consumption Logic App"
+      );
+    }
+
+    const payload = {
+      location,
+      properties: {
+        definition,
+        state: "Enabled",
+      },
+    };
+
+    await armRequest<ConsumptionLogicApp>(
+      `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}`,
+      {
+        method: "PUT",
+        queryParams: { "api-version": "2019-05-01" },
+        body: payload,
+      }
+    );
+
+    return {
+      success: true,
+      name: logicAppName,
+      message: `Consumption Logic App '${logicAppName}' has been created in '${resourceGroupName}'.`,
+    };
+  }
+
+  // Standard: Create workflow within existing Logic App using ARM API
+  const workflowPayload: StandardWorkflowUpdatePayload = {
+    properties: {
+      files: {
+        "workflow.json": {
+          definition,
+          kind: kind ?? "Stateful",
+        },
+      },
+    },
+  };
+
+  await armRequest(
+    `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Web/sites/${logicAppName}/workflows/${workflowName}`,
+    {
+      method: "PUT",
+      queryParams: { "api-version": "2024-04-01" },
+      body: workflowPayload,
+    }
+  );
+
+  return {
+    success: true,
+    name: workflowName,
+    message: `Workflow '${workflowName}' has been created in Standard Logic App '${logicAppName}'.`,
+  };
+}
+
+export interface UpdateWorkflowResult {
+  success: boolean;
+  name: string;
+  message: string;
+}
+
+/**
+ * Update an existing workflow's definition.
+ * - Consumption: Updates the Logic App resource via ARM PUT
+ * - Standard: Updates the workflow within the Logic App
+ */
+export async function updateWorkflow(
+  subscriptionId: string,
+  resourceGroupName: string,
+  logicAppName: string,
+  definition: WorkflowDefinition,
+  workflowName?: string,
+  kind?: string
+): Promise<UpdateWorkflowResult> {
+  const sku = await detectLogicAppSku(
+    subscriptionId,
+    resourceGroupName,
+    logicAppName
+  );
+
+  if (sku === "consumption") {
+    // Get current workflow to preserve other properties
+    const current = await armRequest<ConsumptionLogicApp>(
+      `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}`,
+      { queryParams: { "api-version": "2019-05-01" } }
+    );
+
+    const payload = {
+      location: current.location,
+      properties: {
+        definition,
+        state: current.properties.state,
+        parameters: current.properties.parameters,
+      },
+      tags: current.tags,
+    };
+
+    await armRequest<ConsumptionLogicApp>(
+      `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}`,
+      {
+        method: "PUT",
+        queryParams: { "api-version": "2019-05-01" },
+        body: payload,
+      }
+    );
+
+    return {
+      success: true,
+      name: logicAppName,
+      message: `Consumption workflow '${logicAppName}' has been updated.`,
+    };
+  }
+
+  // Standard - requires workflowName
+  if (!workflowName) {
+    throw new McpError(
+      "InvalidParameter",
+      "workflowName is required for Standard Logic Apps"
+    );
+  }
+
+  // Standard: Update workflow using ARM API
+  const workflowPayload: StandardWorkflowUpdatePayload = {
+    properties: {
+      files: {
+        "workflow.json": {
+          definition,
+          kind: kind ?? "Stateful",
+        },
+      },
+    },
+  };
+
+  await armRequest(
+    `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Web/sites/${logicAppName}/workflows/${workflowName}`,
+    {
+      method: "PUT",
+      queryParams: { "api-version": "2024-04-01" },
+      body: workflowPayload,
+    }
+  );
+
+  return {
+    success: true,
+    name: workflowName,
+    message: `Workflow '${workflowName}' in '${logicAppName}' has been updated.`,
+  };
+}
+
+export interface DeleteWorkflowResult {
+  success: boolean;
+  name: string;
+  message: string;
+}
+
+/**
+ * Delete a workflow.
+ * - Consumption: Deletes the entire Logic App resource
+ * - Standard: Deletes a specific workflow within the Logic App
+ */
+export async function deleteWorkflow(
+  subscriptionId: string,
+  resourceGroupName: string,
+  logicAppName: string,
+  workflowName?: string
+): Promise<DeleteWorkflowResult> {
+  const sku = await detectLogicAppSku(
+    subscriptionId,
+    resourceGroupName,
+    logicAppName
+  );
+
+  if (sku === "consumption") {
+    await armRequest(
+      `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}`,
+      {
+        method: "DELETE",
+        queryParams: { "api-version": "2019-05-01" },
+      }
+    );
+
+    return {
+      success: true,
+      name: logicAppName,
+      message: `Consumption Logic App '${logicAppName}' has been deleted.`,
+    };
+  }
+
+  // Standard - requires workflowName
+  if (!workflowName) {
+    throw new McpError(
+      "InvalidParameter",
+      "workflowName is required for Standard Logic Apps (to delete only a specific workflow)"
+    );
+  }
+
+  // Standard: Delete workflow using ARM API
+  await armRequest(
+    `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Web/sites/${logicAppName}/workflows/${workflowName}`,
+    {
+      method: "DELETE",
+      queryParams: { "api-version": "2024-04-01" },
+    }
+  );
+
+  return {
+    success: true,
+    name: workflowName,
+    message: `Workflow '${workflowName}' has been deleted from '${logicAppName}'.`,
   };
 }

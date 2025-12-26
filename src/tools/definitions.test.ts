@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import { TOOL_DEFINITIONS } from "./definitions.js";
 
 describe("tool definitions", () => {
-  it("should have all 27 tools defined", () => {
-    expect(TOOL_DEFINITIONS).toHaveLength(27);
+  it("should have all 30 tools defined", () => {
+    expect(TOOL_DEFINITIONS).toHaveLength(30);
   });
 
   it("should have unique tool names", () => {
@@ -262,6 +262,71 @@ describe("tool definitions", () => {
       expect(tool?.inputSchema.required).toContain("resourceGroupName");
       expect(tool?.inputSchema.required).toContain("logicAppName");
       expect(tool?.inputSchema.required).toContain("runId");
+    });
+
+    it("should have optional workflowName parameter", () => {
+      expect(tool?.inputSchema.properties).toHaveProperty("workflowName");
+      expect(tool?.inputSchema.required).not.toContain("workflowName");
+    });
+  });
+
+  describe("create_workflow", () => {
+    const tool = TOOL_DEFINITIONS.find((t) => t.name === "create_workflow");
+
+    it("should be defined", () => {
+      expect(tool).toBeDefined();
+    });
+
+    it("should require subscriptionId, resourceGroupName, logicAppName, and definition", () => {
+      expect(tool?.inputSchema.required).toContain("subscriptionId");
+      expect(tool?.inputSchema.required).toContain("resourceGroupName");
+      expect(tool?.inputSchema.required).toContain("logicAppName");
+      expect(tool?.inputSchema.required).toContain("definition");
+    });
+
+    it("should have optional location, workflowName, and kind parameters", () => {
+      expect(tool?.inputSchema.properties).toHaveProperty("location");
+      expect(tool?.inputSchema.properties).toHaveProperty("workflowName");
+      expect(tool?.inputSchema.properties).toHaveProperty("kind");
+      expect(tool?.inputSchema.required).not.toContain("location");
+      expect(tool?.inputSchema.required).not.toContain("workflowName");
+      expect(tool?.inputSchema.required).not.toContain("kind");
+    });
+  });
+
+  describe("update_workflow", () => {
+    const tool = TOOL_DEFINITIONS.find((t) => t.name === "update_workflow");
+
+    it("should be defined", () => {
+      expect(tool).toBeDefined();
+    });
+
+    it("should require subscriptionId, resourceGroupName, logicAppName, and definition", () => {
+      expect(tool?.inputSchema.required).toContain("subscriptionId");
+      expect(tool?.inputSchema.required).toContain("resourceGroupName");
+      expect(tool?.inputSchema.required).toContain("logicAppName");
+      expect(tool?.inputSchema.required).toContain("definition");
+    });
+
+    it("should have optional workflowName and kind parameters", () => {
+      expect(tool?.inputSchema.properties).toHaveProperty("workflowName");
+      expect(tool?.inputSchema.properties).toHaveProperty("kind");
+      expect(tool?.inputSchema.required).not.toContain("workflowName");
+      expect(tool?.inputSchema.required).not.toContain("kind");
+    });
+  });
+
+  describe("delete_workflow", () => {
+    const tool = TOOL_DEFINITIONS.find((t) => t.name === "delete_workflow");
+
+    it("should be defined", () => {
+      expect(tool).toBeDefined();
+    });
+
+    it("should require subscriptionId, resourceGroupName, and logicAppName", () => {
+      expect(tool?.inputSchema.required).toContain("subscriptionId");
+      expect(tool?.inputSchema.required).toContain("resourceGroupName");
+      expect(tool?.inputSchema.required).toContain("logicAppName");
     });
 
     it("should have optional workflowName parameter", () => {
