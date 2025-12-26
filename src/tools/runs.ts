@@ -55,6 +55,7 @@ export interface GetRunActionsResult {
       code: string;
       message: string;
     };
+    trackedProperties?: Record<string, unknown>;
   }>;
 }
 
@@ -265,6 +266,7 @@ async function getRunActionsConsumption(
           startTime: action.properties.startTime,
           endTime: action.properties.endTime,
           error: action.properties.error,
+          trackedProperties: action.properties.trackedProperties,
         },
       ],
     };
@@ -282,6 +284,7 @@ async function getRunActionsConsumption(
       startTime: action.properties.startTime,
       endTime: action.properties.endTime,
       error: action.properties.error,
+      trackedProperties: action.properties.trackedProperties,
     })),
   };
 }
@@ -317,6 +320,7 @@ async function getRunActionsStandard(
           startTime: action.properties.startTime,
           endTime: action.properties.endTime,
           error: action.properties.error,
+          trackedProperties: action.properties.trackedProperties,
         },
       ],
     };
@@ -338,6 +342,7 @@ async function getRunActionsStandard(
       startTime: action.properties.startTime,
       endTime: action.properties.endTime,
       error: action.properties.error,
+      trackedProperties: action.properties.trackedProperties,
     })),
   };
 }
