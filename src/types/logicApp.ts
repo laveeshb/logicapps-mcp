@@ -51,6 +51,7 @@ export interface LogicApp {
 export interface WorkflowDefinition {
   $schema: string;
   contentVersion: string;
+  parameters?: Record<string, unknown>;
   triggers?: Record<string, Trigger>;
   actions?: Record<string, Action>;
   outputs?: Record<string, unknown>;

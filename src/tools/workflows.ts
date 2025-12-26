@@ -596,8 +596,22 @@ export async function updateWorkflow(
       { queryParams: { "api-version": "2019-05-01" } }
     );
 
-    // Build parameters with connection references if provided
-    let parameters = current.properties.parameters || {};
+    // Get parameters declared in the definition
+    const definitionParams = definition.parameters || {};
+    
+    // Build parameters - only include parameters that are declared in the definition
+    let parameters: Record<string, unknown> = {};
+    
+    // Copy over existing parameter values that are still in the definition
+    if (current.properties.parameters) {
+      for (const [key, value] of Object.entries(current.properties.parameters)) {
+        if (key in definitionParams) {
+          parameters[key] = value;
+        }
+      }
+    }
+    
+    // If connections are provided, build the $connections parameter
     if (connections && Object.keys(connections).length > 0) {
       // Build $connections parameter value
       const connectionsValue: Record<string, { connectionId: string; connectionName: string; id: string }> = {};
@@ -608,11 +622,8 @@ export async function updateWorkflow(
           id: ref.id,
         };
       }
-      parameters = {
-        ...parameters,
-        $connections: {
-          value: connectionsValue,
-        },
+      parameters.$connections = {
+        value: connectionsValue,
       };
     }
 
