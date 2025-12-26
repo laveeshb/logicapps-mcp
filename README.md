@@ -8,6 +8,7 @@ An MCP (Model Context Protocol) server that enables AI assistants to interact wi
 
 - [Quick Start](#quick-start)
 - [Features](#features)
+- [AI-Powered Logic Apps Development](#ai-powered-logic-apps-development)
 - [Installation](#installation)
 - [Configuration](#configuration)
 - [Usage with Claude Desktop](#usage-with-claude-desktop)
@@ -47,6 +48,80 @@ az login
 - **Multi-Cloud**: Supports Azure Public, Government, and China clouds
 - **Secure Authentication**: Uses Azure CLI tokens with automatic refresh
 - **No Azure SDK**: Pure REST API implementation with minimal dependencies
+
+## AI-Powered Logic Apps Development
+
+This MCP server enables you to develop, test, and manage Logic Apps entirely through conversation with an AI assistant—no portal or VS Code extension required.
+
+### Development Workflow
+
+**Create a new workflow from a description:**
+> "Create a Logic App workflow that triggers on HTTP request, calls a REST API, and sends the response to a Service Bus queue"
+
+The AI can generate the workflow definition JSON and deploy it directly using `create_workflow`.
+
+**Iterate on designs:**
+> "Get the current workflow definition, add error handling with a try-catch scope, and update it"
+
+The AI retrieves the definition with `get_workflow_definition`, modifies it, and deploys with `update_workflow`.
+
+### Testing & Debugging
+
+**Run and verify:**
+> "Run the HTTP trigger on my-workflow and show me the results"
+
+The AI uses `run_trigger`, then `list_run_history` and `get_run_actions` to report outcomes.
+
+**Debug failures:**
+> "The last run failed. What went wrong?"
+
+The AI chains `list_run_history` → `get_run_details` → `get_run_actions` → `get_action_io` to trace the failure and show exact inputs/outputs.
+
+**Investigate loops:**
+> "Show me which iterations failed in the ForEach loop"
+
+Uses `get_action_repetitions` to analyze each iteration's status and data.
+
+### Operations & Management
+
+**Enable/disable for maintenance:**
+> "Disable the order-processing workflow while we update the backend API"
+
+**Cancel runaway executions:**
+> "There's a stuck workflow run. Cancel it."
+
+**Monitor health:**
+> "Show me all failed runs from the last 24 hours across my Logic Apps"
+
+### Typical Session
+
+```
+You: List my Logic Apps in the production resource group
+AI:  [Uses list_logic_apps] Found 3 Logic Apps: order-processor, notification-sender, data-sync
+
+You: Show me failed runs for order-processor today
+AI:  [Uses search_runs] Found 2 failed runs at 10:15 AM and 2:30 PM
+
+You: What failed in the 10:15 run?
+AI:  [Uses get_run_actions, get_action_io] The HTTP action failed with 503 Service Unavailable. 
+     The backend API at api.example.com was down.
+
+You: Add retry logic to that HTTP action - 3 retries with exponential backoff
+AI:  [Uses get_workflow_definition, update_workflow] Done. Added retry policy with 3 attempts.
+
+You: Run it again to test
+AI:  [Uses run_trigger, list_run_history] Success! The workflow completed in 2.3 seconds.
+```
+
+### Benefits Over Portal/Extension
+
+| Capability | Portal | VS Code Extension | AI + MCP |
+|------------|--------|-------------------|----------|
+| Natural language interface | ❌ | ❌ | ✅ |
+| Automated debugging | ❌ | ❌ | ✅ |
+| Batch operations | ❌ | Limited | ✅ |
+| Context-aware suggestions | ❌ | Limited | ✅ |
+| Works in any environment | ❌ | VS Code only | ✅ |
 
 ## Installation
 
