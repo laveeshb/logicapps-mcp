@@ -305,7 +305,8 @@ export async function handleToolCall(
           args.definition as import("../types/logicApp.js").WorkflowDefinition,
           args.location as string | undefined,
           args.workflowName as string | undefined,
-          args.kind as string | undefined
+          args.kind as string | undefined,
+          args.connections as Record<string, { connectionName: string; id: string }> | undefined
         );
         break;
       case "update_workflow":
@@ -315,7 +316,8 @@ export async function handleToolCall(
           args.logicAppName as string,
           args.definition as import("../types/logicApp.js").WorkflowDefinition,
           args.workflowName as string | undefined,
-          args.kind as string | undefined
+          args.kind as string | undefined,
+          args.connections as Record<string, { connectionName: string; id: string }> | undefined
         );
         break;
       case "delete_workflow":

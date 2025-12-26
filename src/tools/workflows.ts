@@ -461,7 +461,8 @@ export async function createWorkflow(
   definition: WorkflowDefinition,
   location?: string,
   workflowName?: string,
-  kind?: string
+  kind?: string,
+  connections?: Record<string, ConnectionReference>
 ): Promise<CreateWorkflowResult> {
   // Try to detect if this is an existing Standard app
   let sku: "consumption" | "standard" = "consumption";
@@ -481,11 +482,30 @@ export async function createWorkflow(
       );
     }
 
+    // Build parameters with connection references if provided
+    let parameters: Record<string, unknown> | undefined;
+    if (connections && Object.keys(connections).length > 0) {
+      const connectionsValue: Record<string, { connectionId: string; connectionName: string; id: string }> = {};
+      for (const [name, ref] of Object.entries(connections)) {
+        connectionsValue[name] = {
+          connectionId: `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Web/connections/${ref.connectionName}`,
+          connectionName: ref.connectionName,
+          id: ref.id,
+        };
+      }
+      parameters = {
+        $connections: {
+          value: connectionsValue,
+        },
+      };
+    }
+
     const payload = {
       location,
       properties: {
         definition,
         state: "Enabled",
+        ...(parameters && { parameters }),
       },
     };
 
@@ -498,10 +518,12 @@ export async function createWorkflow(
       }
     );
 
+    const connectionCount = connections ? Object.keys(connections).length : 0;
+    const connectionMsg = connectionCount > 0 ? ` with ${connectionCount} API connection(s)` : '';
     return {
       success: true,
       name: logicAppName,
-      message: `Consumption Logic App '${logicAppName}' has been created in '${resourceGroupName}'.`,
+      message: `Consumption Logic App '${logicAppName}' has been created in '${resourceGroupName}'${connectionMsg}.`,
     };
   }
 
@@ -540,6 +562,14 @@ export interface UpdateWorkflowResult {
 }
 
 /**
+ * Connection reference for wiring up API connections in Consumption Logic Apps.
+ */
+export interface ConnectionReference {
+  connectionName: string;
+  id: string;
+}
+
+/**
  * Update an existing workflow's definition.
  * - Consumption: Updates the Logic App resource via ARM PUT
  * - Standard: Updates the workflow within the Logic App
@@ -550,7 +580,8 @@ export async function updateWorkflow(
   logicAppName: string,
   definition: WorkflowDefinition,
   workflowName?: string,
-  kind?: string
+  kind?: string,
+  connections?: Record<string, ConnectionReference>
 ): Promise<UpdateWorkflowResult> {
   const sku = await detectLogicAppSku(
     subscriptionId,
@@ -565,12 +596,32 @@ export async function updateWorkflow(
       { queryParams: { "api-version": "2019-05-01" } }
     );
 
+    // Build parameters with connection references if provided
+    let parameters = current.properties.parameters || {};
+    if (connections && Object.keys(connections).length > 0) {
+      // Build $connections parameter value
+      const connectionsValue: Record<string, { connectionId: string; connectionName: string; id: string }> = {};
+      for (const [name, ref] of Object.entries(connections)) {
+        connectionsValue[name] = {
+          connectionId: `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Web/connections/${ref.connectionName}`,
+          connectionName: ref.connectionName,
+          id: ref.id,
+        };
+      }
+      parameters = {
+        ...parameters,
+        $connections: {
+          value: connectionsValue,
+        },
+      };
+    }
+
     const payload = {
       location: current.location,
       properties: {
         definition,
         state: current.properties.state,
-        parameters: current.properties.parameters,
+        parameters,
       },
       tags: current.tags,
     };
@@ -584,10 +635,12 @@ export async function updateWorkflow(
       }
     );
 
+    const connectionCount = connections ? Object.keys(connections).length : 0;
+    const connectionMsg = connectionCount > 0 ? ` with ${connectionCount} API connection(s)` : '';
     return {
       success: true,
       name: logicAppName,
-      message: `Consumption workflow '${logicAppName}' has been updated.`,
+      message: `Consumption workflow '${logicAppName}' has been updated${connectionMsg}.`,
     };
   }
 

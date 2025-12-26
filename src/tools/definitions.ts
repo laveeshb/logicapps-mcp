@@ -932,7 +932,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "create_workflow",
     description:
-      "Create a new workflow. For Consumption SKU, creates a new Logic App resource. For Standard SKU, creates a new workflow within an existing Logic App. Requires a valid workflow definition JSON that follows the Logic Apps schema. IMPORTANT: When adding connector actions (e.g., SQL, Service Bus, MSN Weather), use get_connector_swagger first to discover the correct action paths and schemas.",
+      "Create a new workflow. For Consumption SKU, creates a new Logic App resource. For Standard SKU, creates a new workflow within an existing Logic App. Requires a valid workflow definition JSON that follows the Logic Apps schema. IMPORTANT: When adding connector actions (e.g., SQL, Service Bus, MSN Weather), use get_connector_swagger first to discover the correct action paths and schemas. For Consumption SKU with connector actions, use the 'connections' parameter to wire up API connections.",
     inputSchema: {
       type: "object",
       properties: {
@@ -965,6 +965,24 @@ export const TOOL_DEFINITIONS: Tool[] = [
           enum: ["Stateful", "Stateless"],
           description: "Workflow kind for Standard SKU (default: 'Stateful')",
         },
+        connections: {
+          type: "object",
+          description: "API connection references for Consumption SKU. Object mapping connection names used in the definition to their connection details. Example: {\"office365\": {\"connectionName\": \"office365-test\", \"id\": \"/subscriptions/.../providers/Microsoft.Web/locations/.../managedApis/office365\"}}",
+          additionalProperties: {
+            type: "object",
+            properties: {
+              connectionName: {
+                type: "string",
+                description: "Name of the API connection resource",
+              },
+              id: {
+                type: "string",
+                description: "Resource ID of the managed API (e.g., /subscriptions/.../providers/Microsoft.Web/locations/.../managedApis/office365)",
+              },
+            },
+            required: ["connectionName", "id"],
+          },
+        },
       },
       required: ["subscriptionId", "resourceGroupName", "logicAppName", "definition"],
     },
@@ -972,7 +990,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "update_workflow",
     description:
-      "Update an existing workflow's definition. Replaces the entire definition with the new one. For Standard SKU, workflowName is required. Use get_workflow_definition first to get the current definition, modify it, then update. IMPORTANT: When adding connector actions, use get_connector_swagger to discover correct action paths and schemas.",
+      "Update an existing workflow's definition. Replaces the entire definition with the new one. For Standard SKU, workflowName is required. Use get_workflow_definition first to get the current definition, modify it, then update. IMPORTANT: When adding connector actions, use get_connector_swagger to discover correct action paths and schemas. For Consumption SKU with connector actions, use the 'connections' parameter to wire up API connections.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1000,6 +1018,24 @@ export const TOOL_DEFINITIONS: Tool[] = [
           type: "string",
           enum: ["Stateful", "Stateless"],
           description: "Workflow kind for Standard SKU (default: 'Stateful')",
+        },
+        connections: {
+          type: "object",
+          description: "API connection references for Consumption SKU. Object mapping connection names used in the definition to their connection details. Example: {\"office365\": {\"connectionName\": \"office365-test\", \"id\": \"/subscriptions/.../providers/Microsoft.Web/locations/.../managedApis/office365\"}}",
+          additionalProperties: {
+            type: "object",
+            properties: {
+              connectionName: {
+                type: "string",
+                description: "Name of the API connection resource",
+              },
+              id: {
+                type: "string",
+                description: "Resource ID of the managed API (e.g., /subscriptions/.../providers/Microsoft.Web/locations/.../managedApis/office365)",
+              },
+            },
+            required: ["connectionName", "id"],
+          },
         },
       },
       required: ["subscriptionId", "resourceGroupName", "logicAppName", "definition"],
