@@ -130,9 +130,23 @@ See [SKU Differences](reference/sku-differences.md) for full details.
 
 ---
 
-## When Uncertain
+## Finding More Information
 
+This documentation is in a modular structure. When you need detailed patterns:
+
+**Read files from these paths (relative to this file):**
+- `troubleshooting/expression-errors.md` - Null checks, type conversions, date handling
+- `troubleshooting/connection-issues.md` - OAuth, Managed Identity, connector auth
+- `troubleshooting/run-failures.md` - Failed actions, triggers, loops, timeouts
+- `troubleshooting/known-limitations.md` - Platform constraints and workarounds
+- `authoring/workflow-patterns.md` - Triggers, control flow, error handling patterns
+- `authoring/connector-patterns.md` - SQL, Service Bus, Blob, Office 365 examples
+- `authoring/deployment.md` - ARM templates, Terraform, CI/CD
+- `reference/tool-catalog.md` - All 33 MCP tools with examples
+- `reference/sku-differences.md` - Consumption vs Standard deep dive
+
+**When uncertain:**
 1. Use `get_connector_swagger` to discover connector operations
-2. Fetch Azure docs from URLs above (with user consent)
-3. Ask user for clarification rather than guessing
-4. Refer to detailed docs in this folder
+2. Fetch Azure docs from URLs in this file (with user consent)
+3. Read the relevant doc file above for patterns
+4. Ask user for clarification rather than guessing
