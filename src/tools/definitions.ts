@@ -752,4 +752,35 @@ export const TOOL_DEFINITIONS: Tool[] = [
       required: ["subscriptionId", "resourceGroupName", "logicAppName"],
     },
   },
+  {
+    name: "run_trigger",
+    description:
+      "Manually run a workflow trigger to start a new workflow run. This fires the specified trigger immediately, bypassing any schedule or event condition. Useful for testing workflows or triggering on-demand runs.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        subscriptionId: {
+          type: "string",
+          description: "Azure subscription ID",
+        },
+        resourceGroupName: {
+          type: "string",
+          description: "Resource group name",
+        },
+        logicAppName: {
+          type: "string",
+          description: "Logic App resource name",
+        },
+        triggerName: {
+          type: "string",
+          description: "The name of the trigger to run (e.g., 'manual', 'When_a_HTTP_request_is_received')",
+        },
+        workflowName: {
+          type: "string",
+          description: "Workflow name (required for Standard SKU)",
+        },
+      },
+      required: ["subscriptionId", "resourceGroupName", "logicAppName", "triggerName"],
+    },
+  },
 ];

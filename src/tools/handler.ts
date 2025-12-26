@@ -15,7 +15,7 @@ import {
   enableWorkflow,
   disableWorkflow,
 } from "./workflows.js";
-import { getTriggerHistory, getTriggerCallbackUrl } from "./triggers.js";
+import { getTriggerHistory, getTriggerCallbackUrl, runTrigger } from "./triggers.js";
 import { listRunHistory, getRunDetails, getRunActions, getActionIO, searchRuns } from "./runs.js";
 import { getActionRepetitions, getScopeRepetitions } from "./repetitions.js";
 import { getActionRequestHistory } from "./requestHistory.js";
@@ -246,6 +246,15 @@ export async function handleToolCall(
           args.subscriptionId as string,
           args.resourceGroupName as string,
           args.logicAppName as string,
+          args.workflowName as string | undefined
+        );
+        break;
+      case "run_trigger":
+        result = await runTrigger(
+          args.subscriptionId as string,
+          args.resourceGroupName as string,
+          args.logicAppName as string,
+          args.triggerName as string,
           args.workflowName as string | undefined
         );
         break;
