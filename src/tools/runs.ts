@@ -7,9 +7,9 @@ import {
   armRequestAllPages,
   workflowMgmtRequest,
 } from "../utils/http.js";
-import { WorkflowRun, RunAction } from "../types/logicApp.js";
+import { WorkflowRun, RunAction, ConsumptionLogicApp } from "../types/logicApp.js";
 import { McpError } from "../utils/errors.js";
-import { detectLogicAppSku, getStandardAppAccess } from "./shared.js";
+import { detectLogicAppSku, getStandardAppAccess, getConsumptionRunPortalUrl, getStandardRunPortalUrl } from "./shared.js";
 
 export interface ListRunHistoryResult {
   runs: Array<{
@@ -24,6 +24,7 @@ export interface ListRunHistoryResult {
     correlation?: {
       clientTrackingId: string;
     };
+    portalUrl?: string;
   }>;
 }
 
@@ -41,6 +42,7 @@ export interface GetRunDetailsResult {
       code: string;
       message: string;
     };
+    portalUrl?: string;
   };
 }
 
@@ -55,6 +57,7 @@ export interface GetRunActionsResult {
       code: string;
       message: string;
     };
+    trackedProperties?: Record<string, unknown>;
   }>;
 }
 
@@ -74,6 +77,13 @@ export async function listRunHistory(
   const effectiveTop = Math.min(top, 100);
 
   if (sku === "consumption") {
+    // Get Logic App to retrieve location for portal URLs
+    const logicApp = await armRequest<ConsumptionLogicApp>(
+      `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}`,
+      { queryParams: { "api-version": "2019-05-01" } }
+    );
+    const location = logicApp.location.toLowerCase().replace(/\s/g, "");
+
     const queryParams: Record<string, string> = {
       "api-version": "2019-05-01",
       $top: effectiveTop.toString(),
@@ -94,6 +104,7 @@ export async function listRunHistory(
         endTime: run.properties.endTime,
         trigger: { name: run.properties.trigger?.name ?? "unknown" },
         correlation: run.properties.correlation,
+        portalUrl: getConsumptionRunPortalUrl(subscriptionId, resourceGroupName, logicAppName, run.name, location),
       })),
     };
   }
@@ -132,6 +143,7 @@ export async function listRunHistory(
       endTime: run.properties.endTime,
       trigger: { name: run.properties.trigger?.name ?? "unknown" },
       correlation: run.properties.correlation,
+      portalUrl: getStandardRunPortalUrl(subscriptionId, resourceGroupName, logicAppName, workflowName, run.name),
     })),
   };
 }
@@ -150,6 +162,13 @@ export async function getRunDetails(
   );
 
   if (sku === "consumption") {
+    // Fetch Logic App details to get location
+    const logicApp = await armRequest<ConsumptionLogicApp>(
+      `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}`,
+      { queryParams: { "api-version": "2019-05-01" } }
+    );
+    const location = logicApp.location;
+
     const run = await armRequest<WorkflowRun>(
       `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}/runs/${runId}`,
       { queryParams: { "api-version": "2019-05-01" } }
@@ -164,6 +183,7 @@ export async function getRunDetails(
         endTime: run.properties.endTime,
         trigger: { name: run.properties.trigger?.name ?? "unknown" },
         error: run.properties.error,
+        portalUrl: getConsumptionRunPortalUrl(subscriptionId, resourceGroupName, logicAppName, run.name, location),
       },
     };
   }
@@ -196,6 +216,7 @@ export async function getRunDetails(
       endTime: run.properties.endTime,
       trigger: { name: run.properties.trigger?.name ?? "unknown" },
       error: run.properties.error,
+      portalUrl: getStandardRunPortalUrl(subscriptionId, resourceGroupName, logicAppName, workflowName, run.name),
     },
   };
 }
@@ -265,6 +286,7 @@ async function getRunActionsConsumption(
           startTime: action.properties.startTime,
           endTime: action.properties.endTime,
           error: action.properties.error,
+          trackedProperties: action.properties.trackedProperties,
         },
       ],
     };
@@ -282,6 +304,7 @@ async function getRunActionsConsumption(
       startTime: action.properties.startTime,
       endTime: action.properties.endTime,
       error: action.properties.error,
+      trackedProperties: action.properties.trackedProperties,
     })),
   };
 }
@@ -317,6 +340,7 @@ async function getRunActionsStandard(
           startTime: action.properties.startTime,
           endTime: action.properties.endTime,
           error: action.properties.error,
+          trackedProperties: action.properties.trackedProperties,
         },
       ],
     };
@@ -338,6 +362,7 @@ async function getRunActionsStandard(
       startTime: action.properties.startTime,
       endTime: action.properties.endTime,
       error: action.properties.error,
+      trackedProperties: action.properties.trackedProperties,
     })),
   };
 }
@@ -494,5 +519,66 @@ export async function searchRuns(
   return {
     runs,
     count: runs.length,
+  };
+}
+
+// ============================================================================
+// Write Operations
+// ============================================================================
+
+export interface CancelRunResult {
+  success: boolean;
+  runId: string;
+  message: string;
+}
+
+/**
+ * Cancel a running workflow run.
+ * Only runs with status 'Running' or 'Waiting' can be cancelled.
+ */
+export async function cancelRun(
+  subscriptionId: string,
+  resourceGroupName: string,
+  logicAppName: string,
+  runId: string,
+  workflowName?: string
+): Promise<CancelRunResult> {
+  const sku = await detectLogicAppSku(
+    subscriptionId,
+    resourceGroupName,
+    logicAppName
+  );
+
+  if (sku === "consumption") {
+    await armRequest(
+      `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}/runs/${runId}/cancel`,
+      { method: "POST", queryParams: { "api-version": "2019-05-01" } }
+    );
+
+    return {
+      success: true,
+      runId,
+      message: `Run '${runId}' has been cancelled for Consumption workflow '${logicAppName}'.`,
+    };
+  }
+
+  // Standard requires workflowName
+  if (!workflowName) {
+    throw new McpError(
+      "InvalidParameter",
+      "workflowName is required for Standard Logic Apps"
+    );
+  }
+
+  // For Standard, use the ARM API with hostruntime path
+  await armRequest(
+    `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Web/sites/${logicAppName}/hostruntime/runtime/webhooks/workflow/api/management/workflows/${workflowName}/runs/${runId}/cancel`,
+    { method: "POST", queryParams: { "api-version": "2022-03-01" } }
+  );
+
+  return {
+    success: true,
+    runId,
+    message: `Run '${runId}' has been cancelled for Standard workflow '${workflowName}' in '${logicAppName}'.`,
   };
 }

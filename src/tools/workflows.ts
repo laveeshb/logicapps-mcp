@@ -5,12 +5,14 @@
 import {
   armRequest,
   armRequestAllPages,
+  vfsRequest,
   workflowMgmtRequest,
 } from "../utils/http.js";
 import {
   ConsumptionLogicApp,
   StandardWorkflow,
   StandardWorkflowDefinitionFile,
+  StandardWorkflowUpdatePayload,
   TriggerState,
   WorkflowDefinition,
   WorkflowVersion,
@@ -308,5 +310,498 @@ export async function getWorkflowVersion(
     state: version.properties.state,
     definition: version.properties.definition,
     parameters: version.properties.parameters,
+  };
+}
+
+// ============================================================================
+// Standard App Settings Helper
+// ============================================================================
+
+interface AppSettingsResponse {
+  properties: Record<string, string>;
+}
+
+/**
+ * Update the FlowState app setting for a Standard Logic App workflow.
+ * For enable: removes the app setting (or sets to empty)
+ * For disable: sets "Workflows.<workflowName>.FlowState" to "Disabled"
+ */
+async function updateStandardWorkflowFlowState(
+  subscriptionId: string,
+  resourceGroupName: string,
+  logicAppName: string,
+  workflowName: string,
+  state: "Enabled" | "Disabled"
+): Promise<void> {
+  const settingName = `Workflows.${workflowName}.FlowState`;
+
+  // First, get current app settings
+  const currentSettings = await armRequest<AppSettingsResponse>(
+    `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Web/sites/${logicAppName}/config/appsettings/list`,
+    { method: "POST", queryParams: { "api-version": "2023-01-01" } }
+  );
+
+  const properties = { ...currentSettings.properties };
+
+  if (state === "Disabled") {
+    // Set the FlowState to Disabled
+    properties[settingName] = "Disabled";
+  } else {
+    // Remove the FlowState setting to enable (or set to empty string)
+    delete properties[settingName];
+  }
+
+  // Update app settings
+  await armRequest(
+    `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Web/sites/${logicAppName}/config/appsettings`,
+    {
+      method: "PUT",
+      queryParams: { "api-version": "2023-01-01" },
+      body: { properties },
+    }
+  );
+}
+
+// ============================================================================
+// Write Operations
+// ============================================================================
+
+export interface EnableDisableWorkflowResult {
+  success: boolean;
+  name: string;
+  state: "Enabled" | "Disabled";
+  message: string;
+}
+
+/**
+ * Enable a workflow (set state to Enabled).
+ */
+export async function enableWorkflow(
+  subscriptionId: string,
+  resourceGroupName: string,
+  logicAppName: string,
+  workflowName?: string
+): Promise<EnableDisableWorkflowResult> {
+  const sku = await detectLogicAppSku(
+    subscriptionId,
+    resourceGroupName,
+    logicAppName
+  );
+
+  if (sku === "consumption") {
+    await armRequest(
+      `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}/enable`,
+      { method: "POST", queryParams: { "api-version": "2019-05-01" } }
+    );
+
+    return {
+      success: true,
+      name: logicAppName,
+      state: "Enabled",
+      message: `Consumption workflow '${logicAppName}' has been enabled.`,
+    };
+  }
+
+  // Standard - requires workflowName
+  if (!workflowName) {
+    throw new McpError(
+      "InvalidParameter",
+      "workflowName is required for Standard Logic Apps"
+    );
+  }
+
+  // Standard Logic Apps use app settings to control workflow state
+  // Setting "Workflows.<workflowName>.FlowState" to empty or removing it enables the workflow
+  await updateStandardWorkflowFlowState(
+    subscriptionId,
+    resourceGroupName,
+    logicAppName,
+    workflowName,
+    "Enabled"
+  );
+
+  return {
+    success: true,
+    name: workflowName,
+    state: "Enabled",
+    message: `Standard workflow '${workflowName}' in '${logicAppName}' has been enabled.`,
+  };
+}
+
+/**
+ * Disable a workflow (set state to Disabled).
+ */
+export async function disableWorkflow(
+  subscriptionId: string,
+  resourceGroupName: string,
+  logicAppName: string,
+  workflowName?: string
+): Promise<EnableDisableWorkflowResult> {
+  const sku = await detectLogicAppSku(
+    subscriptionId,
+    resourceGroupName,
+    logicAppName
+  );
+
+  if (sku === "consumption") {
+    await armRequest(
+      `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}/disable`,
+      { method: "POST", queryParams: { "api-version": "2019-05-01" } }
+    );
+
+    return {
+      success: true,
+      name: logicAppName,
+      state: "Disabled",
+      message: `Consumption workflow '${logicAppName}' has been disabled.`,
+    };
+  }
+
+  // Standard - requires workflowName
+  if (!workflowName) {
+    throw new McpError(
+      "InvalidParameter",
+      "workflowName is required for Standard Logic Apps"
+    );
+  }
+
+  // Standard Logic Apps use app settings to control workflow state
+  // Setting "Workflows.<workflowName>.FlowState" to "Disabled" disables the workflow
+  await updateStandardWorkflowFlowState(
+    subscriptionId,
+    resourceGroupName,
+    logicAppName,
+    workflowName,
+    "Disabled"
+  );
+
+  return {
+    success: true,
+    name: workflowName,
+    state: "Disabled",
+    message: `Standard workflow '${workflowName}' in '${logicAppName}' has been disabled.`,
+  };
+}
+
+export interface CreateWorkflowResult {
+  success: boolean;
+  name: string;
+  message: string;
+}
+
+/**
+ * Create a new workflow.
+ * - Consumption: Creates a new Logic App resource via ARM PUT
+ * - Standard: Creates a new workflow within an existing Logic App
+ */
+export async function createWorkflow(
+  subscriptionId: string,
+  resourceGroupName: string,
+  logicAppName: string,
+  definition: WorkflowDefinition,
+  location?: string,
+  workflowName?: string,
+  kind?: string,
+  connections?: Record<string, ConnectionReference>
+): Promise<CreateWorkflowResult> {
+  // Try to detect if this is an existing Standard app
+  let sku: "consumption" | "standard" = "consumption";
+  try {
+    sku = await detectLogicAppSku(subscriptionId, resourceGroupName, logicAppName);
+  } catch {
+    // If detection fails, assume Consumption (creating new Logic App)
+    sku = "consumption";
+  }
+
+  if (sku === "consumption" || !workflowName) {
+    // Consumption: Create/update the entire Logic App resource
+    if (!location) {
+      throw new McpError(
+        "InvalidParameter",
+        "location is required when creating a Consumption Logic App"
+      );
+    }
+
+    // Build parameters with connection references if provided
+    let parameters: Record<string, unknown> | undefined;
+    if (connections && Object.keys(connections).length > 0) {
+      const connectionsValue: Record<string, { connectionId: string; connectionName: string; id: string }> = {};
+      for (const [name, ref] of Object.entries(connections)) {
+        connectionsValue[name] = {
+          connectionId: `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Web/connections/${ref.connectionName}`,
+          connectionName: ref.connectionName,
+          id: ref.id,
+        };
+      }
+      parameters = {
+        $connections: {
+          value: connectionsValue,
+        },
+      };
+    }
+
+    const payload = {
+      location,
+      properties: {
+        definition,
+        state: "Enabled",
+        ...(parameters && { parameters }),
+      },
+    };
+
+    await armRequest<ConsumptionLogicApp>(
+      `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}`,
+      {
+        method: "PUT",
+        queryParams: { "api-version": "2019-05-01" },
+        body: payload,
+      }
+    );
+
+    const connectionCount = connections ? Object.keys(connections).length : 0;
+    const connectionMsg = connectionCount > 0 ? ` with ${connectionCount} API connection(s)` : '';
+    return {
+      success: true,
+      name: logicAppName,
+      message: `Consumption Logic App '${logicAppName}' has been created in '${resourceGroupName}'${connectionMsg}.`,
+    };
+  }
+
+  // Standard: Create workflow within existing Logic App using VFS API
+  const { hostname, masterKey } = await getStandardAppAccess(
+    subscriptionId,
+    resourceGroupName,
+    logicAppName
+  );
+
+  const workflowContent: StandardWorkflowDefinitionFile = {
+    definition,
+    kind: kind ?? "Stateful",
+  };
+
+  // Use VFS API to create the workflow.json file
+  await vfsRequest(
+    hostname,
+    `/admin/vfs/site/wwwroot/${workflowName}/workflow.json`,
+    masterKey,
+    {
+      method: "PUT",
+      body: workflowContent,
+    }
+  );
+
+  return {
+    success: true,
+    name: workflowName,
+    message: `Workflow '${workflowName}' has been created in Standard Logic App '${logicAppName}'.`,
+  };
+}
+
+export interface UpdateWorkflowResult {
+  success: boolean;
+  name: string;
+  message: string;
+}
+
+/**
+ * Connection reference for wiring up API connections in Consumption Logic Apps.
+ */
+export interface ConnectionReference {
+  connectionName: string;
+  id: string;
+}
+
+/**
+ * Update an existing workflow's definition.
+ * - Consumption: Updates the Logic App resource via ARM PUT
+ * - Standard: Updates the workflow within the Logic App
+ */
+export async function updateWorkflow(
+  subscriptionId: string,
+  resourceGroupName: string,
+  logicAppName: string,
+  definition: WorkflowDefinition,
+  workflowName?: string,
+  kind?: string,
+  connections?: Record<string, ConnectionReference>
+): Promise<UpdateWorkflowResult> {
+  const sku = await detectLogicAppSku(
+    subscriptionId,
+    resourceGroupName,
+    logicAppName
+  );
+
+  if (sku === "consumption") {
+    // Get current workflow to preserve other properties
+    const current = await armRequest<ConsumptionLogicApp>(
+      `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}`,
+      { queryParams: { "api-version": "2019-05-01" } }
+    );
+
+    // Get parameters declared in the definition
+    const definitionParams = definition.parameters || {};
+    
+    // Build parameters - only include parameters that are declared in the definition
+    let parameters: Record<string, unknown> = {};
+    
+    // Copy over existing parameter values that are still in the definition
+    if (current.properties.parameters) {
+      for (const [key, value] of Object.entries(current.properties.parameters)) {
+        if (key in definitionParams) {
+          parameters[key] = value;
+        }
+      }
+    }
+    
+    // If connections are provided, build the $connections parameter
+    if (connections && Object.keys(connections).length > 0) {
+      // Build $connections parameter value
+      const connectionsValue: Record<string, { connectionId: string; connectionName: string; id: string }> = {};
+      for (const [name, ref] of Object.entries(connections)) {
+        connectionsValue[name] = {
+          connectionId: `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Web/connections/${ref.connectionName}`,
+          connectionName: ref.connectionName,
+          id: ref.id,
+        };
+      }
+      parameters.$connections = {
+        value: connectionsValue,
+      };
+    }
+
+    const payload = {
+      location: current.location,
+      properties: {
+        definition,
+        state: current.properties.state,
+        parameters,
+      },
+      tags: current.tags,
+    };
+
+    await armRequest<ConsumptionLogicApp>(
+      `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}`,
+      {
+        method: "PUT",
+        queryParams: { "api-version": "2019-05-01" },
+        body: payload,
+      }
+    );
+
+    const connectionCount = connections ? Object.keys(connections).length : 0;
+    const connectionMsg = connectionCount > 0 ? ` with ${connectionCount} API connection(s)` : '';
+    return {
+      success: true,
+      name: logicAppName,
+      message: `Consumption workflow '${logicAppName}' has been updated${connectionMsg}.`,
+    };
+  }
+
+  // Standard - requires workflowName
+  if (!workflowName) {
+    throw new McpError(
+      "InvalidParameter",
+      "workflowName is required for Standard Logic Apps"
+    );
+  }
+
+  // Standard: Update workflow using VFS API
+  const { hostname, masterKey } = await getStandardAppAccess(
+    subscriptionId,
+    resourceGroupName,
+    logicAppName
+  );
+
+  const workflowContent: StandardWorkflowDefinitionFile = {
+    definition,
+    kind: kind ?? "Stateful",
+  };
+
+  // Use VFS API to update the workflow.json file
+  await vfsRequest(
+    hostname,
+    `/admin/vfs/site/wwwroot/${workflowName}/workflow.json`,
+    masterKey,
+    {
+      method: "PUT",
+      body: workflowContent,
+    }
+  );
+
+  return {
+    success: true,
+    name: workflowName,
+    message: `Workflow '${workflowName}' in '${logicAppName}' has been updated.`,
+  };
+}
+
+export interface DeleteWorkflowResult {
+  success: boolean;
+  name: string;
+  message: string;
+}
+
+/**
+ * Delete a workflow.
+ * - Consumption: Deletes the entire Logic App resource
+ * - Standard: Deletes a specific workflow within the Logic App
+ */
+export async function deleteWorkflow(
+  subscriptionId: string,
+  resourceGroupName: string,
+  logicAppName: string,
+  workflowName?: string
+): Promise<DeleteWorkflowResult> {
+  const sku = await detectLogicAppSku(
+    subscriptionId,
+    resourceGroupName,
+    logicAppName
+  );
+
+  if (sku === "consumption") {
+    await armRequest(
+      `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}`,
+      {
+        method: "DELETE",
+        queryParams: { "api-version": "2019-05-01" },
+      }
+    );
+
+    return {
+      success: true,
+      name: logicAppName,
+      message: `Consumption Logic App '${logicAppName}' has been deleted.`,
+    };
+  }
+
+  // Standard - requires workflowName
+  if (!workflowName) {
+    throw new McpError(
+      "InvalidParameter",
+      "workflowName is required for Standard Logic Apps (to delete only a specific workflow)"
+    );
+  }
+
+  // Standard: Delete workflow using VFS API (delete the workflow folder)
+  const { hostname, masterKey } = await getStandardAppAccess(
+    subscriptionId,
+    resourceGroupName,
+    logicAppName
+  );
+
+  // Delete the workflow folder (recursive)
+  await vfsRequest(
+    hostname,
+    `/admin/vfs/site/wwwroot/${workflowName}/?recursive=true`,
+    masterKey,
+    {
+      method: "DELETE",
+    }
+  );
+
+  return {
+    success: true,
+    name: workflowName,
+    message: `Workflow '${workflowName}' has been deleted from '${logicAppName}'.`,
   };
 }

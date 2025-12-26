@@ -1,0 +1,69 @@
+{
+  "location": "westus2",
+  "properties": {
+    "state": "Enabled",
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        }
+      },
+      "triggers": {
+        "When_a_HTTP_request_is_received": {
+          "type": "Request",
+          "kind": "Http",
+          "inputs": {
+            "schema": {}
+          }
+        }
+      },
+      "actions": {
+        "Get_current_weather": {
+          "type": "ApiConnection",
+          "inputs": {
+            "host": {
+              "connection": {
+                "name": "@parameters('$connections')['msnweather']['connectionId']"
+              }
+            },
+            "method": "get",
+            "path": "/forecast/today/@{encodeURIComponent('Seattle, WA')}",
+            "queries": {
+              "units": "I"
+            }
+          },
+          "runAfter": {}
+        },
+        "Response": {
+          "type": "Response",
+          "kind": "Http",
+          "inputs": {
+            "statusCode": 200,
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": "@body('Get_current_weather')"
+          },
+          "runAfter": {
+            "Get_current_weather": ["Succeeded"]
+          }
+        }
+      },
+      "outputs": {}
+    },
+    "parameters": {
+      "$connections": {
+        "value": {
+          "msnweather": {
+            "connectionId": "/subscriptions/7246da25-bfbb-4bd2-acad-3658085e2e6d/resourceGroups/mcp-test-rg/providers/Microsoft.Web/connections/msn-weather",
+            "connectionName": "msn-weather",
+            "id": "/subscriptions/7246da25-bfbb-4bd2-acad-3658085e2e6d/providers/Microsoft.Web/locations/westus2/managedApis/msnweather"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "servers": {
+    "logicapps": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["Q:/my-projects/logicapps-mcp/dist/index.js"],
+      "env": {
+        "AZURE_SUBSCRIPTION_ID": "<your-subscription-id>",
+        "AZURE_TENANT_ID": "<your-tenant-id>",
+        "AZURE_CLIENT_ID": "<your-client-id>",
+        "AZURE_CLIENT_SECRET": "<your-client-secret>"
+      }
+    }
+  }
+}

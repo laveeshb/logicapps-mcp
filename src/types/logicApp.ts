@@ -51,6 +51,7 @@ export interface LogicApp {
 export interface WorkflowDefinition {
   $schema: string;
   contentVersion: string;
+  parameters?: Record<string, unknown>;
   triggers?: Record<string, Trigger>;
   actions?: Record<string, Action>;
   outputs?: Record<string, unknown>;
@@ -166,10 +167,24 @@ export interface StandardWorkflow {
   triggers?: Record<string, { type: string; kind?: string }>;
 }
 
-// Standard workflow definition file (from VFS endpoint)
+// Standard workflow definition file (from management API PUT/GET)
 export interface StandardWorkflowDefinitionFile {
   definition: WorkflowDefinition;
   kind: string;
+  runtimeConfiguration?: Record<string, unknown>;
+}
+
+// Standard workflow update payload (for PUT operations)
+export interface StandardWorkflowUpdatePayload {
+  properties: {
+    files: {
+      "workflow.json": StandardWorkflowDefinitionFile;
+    };
+    health?: {
+      state: string;
+    };
+    isDisabled?: boolean;
+  };
 }
 
 // Host status (Standard SKU only - from /admin/host/status)

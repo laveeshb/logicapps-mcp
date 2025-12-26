@@ -25,7 +25,7 @@ async function main(): Promise<void> {
 
   const server = new Server(
     { name: "flowie", version: "0.1.0" },
-    { capabilities: { tools: {} } }
+    { capabilities: { tools: {}, prompts: {} } }
   );
 
   registerTools(server);

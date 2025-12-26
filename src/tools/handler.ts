@@ -12,14 +12,19 @@ import {
   getWorkflowTriggers,
   listWorkflowVersions,
   getWorkflowVersion,
+  enableWorkflow,
+  disableWorkflow,
+  createWorkflow,
+  updateWorkflow,
+  deleteWorkflow,
 } from "./workflows.js";
-import { getTriggerHistory, getTriggerCallbackUrl } from "./triggers.js";
-import { listRunHistory, getRunDetails, getRunActions, getActionIO, searchRuns } from "./runs.js";
+import { getTriggerHistory, getTriggerCallbackUrl, runTrigger } from "./triggers.js";
+import { listRunHistory, getRunDetails, getRunActions, getActionIO, searchRuns, cancelRun } from "./runs.js";
 import { getActionRepetitions, getScopeRepetitions } from "./repetitions.js";
 import { getActionRequestHistory } from "./requestHistory.js";
 import { getExpressionTraces } from "./expressions.js";
 import { getWorkflowSwagger } from "./swagger.js";
-import { getConnections, getConnectionDetails, testConnection } from "./connections.js";
+import { getConnections, getConnectionDetails, testConnection, getConnectorSwagger, invokeConnectorOperation, createConnection } from "./connections.js";
 import { getHostStatus } from "./host.js";
 import { McpError, formatError } from "../utils/errors.js";
 
@@ -97,6 +102,17 @@ export async function handleToolCall(
         result = await getConnections(
           args.subscriptionId as string,
           args.resourceGroupName as string
+        );
+        break;
+      case "create_connection":
+        result = await createConnection(
+          args.subscriptionId as string,
+          args.resourceGroupName as string,
+          args.connectionName as string,
+          args.connectorName as string,
+          args.location as string,
+          args.displayName as string | undefined,
+          args.parameterValues as Record<string, unknown> | undefined
         );
         break;
       case "get_host_status":
@@ -228,6 +244,88 @@ export async function handleToolCall(
           args.subscriptionId as string,
           args.resourceGroupName as string,
           args.connectionName as string
+        );
+        break;
+      case "get_connector_swagger":
+        result = await getConnectorSwagger(
+          args.subscriptionId as string,
+          args.location as string,
+          args.connectorName as string
+        );
+        break;
+      case "invoke_connector_operation":
+        result = await invokeConnectorOperation(
+          args.subscriptionId as string,
+          args.resourceGroupName as string,
+          args.connectionName as string,
+          args.operationId as string,
+          args.parameters as Record<string, unknown> | undefined
+        );
+        break;
+      // Write Operations
+      case "enable_workflow":
+        result = await enableWorkflow(
+          args.subscriptionId as string,
+          args.resourceGroupName as string,
+          args.logicAppName as string,
+          args.workflowName as string | undefined
+        );
+        break;
+      case "disable_workflow":
+        result = await disableWorkflow(
+          args.subscriptionId as string,
+          args.resourceGroupName as string,
+          args.logicAppName as string,
+          args.workflowName as string | undefined
+        );
+        break;
+      case "run_trigger":
+        result = await runTrigger(
+          args.subscriptionId as string,
+          args.resourceGroupName as string,
+          args.logicAppName as string,
+          args.triggerName as string,
+          args.workflowName as string | undefined
+        );
+        break;
+      case "cancel_run":
+        result = await cancelRun(
+          args.subscriptionId as string,
+          args.resourceGroupName as string,
+          args.logicAppName as string,
+          args.runId as string,
+          args.workflowName as string | undefined
+        );
+        break;
+      case "create_workflow":
+        result = await createWorkflow(
+          args.subscriptionId as string,
+          args.resourceGroupName as string,
+          args.logicAppName as string,
+          args.definition as import("../types/logicApp.js").WorkflowDefinition,
+          args.location as string | undefined,
+          args.workflowName as string | undefined,
+          args.kind as string | undefined,
+          args.connections as Record<string, { connectionName: string; id: string }> | undefined
+        );
+        break;
+      case "update_workflow":
+        result = await updateWorkflow(
+          args.subscriptionId as string,
+          args.resourceGroupName as string,
+          args.logicAppName as string,
+          args.definition as import("../types/logicApp.js").WorkflowDefinition,
+          args.workflowName as string | undefined,
+          args.kind as string | undefined,
+          args.connections as Record<string, { connectionName: string; id: string }> | undefined
+        );
+        break;
+      case "delete_workflow":
+        result = await deleteWorkflow(
+          args.subscriptionId as string,
+          args.resourceGroupName as string,
+          args.logicAppName as string,
+          args.workflowName as string | undefined
         );
         break;
       default:

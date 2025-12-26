@@ -9,7 +9,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "list_subscriptions",
     description:
-      "List all Azure subscriptions accessible to the authenticated user",
+      "List all Azure subscriptions accessible to the authenticated user. Use this first to discover available subscriptions, then use list_logic_apps to find Logic Apps.",
     inputSchema: {
       type: "object",
       properties: {},
@@ -19,7 +19,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "list_logic_apps",
     description:
-      "List all Logic Apps (Consumption and Standard) in a subscription or resource group",
+      "List all Logic Apps in a subscription or resource group. Returns both Consumption and Standard SKUs. Consumption Logic Apps have a single workflow; Standard Logic Apps can have multiple workflows (use list_workflows to see them).",
     inputSchema: {
       type: "object",
       properties: {
@@ -43,7 +43,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "list_workflows",
     description:
-      "List workflows within a Standard Logic App (Standard SKU can have multiple workflows)",
+      "List workflows within a Logic App. Standard SKU can have multiple workflows; Consumption SKU returns a single workflow with the same name as the Logic App. Use this to discover workflow names before calling other workflow-specific tools.",
     inputSchema: {
       type: "object",
       properties: {
@@ -66,7 +66,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_workflow_definition",
     description:
-      "Get the full workflow definition (JSON) for a Logic App workflow",
+      "Get the full workflow definition JSON for a Logic App workflow. For Consumption SKU, omit workflowName. For Standard SKU, workflowName is required. Use update_workflow to modify the definition.",
     inputSchema: {
       type: "object",
       properties: {
@@ -94,7 +94,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_workflow_triggers",
     description:
-      "Get trigger information for a workflow including last/next execution times",
+      "Get trigger information for a workflow including last/next execution times. For Standard SKU, workflowName is required. Use run_trigger to manually fire a trigger, or get_trigger_history to see past executions.",
     inputSchema: {
       type: "object",
       properties: {
@@ -120,7 +120,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   },
   {
     name: "list_run_history",
-    description: "Get the run history for a workflow with optional filtering",
+    description: "Get the run history for a workflow with optional filtering. For Standard SKU, workflowName is required. Use search_runs for easier filtering by status/date. After finding a run, use get_run_details and get_run_actions to debug.",
     inputSchema: {
       type: "object",
       properties: {
@@ -154,7 +154,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   },
   {
     name: "get_run_details",
-    description: "Get detailed information about a specific workflow run",
+    description: "Get detailed information about a specific workflow run including status, timing, and error summary. For Standard SKU, workflowName is required. Use get_run_actions to see which specific action failed.",
     inputSchema: {
       type: "object",
       properties: {
@@ -189,7 +189,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   },
   {
     name: "get_run_actions",
-    description: "Get the action execution details for a specific workflow run",
+    description: "Get the action execution details for a specific workflow run including status, timing, and trackedProperties. For Standard SKU, workflowName is required. Use get_action_io to see actual inputs/outputs for an action.",
     inputSchema: {
       type: "object",
       properties: {
@@ -223,7 +223,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   },
   {
     name: "get_connections",
-    description: "List API connections used by Logic Apps in a resource group",
+    description: "List API connections (e.g., Office 365, SQL, Service Bus) in a resource group. Connections are shared resources used by Logic Apps for authentication. Use get_connection_details or test_connection for more info.",
     inputSchema: {
       type: "object",
       properties: {
@@ -237,6 +237,121 @@ export const TOOL_DEFINITIONS: Tool[] = [
         },
       },
       required: ["subscriptionId", "resourceGroupName"],
+    },
+  },
+  {
+    name: "create_connection",
+    description:
+      "Create a new API connection for a managed connector (e.g., azureblob, sql, servicebus, office365). " +
+      "For OAuth-based connectors (like azureblob with OAuth, office365), returns a consent link that must be opened in a browser to authorize. " +
+      "For parameter-based connectors (like SQL with connection string), provide the parameters directly. " +
+      "Common OAuth connectors: azureblob, office365, outlook, onedrive, sharepoint, dynamicscrm. " +
+      "Common parameter connectors: sql (server, database, username, password), servicebus (connectionString).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        subscriptionId: {
+          type: "string",
+          description: "Azure subscription ID",
+        },
+        resourceGroupName: {
+          type: "string",
+          description: "Resource group name",
+        },
+        connectionName: {
+          type: "string",
+          description: "Name for the new connection (e.g., 'azureblob-1', 'my-sql-connection')",
+        },
+        connectorName: {
+          type: "string",
+          description: "Managed connector name (e.g., 'azureblob', 'sql', 'servicebus', 'office365')",
+        },
+        location: {
+          type: "string",
+          description: "Azure region (e.g., 'westus2', 'eastus'). Should match Logic App region.",
+        },
+        displayName: {
+          type: "string",
+          description: "Friendly display name for the connection (optional, defaults to connectionName)",
+        },
+        parameterValues: {
+          type: "object",
+          description:
+            "Connection parameters for non-OAuth connectors. Examples: SQL: {server, database, username, password, encryptConnection}. ServiceBus: {connectionString}. Leave empty for OAuth connectors.",
+          additionalProperties: true,
+        },
+      },
+      required: ["subscriptionId", "resourceGroupName", "connectionName", "connectorName", "location"],
+    },
+  },
+  {
+    name: "get_connector_swagger",
+    description: "Get the OpenAPI/Swagger definition for a managed connector (e.g., msnweather, sql, servicebus, office365). Returns available operations, paths, and schemas. ESSENTIAL for discovering correct action paths when creating or updating workflows with connector actions.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        subscriptionId: {
+          type: "string",
+          description: "Azure subscription ID",
+        },
+        location: {
+          type: "string",
+          description: "Azure region where the connector is available (e.g., 'westus2', 'eastus')",
+        },
+        connectorName: {
+          type: "string",
+          description: "Connector name (e.g., 'msnweather', 'sql', 'servicebus', 'office365', 'azureblob')",
+        },
+      },
+      required: ["subscriptionId", "location", "connectorName"],
+    },
+  },
+  {
+    name: "invoke_connector_operation",
+    description:
+      "Invoke a dynamic operation on an API connection to fetch connection-specific data like dropdown values, schemas, or metadata. " +
+      "This is the equivalent of what the Logic Apps designer does when you click on a dropdown or text field - it calls the connector to populate the options.\n\n" +
+      "WHEN TO USE THIS TOOL:\n" +
+      "- After getting connector swagger with get_connector_swagger, you see operations with 'x-ms-dynamic-values' or 'x-ms-dynamic-schema'\n" +
+      "- You need to list available tables, queues, folders, or other resources from a connection\n" +
+      "- You need to get the schema/columns for a specific table or entity\n" +
+      "- You're authoring a workflow and need to know valid values for action parameters\n\n" +
+      "WORKFLOW FOR AUTHORING WITH CONNECTORS:\n" +
+      "1. Use get_connector_swagger to discover operations and see x-ms-dynamic-values annotations\n" +
+      "2. Use get_connections to find existing connections in the resource group\n" +
+      "3. Use invoke_connector_operation to call the dynamic operation (e.g., GetTables, GetQueues)\n" +
+      "4. Use the returned values to populate your workflow action parameters\n\n" +
+      "COMMON EXAMPLES:\n" +
+      "- SQL: operationId='GetTables' returns list of tables, operationId='GetTable' with table parameter returns column schema\n" +
+      "- Service Bus: operationId='GetQueues' returns available queues\n" +
+      "- SharePoint: operationId='GetDataSets' returns sites, then GetTables for lists\n" +
+      "- Blob Storage: operationId='GetDataSets' returns containers",
+    inputSchema: {
+      type: "object",
+      properties: {
+        subscriptionId: {
+          type: "string",
+          description: "Azure subscription ID",
+        },
+        resourceGroupName: {
+          type: "string",
+          description: "Resource group containing the API connection",
+        },
+        connectionName: {
+          type: "string",
+          description: "Name of the API connection (e.g., 'sql-1', 'servicebus', 'azureblob')",
+        },
+        operationId: {
+          type: "string",
+          description: "The operationId from the connector swagger to invoke (e.g., 'GetTables', 'GetQueues', 'GetDataSets')",
+        },
+        parameters: {
+          type: "object",
+          description: "Parameters required by the operation. Check the swagger for required parameters. For example, GetTable requires {table: 'tableName'}",
+          additionalProperties: true,
+        },
+      },
+      required: ["subscriptionId", "resourceGroupName", "connectionName", "operationId"],
     },
   },
   {
@@ -331,7 +446,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_action_repetitions",
     description:
-      "Get iteration details for actions inside loops (ForEach, Until). Each iteration is a 'repetition' with its own status, inputs, and outputs.",
+      "Get iteration details for actions inside loops (ForEach, Until). Each iteration is a 'repetition' with its own status, inputs, outputs, and trackedProperties. For Standard SKU, workflowName is required. Essential for debugging loop failures.",
     inputSchema: {
       type: "object",
       properties: {
@@ -370,7 +485,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_action_request_history",
     description:
-      "Get HTTP request/response details for connector actions. Shows the actual HTTP calls made to external services including headers, body size, and response codes.",
+      "Get HTTP request/response details for connector actions including retries. Shows actual HTTP calls made to external services with headers, status codes, and timing. For Standard SKU, workflowName is required. Useful for debugging API failures.",
     inputSchema: {
       type: "object",
       properties: {
@@ -409,7 +524,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_trigger_callback_url",
     description:
-      "Get the callback URL for request-based triggers (HTTP, manual). This is the URL that must be called to invoke the workflow. Contains SAS token for authentication.",
+      "Get the callback URL for request-based triggers (HTTP, manual). Returns the URL with SAS token for invoking the workflow. For Standard SKU, workflowName is required. Use run_trigger to test the workflow instead of calling the URL directly.",
     inputSchema: {
       type: "object",
       properties: {
@@ -440,7 +555,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_scope_repetitions",
     description:
-      "Get execution details for scope action iterations (Scope, Switch, Condition). Shows which branch executed and its status.",
+      "Get execution details for scope action iterations (Scope, Switch, Condition). Shows which branch executed, status, and trackedProperties. For Standard SKU, workflowName is required.",
     inputSchema: {
       type: "object",
       properties: {
@@ -475,7 +590,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_expression_traces",
     description:
-      "Get expression evaluation traces for an action. Shows how workflow expressions were evaluated at runtime, including the expression text, result value, and any errors.",
+      "Get expression evaluation traces for an action. Shows how workflow expressions (e.g., @body(), @variables()) were evaluated at runtime, including the expression text, result value, and any errors. For Standard SKU, workflowName is required. Essential for debugging expression failures.",
     inputSchema: {
       type: "object",
       properties: {
@@ -510,7 +625,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_workflow_swagger",
     description:
-      "Get the OpenAPI/Swagger definition for a workflow. Shows available triggers and their schemas for API documentation and client SDK generation.",
+      "Get the OpenAPI/Swagger definition for a workflow. Shows trigger schemas and request/response formats. For Standard SKU, workflowName is required. Useful for API documentation or generating client SDKs.",
     inputSchema: {
       type: "object",
       properties: {
@@ -537,7 +652,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_action_io",
     description:
-      "Get the actual input/output content for a run action. Fetches the content from inputsLink/outputsLink URLs. Essential for debugging data issues.",
+      "Get the actual input/output data for a run action. Fetches content from inputsLink/outputsLink URLs. For Standard SKU, workflowName is required. Essential for debugging data transformation issues.",
     inputSchema: {
       type: "object",
       properties: {
@@ -577,7 +692,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "search_runs",
     description:
-      "Search run history with friendly parameters instead of raw OData filter syntax. Uses server-side filtering for performance.",
+      "Search run history with friendly parameters (status, startTime, endTime, clientTrackingId) instead of raw OData filter syntax. For Standard SKU, workflowName is required. Use this instead of list_run_history when filtering by specific criteria.",
     inputSchema: {
       type: "object",
       properties: {
@@ -652,7 +767,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "get_connection_details",
     description:
-      "Get detailed information about a specific API connection including status, configuration, and test links.",
+      "Get detailed information about a specific API connection including authentication status, configuration, and API reference. Use test_connection to verify the connection is working.",
     inputSchema: {
       type: "object",
       properties: {
@@ -675,7 +790,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "test_connection",
     description:
-      "Test if an API connection is valid and healthy. Checks connection status and attempts to validate using test links if available.",
+      "Test if an API connection is valid and working. Checks connection status and validates authentication. Use this to diagnose connector failures in workflow runs.",
     inputSchema: {
       type: "object",
       properties: {
@@ -693,6 +808,264 @@ export const TOOL_DEFINITIONS: Tool[] = [
         },
       },
       required: ["subscriptionId", "resourceGroupName", "connectionName"],
+    },
+  },
+  // ============================================================================
+  // Write Operations
+  // ============================================================================
+  {
+    name: "enable_workflow",
+    description:
+      "Enable a disabled workflow, allowing it to process triggers and run. For Consumption Logic Apps, enables the entire Logic App. For Standard Logic Apps, enables a specific workflow within the Logic App.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        subscriptionId: {
+          type: "string",
+          description: "Azure subscription ID",
+        },
+        resourceGroupName: {
+          type: "string",
+          description: "Resource group name",
+        },
+        logicAppName: {
+          type: "string",
+          description: "Logic App resource name",
+        },
+        workflowName: {
+          type: "string",
+          description: "Workflow name (required for Standard SKU)",
+        },
+      },
+      required: ["subscriptionId", "resourceGroupName", "logicAppName"],
+    },
+  },
+  {
+    name: "disable_workflow",
+    description:
+      "Disable an active workflow, stopping it from processing triggers and running. In-progress runs will continue until completion. For Consumption Logic Apps, disables the entire Logic App. For Standard Logic Apps, disables a specific workflow within the Logic App.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        subscriptionId: {
+          type: "string",
+          description: "Azure subscription ID",
+        },
+        resourceGroupName: {
+          type: "string",
+          description: "Resource group name",
+        },
+        logicAppName: {
+          type: "string",
+          description: "Logic App resource name",
+        },
+        workflowName: {
+          type: "string",
+          description: "Workflow name (required for Standard SKU)",
+        },
+      },
+      required: ["subscriptionId", "resourceGroupName", "logicAppName"],
+    },
+  },
+  {
+    name: "run_trigger",
+    description:
+      "Manually fire a workflow trigger to start a new run immediately, bypassing any schedule or event condition. For Standard SKU, workflowName is required. Use get_workflow_triggers first to find available trigger names. Then use list_run_history to see the result.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        subscriptionId: {
+          type: "string",
+          description: "Azure subscription ID",
+        },
+        resourceGroupName: {
+          type: "string",
+          description: "Resource group name",
+        },
+        logicAppName: {
+          type: "string",
+          description: "Logic App resource name",
+        },
+        triggerName: {
+          type: "string",
+          description: "The name of the trigger to run (e.g., 'manual', 'When_a_HTTP_request_is_received')",
+        },
+        workflowName: {
+          type: "string",
+          description: "Workflow name (required for Standard SKU)",
+        },
+      },
+      required: ["subscriptionId", "resourceGroupName", "logicAppName", "triggerName"],
+    },
+  },
+  {
+    name: "cancel_run",
+    description:
+      "Cancel a running or waiting workflow run. Only runs in 'Running' or 'Waiting' status can be cancelled. For Standard SKU, workflowName is required. Use list_run_history or search_runs to find running runs first.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        subscriptionId: {
+          type: "string",
+          description: "Azure subscription ID",
+        },
+        resourceGroupName: {
+          type: "string",
+          description: "Resource group name",
+        },
+        logicAppName: {
+          type: "string",
+          description: "Logic App resource name",
+        },
+        runId: {
+          type: "string",
+          description: "The run ID to cancel",
+        },
+        workflowName: {
+          type: "string",
+          description: "Workflow name (required for Standard SKU)",
+        },
+      },
+      required: ["subscriptionId", "resourceGroupName", "logicAppName", "runId"],
+    },
+  },
+  {
+    name: "create_workflow",
+    description:
+      "Create a new workflow. For Consumption SKU, creates a new Logic App resource. For Standard SKU, creates a new workflow within an existing Logic App. Requires a valid workflow definition JSON that follows the Logic Apps schema. IMPORTANT: When adding connector actions (e.g., SQL, Service Bus, MSN Weather), use get_connector_swagger first to discover the correct action paths and schemas. For Consumption SKU with connector actions, use the 'connections' parameter to wire up API connections.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        subscriptionId: {
+          type: "string",
+          description: "Azure subscription ID",
+        },
+        resourceGroupName: {
+          type: "string",
+          description: "Resource group name",
+        },
+        logicAppName: {
+          type: "string",
+          description: "Logic App resource name (for Consumption, this becomes the new Logic App name)",
+        },
+        definition: {
+          type: "object",
+          description: "The workflow definition JSON following the Logic Apps schema",
+        },
+        location: {
+          type: "string",
+          description: "Azure region (required for Consumption SKU, e.g., 'westus2', 'eastus')",
+        },
+        workflowName: {
+          type: "string",
+          description: "Workflow name (required for Standard SKU)",
+        },
+        kind: {
+          type: "string",
+          enum: ["Stateful", "Stateless"],
+          description: "Workflow kind for Standard SKU (default: 'Stateful')",
+        },
+        connections: {
+          type: "object",
+          description: "API connection references for Consumption SKU. Object mapping connection names used in the definition to their connection details. Example: {\"office365\": {\"connectionName\": \"office365-test\", \"id\": \"/subscriptions/.../providers/Microsoft.Web/locations/.../managedApis/office365\"}}",
+          additionalProperties: {
+            type: "object",
+            properties: {
+              connectionName: {
+                type: "string",
+                description: "Name of the API connection resource",
+              },
+              id: {
+                type: "string",
+                description: "Resource ID of the managed API (e.g., /subscriptions/.../providers/Microsoft.Web/locations/.../managedApis/office365)",
+              },
+            },
+            required: ["connectionName", "id"],
+          },
+        },
+      },
+      required: ["subscriptionId", "resourceGroupName", "logicAppName", "definition"],
+    },
+  },
+  {
+    name: "update_workflow",
+    description:
+      "Update an existing workflow's definition. Replaces the entire definition with the new one. For Standard SKU, workflowName is required. Use get_workflow_definition first to get the current definition, modify it, then update. IMPORTANT: When adding connector actions, use get_connector_swagger to discover correct action paths and schemas. For Consumption SKU with connector actions, use the 'connections' parameter to wire up API connections.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        subscriptionId: {
+          type: "string",
+          description: "Azure subscription ID",
+        },
+        resourceGroupName: {
+          type: "string",
+          description: "Resource group name",
+        },
+        logicAppName: {
+          type: "string",
+          description: "Logic App resource name",
+        },
+        definition: {
+          type: "object",
+          description: "The new workflow definition JSON following the Logic Apps schema",
+        },
+        workflowName: {
+          type: "string",
+          description: "Workflow name (required for Standard SKU)",
+        },
+        kind: {
+          type: "string",
+          enum: ["Stateful", "Stateless"],
+          description: "Workflow kind for Standard SKU (default: 'Stateful')",
+        },
+        connections: {
+          type: "object",
+          description: "API connection references for Consumption SKU. Object mapping connection names used in the definition to their connection details. Example: {\"office365\": {\"connectionName\": \"office365-test\", \"id\": \"/subscriptions/.../providers/Microsoft.Web/locations/.../managedApis/office365\"}}",
+          additionalProperties: {
+            type: "object",
+            properties: {
+              connectionName: {
+                type: "string",
+                description: "Name of the API connection resource",
+              },
+              id: {
+                type: "string",
+                description: "Resource ID of the managed API (e.g., /subscriptions/.../providers/Microsoft.Web/locations/.../managedApis/office365)",
+              },
+            },
+            required: ["connectionName", "id"],
+          },
+        },
+      },
+      required: ["subscriptionId", "resourceGroupName", "logicAppName", "definition"],
+    },
+  },
+  {
+    name: "delete_workflow",
+    description:
+      "Delete a workflow. For Consumption SKU, deletes the entire Logic App resource. For Standard SKU, deletes a specific workflow within the Logic App. Use with caution as this action cannot be undone.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        subscriptionId: {
+          type: "string",
+          description: "Azure subscription ID",
+        },
+        resourceGroupName: {
+          type: "string",
+          description: "Resource group name",
+        },
+        logicAppName: {
+          type: "string",
+          description: "Logic App resource name",
+        },
+        workflowName: {
+          type: "string",
+          description: "Workflow name (required for Standard SKU)",
+        },
+      },
+      required: ["subscriptionId", "resourceGroupName", "logicAppName"],
     },
   },
 ];

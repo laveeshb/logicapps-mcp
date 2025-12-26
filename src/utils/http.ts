@@ -15,7 +15,7 @@ export interface ArmResponse<T> {
 export async function armRequest<T>(
   path: string,
   options: {
-    method?: "GET" | "POST";
+    method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
     body?: unknown;
     queryParams?: Record<string, string>;
   } = {}
@@ -43,7 +43,13 @@ export async function armRequest<T>(
     await handleArmError(response);
   }
 
-  return (await response.json()) as T;
+  // Handle empty responses (e.g., 202 Accepted, 204 No Content)
+  const text = await response.text();
+  if (!text) {
+    return undefined as T;
+  }
+  
+  return JSON.parse(text) as T;
 }
 
 export async function armRequestAllPages<T>(
@@ -87,15 +93,21 @@ export async function armRequestAllPages<T>(
 export async function workflowMgmtRequest<T>(
   logicAppHostname: string,
   path: string,
-  masterKey: string
+  masterKey: string,
+  options: {
+    method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+    body?: unknown;
+  } = {}
 ): Promise<T> {
   const url = `https://${logicAppHostname}${path}`;
 
   const response = await fetch(url, {
+    method: options.method ?? "GET",
     headers: {
       "x-functions-key": masterKey,
       "Content-Type": "application/json",
     },
+    body: options.body ? JSON.stringify(options.body) : undefined,
   });
 
   if (!response.ok) {
@@ -109,6 +121,43 @@ export async function workflowMgmtRequest<T>(
   }
 
   return (await response.json()) as T;
+}
+
+/**
+ * Make a request to the VFS (Kudu) API for Standard Logic Apps.
+ * Used for creating, updating, and deleting workflow files.
+ */
+export async function vfsRequest(
+  logicAppHostname: string,
+  path: string,
+  masterKey: string,
+  options: {
+    method?: "GET" | "PUT" | "DELETE";
+    body?: unknown;
+  } = {}
+): Promise<void> {
+  const url = `https://${logicAppHostname}${path}`;
+
+  const response = await fetch(url, {
+    method: options.method ?? "GET",
+    headers: {
+      "x-functions-key": masterKey,
+      "Content-Type": "application/json",
+      // VFS API requires If-Match header for PUT/DELETE operations
+      ...(options.method === "PUT" || options.method === "DELETE"
+        ? { "If-Match": "*" }
+        : {}),
+    },
+    body: options.body ? JSON.stringify(options.body) : undefined,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => "");
+    throw new McpError(
+      "ServiceError",
+      `VFS API error: ${response.status} ${response.statusText}${errorText ? ` - ${errorText}` : ""}`
+    );
+  }
 }
 
 async function handleArmError(response: Response): Promise<never> {

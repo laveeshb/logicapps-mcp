@@ -281,3 +281,64 @@ async function getCallbackUrlStandard(
     queries: response.queries,
   };
 }
+
+// ============================================================================
+// Write Operations
+// ============================================================================
+
+export interface RunTriggerResult {
+  success: boolean;
+  triggerName: string;
+  message: string;
+}
+
+/**
+ * Manually run a workflow trigger.
+ * This starts a new workflow run by firing the specified trigger.
+ */
+export async function runTrigger(
+  subscriptionId: string,
+  resourceGroupName: string,
+  logicAppName: string,
+  triggerName: string,
+  workflowName?: string
+): Promise<RunTriggerResult> {
+  const sku = await detectLogicAppSku(
+    subscriptionId,
+    resourceGroupName,
+    logicAppName
+  );
+
+  if (sku === "consumption") {
+    await armRequest(
+      `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}/triggers/${triggerName}/run`,
+      { method: "POST", queryParams: { "api-version": "2019-05-01" } }
+    );
+
+    return {
+      success: true,
+      triggerName,
+      message: `Trigger '${triggerName}' has been fired for Consumption workflow '${logicAppName}'. Check run history for the new run.`,
+    };
+  }
+
+  // Standard requires workflowName
+  if (!workflowName) {
+    throw new McpError(
+      "InvalidParameter",
+      "workflowName is required for Standard Logic Apps"
+    );
+  }
+
+  // For Standard, use the ARM API with hostruntime path
+  await armRequest(
+    `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Web/sites/${logicAppName}/hostruntime/runtime/webhooks/workflow/api/management/workflows/${workflowName}/triggers/${triggerName}/run`,
+    { method: "POST", queryParams: { "api-version": "2022-03-01" } }
+  );
+
+  return {
+    success: true,
+    triggerName,
+    message: `Trigger '${triggerName}' has been fired for Standard workflow '${workflowName}' in '${logicAppName}'. Check run history for the new run.`,
+  };
+}
