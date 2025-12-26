@@ -16,7 +16,7 @@ import {
   disableWorkflow,
 } from "./workflows.js";
 import { getTriggerHistory, getTriggerCallbackUrl, runTrigger } from "./triggers.js";
-import { listRunHistory, getRunDetails, getRunActions, getActionIO, searchRuns } from "./runs.js";
+import { listRunHistory, getRunDetails, getRunActions, getActionIO, searchRuns, cancelRun } from "./runs.js";
 import { getActionRepetitions, getScopeRepetitions } from "./repetitions.js";
 import { getActionRequestHistory } from "./requestHistory.js";
 import { getExpressionTraces } from "./expressions.js";
@@ -255,6 +255,15 @@ export async function handleToolCall(
           args.resourceGroupName as string,
           args.logicAppName as string,
           args.triggerName as string,
+          args.workflowName as string | undefined
+        );
+        break;
+      case "cancel_run":
+        result = await cancelRun(
+          args.subscriptionId as string,
+          args.resourceGroupName as string,
+          args.logicAppName as string,
+          args.runId as string,
           args.workflowName as string | undefined
         );
         break;

@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import { TOOL_DEFINITIONS } from "./definitions.js";
 
 describe("tool definitions", () => {
-  it("should have all 26 tools defined", () => {
-    expect(TOOL_DEFINITIONS).toHaveLength(26);
+  it("should have all 27 tools defined", () => {
+    expect(TOOL_DEFINITIONS).toHaveLength(27);
   });
 
   it("should have unique tool names", () => {
@@ -242,6 +242,26 @@ describe("tool definitions", () => {
       expect(tool?.inputSchema.required).toContain("resourceGroupName");
       expect(tool?.inputSchema.required).toContain("logicAppName");
       expect(tool?.inputSchema.required).toContain("triggerName");
+    });
+
+    it("should have optional workflowName parameter", () => {
+      expect(tool?.inputSchema.properties).toHaveProperty("workflowName");
+      expect(tool?.inputSchema.required).not.toContain("workflowName");
+    });
+  });
+
+  describe("cancel_run", () => {
+    const tool = TOOL_DEFINITIONS.find((t) => t.name === "cancel_run");
+
+    it("should be defined", () => {
+      expect(tool).toBeDefined();
+    });
+
+    it("should require subscriptionId, resourceGroupName, logicAppName, and runId", () => {
+      expect(tool?.inputSchema.required).toContain("subscriptionId");
+      expect(tool?.inputSchema.required).toContain("resourceGroupName");
+      expect(tool?.inputSchema.required).toContain("logicAppName");
+      expect(tool?.inputSchema.required).toContain("runId");
     });
 
     it("should have optional workflowName parameter", () => {

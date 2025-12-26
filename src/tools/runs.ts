@@ -496,3 +496,64 @@ export async function searchRuns(
     count: runs.length,
   };
 }
+
+// ============================================================================
+// Write Operations
+// ============================================================================
+
+export interface CancelRunResult {
+  success: boolean;
+  runId: string;
+  message: string;
+}
+
+/**
+ * Cancel a running workflow run.
+ * Only runs with status 'Running' or 'Waiting' can be cancelled.
+ */
+export async function cancelRun(
+  subscriptionId: string,
+  resourceGroupName: string,
+  logicAppName: string,
+  runId: string,
+  workflowName?: string
+): Promise<CancelRunResult> {
+  const sku = await detectLogicAppSku(
+    subscriptionId,
+    resourceGroupName,
+    logicAppName
+  );
+
+  if (sku === "consumption") {
+    await armRequest(
+      `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}/runs/${runId}/cancel`,
+      { method: "POST", queryParams: { "api-version": "2019-05-01" } }
+    );
+
+    return {
+      success: true,
+      runId,
+      message: `Run '${runId}' has been cancelled for Consumption workflow '${logicAppName}'.`,
+    };
+  }
+
+  // Standard requires workflowName
+  if (!workflowName) {
+    throw new McpError(
+      "InvalidParameter",
+      "workflowName is required for Standard Logic Apps"
+    );
+  }
+
+  // For Standard, use the ARM API with hostruntime path
+  await armRequest(
+    `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Web/sites/${logicAppName}/hostruntime/runtime/webhooks/workflow/api/management/workflows/${workflowName}/runs/${runId}/cancel`,
+    { method: "POST", queryParams: { "api-version": "2022-03-01" } }
+  );
+
+  return {
+    success: true,
+    runId,
+    message: `Run '${runId}' has been cancelled for Standard workflow '${workflowName}' in '${logicAppName}'.`,
+  };
+}

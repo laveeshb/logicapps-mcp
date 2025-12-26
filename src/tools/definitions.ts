@@ -783,4 +783,35 @@ export const TOOL_DEFINITIONS: Tool[] = [
       required: ["subscriptionId", "resourceGroupName", "logicAppName", "triggerName"],
     },
   },
+  {
+    name: "cancel_run",
+    description:
+      "Cancel a running or waiting workflow run. Only runs that are currently in 'Running' or 'Waiting' status can be cancelled. Completed runs cannot be cancelled.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        subscriptionId: {
+          type: "string",
+          description: "Azure subscription ID",
+        },
+        resourceGroupName: {
+          type: "string",
+          description: "Resource group name",
+        },
+        logicAppName: {
+          type: "string",
+          description: "Logic App resource name",
+        },
+        runId: {
+          type: "string",
+          description: "The run ID to cancel",
+        },
+        workflowName: {
+          type: "string",
+          description: "Workflow name (required for Standard SKU)",
+        },
+      },
+      required: ["subscriptionId", "resourceGroupName", "logicAppName", "runId"],
+    },
+  },
 ];
