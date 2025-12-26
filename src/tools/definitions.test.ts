@@ -3,7 +3,7 @@ import { TOOL_DEFINITIONS } from "./definitions.js";
 
 describe("tool definitions", () => {
   it("should have all 31 tools defined", () => {
-    expect(TOOL_DEFINITIONS).toHaveLength(32);
+    expect(TOOL_DEFINITIONS).toHaveLength(33);
   });
 
   it("should have unique tool names", () => {

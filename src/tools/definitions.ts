@@ -240,6 +240,51 @@ export const TOOL_DEFINITIONS: Tool[] = [
     },
   },
   {
+    name: "create_connection",
+    description:
+      "Create a new API connection for a managed connector (e.g., azureblob, sql, servicebus, office365). " +
+      "For OAuth-based connectors (like azureblob with OAuth, office365), returns a consent link that must be opened in a browser to authorize. " +
+      "For parameter-based connectors (like SQL with connection string), provide the parameters directly. " +
+      "Common OAuth connectors: azureblob, office365, outlook, onedrive, sharepoint, dynamicscrm. " +
+      "Common parameter connectors: sql (server, database, username, password), servicebus (connectionString).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        subscriptionId: {
+          type: "string",
+          description: "Azure subscription ID",
+        },
+        resourceGroupName: {
+          type: "string",
+          description: "Resource group name",
+        },
+        connectionName: {
+          type: "string",
+          description: "Name for the new connection (e.g., 'azureblob-1', 'my-sql-connection')",
+        },
+        connectorName: {
+          type: "string",
+          description: "Managed connector name (e.g., 'azureblob', 'sql', 'servicebus', 'office365')",
+        },
+        location: {
+          type: "string",
+          description: "Azure region (e.g., 'westus2', 'eastus'). Should match Logic App region.",
+        },
+        displayName: {
+          type: "string",
+          description: "Friendly display name for the connection (optional, defaults to connectionName)",
+        },
+        parameterValues: {
+          type: "object",
+          description:
+            "Connection parameters for non-OAuth connectors. Examples: SQL: {server, database, username, password, encryptConnection}. ServiceBus: {connectionString}. Leave empty for OAuth connectors.",
+          additionalProperties: true,
+        },
+      },
+      required: ["subscriptionId", "resourceGroupName", "connectionName", "connectorName", "location"],
+    },
+  },
+  {
     name: "get_connector_swagger",
     description: "Get the OpenAPI/Swagger definition for a managed connector (e.g., msnweather, sql, servicebus, office365). Returns available operations, paths, and schemas. ESSENTIAL for discovering correct action paths when creating or updating workflows with connector actions.",
     inputSchema: {

@@ -486,3 +486,112 @@ export async function invokeConnectorOperation(
     };
   }
 }
+
+export interface CreateConnectionResult {
+  connectionName: string;
+  location: string;
+  status: string;
+  consentLink?: string;
+  message: string;
+}
+
+/**
+ * Create a new API connection.
+ * For OAuth-based connections, returns a consent link that must be opened in a browser.
+ */
+export async function createConnection(
+  subscriptionId: string,
+  resourceGroupName: string,
+  connectionName: string,
+  connectorName: string,
+  location: string,
+  displayName?: string,
+  parameterValues?: Record<string, unknown>
+): Promise<CreateConnectionResult> {
+  // Build the connection resource
+  const connectionBody = {
+    location,
+    properties: {
+      displayName: displayName ?? connectionName,
+      api: {
+        id: `/subscriptions/${subscriptionId}/providers/Microsoft.Web/locations/${location}/managedApis/${connectorName}`,
+      },
+      ...(parameterValues && Object.keys(parameterValues).length > 0
+        ? { parameterValues }
+        : {}),
+    },
+  };
+
+  // Create the connection
+  const response = await armRequest<{
+    id: string;
+    name: string;
+    location: string;
+    properties: {
+      displayName: string;
+      statuses?: Array<{ status: string; error?: { code: string; message: string } }>;
+    };
+  }>(
+    `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Web/connections/${connectionName}`,
+    {
+      method: "PUT",
+      queryParams: { "api-version": "2018-07-01-preview" },
+      body: connectionBody,
+    }
+  );
+
+  const status = response.properties.statuses?.[0]?.status ?? "Unknown";
+
+  // For OAuth connections, get the consent link
+  let consentLink: string | undefined;
+  if (status !== "Connected") {
+    try {
+      const consentResponse = await armRequest<{
+        value: Array<{
+          link: string;
+          firstPartyLoginUri?: string;
+          status: string;
+        }>;
+      }>(
+        `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Web/connections/${connectionName}/listConsentLinks`,
+        {
+          method: "POST",
+          queryParams: { "api-version": "2018-07-01-preview" },
+          body: {
+            parameters: [
+              {
+                parameterName: "token",
+                redirectUrl: "https://ema1.exp.azure.com/ema/default/authredirect",
+              },
+            ],
+          },
+        }
+      );
+
+      if (consentResponse.value?.[0]?.link) {
+        consentLink = consentResponse.value[0].link;
+      } else if (consentResponse.value?.[0]?.firstPartyLoginUri) {
+        consentLink = consentResponse.value[0].firstPartyLoginUri;
+      }
+    } catch {
+      // Consent link not available (might be non-OAuth connection)
+    }
+  }
+
+  let message: string;
+  if (status === "Connected") {
+    message = `Connection '${connectionName}' created successfully and is ready to use.`;
+  } else if (consentLink) {
+    message = `Connection '${connectionName}' created. Open the consent link in a browser to authorize the connection.`;
+  } else {
+    message = `Connection '${connectionName}' created with status '${status}'. Check connection details for more information.`;
+  }
+
+  return {
+    connectionName: response.name,
+    location: response.location,
+    status,
+    consentLink,
+    message,
+  };
+}
