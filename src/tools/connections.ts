@@ -329,6 +329,7 @@ export interface InvokeConnectorOperationResult {
 /**
  * Invoke a dynamic operation on an API connection to fetch connection-specific data.
  * This is how the Logic Apps designer populates dropdowns and fetches schemas.
+ * Uses the connection's dynamicInvoke endpoint which proxies requests through the connection.
  */
 export async function invokeConnectorOperation(
   subscriptionId: string,
@@ -340,7 +341,7 @@ export async function invokeConnectorOperation(
   // First, test if the connection is authorized/connected
   const connectionTest = await testConnection(subscriptionId, resourceGroupName, connectionName);
   if (!connectionTest.isValid) {
-    const portalUrl = `https://portal.azure.com/#@/resource/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Web/connections/${connectionName}`;
+    const portalUrl = `https://portal.azure.com/#resource/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Web/connections/${connectionName}`;
     return {
       operationId,
       success: false,
@@ -418,76 +419,122 @@ export async function invokeConnectorOperation(
     };
   }
 
-  // Replace {connectionId} placeholder with actual connection ID
-  const connectionId = connection.id.split("/").pop() ?? connectionName;
-  let resolvedPath = operationPath.replace("{connectionId}", connectionId);
+  // Build the path with path parameters substituted
+  // The swagger paths often start with /{connectionId}/ which needs to be stripped
+  // since the dynamicInvoke endpoint is already on the connection
+  let resolvedPath = operationPath;
+  
+  // Strip the /{connectionId} prefix if present
+  if (resolvedPath.startsWith("/{connectionId}")) {
+    resolvedPath = resolvedPath.substring("/{connectionId}".length);
+  }
+  // Also handle {connectionId} without leading slash
+  if (resolvedPath.startsWith("{connectionId}")) {
+    resolvedPath = resolvedPath.substring("{connectionId}".length);
+  }
+  // Ensure path starts with / if not empty
+  if (resolvedPath && !resolvedPath.startsWith("/")) {
+    resolvedPath = "/" + resolvedPath;
+  }
+
+
 
   // Build query parameters and path parameters from the provided parameters
   const queryParams: Record<string, string> = {};
+  const bodyParams: Record<string, unknown> = {};
   
   if (parameters && operationDef?.parameters) {
     for (const param of operationDef.parameters) {
+      // Skip connectionId - it's handled by the dynamicInvoke endpoint
+      if (param.name === "connectionId") {
+        continue;
+      }
       const value = parameters[param.name];
       if (value !== undefined) {
         if (param.in === "path") {
           resolvedPath = resolvedPath.replace(`{${param.name}}`, encodeURIComponent(String(value)));
         } else if (param.in === "query") {
           queryParams[param.name] = String(value);
+        } else if (param.in === "body") {
+          Object.assign(bodyParams, value as Record<string, unknown>);
         }
       }
     }
   }
 
-  // Get the runtime URL from the connector
-  const connectorMetadata = await armRequest<{
-    properties: {
-      runtimeUrls?: string[];
-    };
-  }>(
-    `/subscriptions/${subscriptionId}/providers/Microsoft.Web/locations/${location}/managedApis/${apiName}`,
-    { queryParams: { "api-version": "2018-07-01-preview" } }
-  );
-
-  const runtimeUrl = connectorMetadata.properties.runtimeUrls?.[0];
-  if (!runtimeUrl) {
-    return {
-      operationId,
-      success: false,
-      error: `No runtime URL found for connector '${apiName}'`,
-    };
-  }
-
-  // Make the actual call to the connector runtime
+  // Use the connection's dynamicInvoke endpoint
+  // This is the correct way to invoke operations through an authorized connection
   try {
-    const token = await getAccessToken();
-    const url = new URL(resolvedPath, runtimeUrl);
-    for (const [key, value] of Object.entries(queryParams)) {
-      url.searchParams.set(key, value);
+    // Build the request object for dynamicInvoke
+    const dynamicRequest: {
+      method: string;
+      path: string;
+      queries?: Record<string, string>;
+      body?: unknown;
+    } = {
+      method: httpMethod,
+      path: resolvedPath,
+    };
+
+    if (Object.keys(queryParams).length > 0) {
+      dynamicRequest.queries = queryParams;
     }
 
-    const response = await fetch(url.toString(), {
-      method: httpMethod,
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: httpMethod === "POST" && parameters ? JSON.stringify(parameters) : undefined,
-    });
+    if (Object.keys(bodyParams).length > 0) {
+      dynamicRequest.body = bodyParams;
+    }
 
-    if (!response.ok) {
-      const errorText = await response.text();
+    const result = await armRequest<{
+      response?: {
+        statusCode: string;
+        body?: unknown;
+        headers?: Record<string, string>;
+      };
+      error?: {
+        code: string;
+        message: string;
+      };
+    }>(
+      `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Web/connections/${connectionName}/dynamicInvoke`,
+      {
+        method: "POST",
+        queryParams: { "api-version": "2018-07-01-preview" },
+        body: { request: dynamicRequest },
+      }
+    );
+
+
+
+
+    if (result.error) {
       return {
         operationId,
         success: false,
-        error: `HTTP ${response.status}: ${errorText}`,
+        error: `${result.error.code}: ${result.error.message}`,
       };
     }
 
-    const data = await response.json();
+    if (result.response) {
+      const statusCode = parseInt(result.response.statusCode, 10) || 200;
+      if (statusCode >= 400) {
+        return {
+          operationId,
+          success: false,
+          error: `HTTP ${result.response.statusCode}: ${JSON.stringify(result.response.body)}`,
+        };
+      }
+
+      return {
+        operationId,
+        success: true,
+        data: result.response.body,
+      };
+    }
+
     return {
       operationId,
       success: true,
-      data,
+      data: result,
     };
   } catch (error) {
     return {
