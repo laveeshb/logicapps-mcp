@@ -2,7 +2,7 @@
 
 <img src="https://raw.githubusercontent.com/benc-uk/icon-collection/master/azure-icons/Logic-Apps.svg" alt="Azure Logic Apps" width="80" align="right">
 
-An MCP (Model Context Protocol) server that enables AI assistants to interact with Azure Logic Apps. Supports both **Consumption** and **Standard** Logic Apps SKUs with read-only operations.
+An MCP (Model Context Protocol) server that enables AI assistants to interact with Azure Logic Apps. Supports both **Consumption** and **Standard** Logic Apps SKUs with comprehensive read and write operations.
 
 ## Table of Contents
 
@@ -14,6 +14,7 @@ An MCP (Model Context Protocol) server that enables AI assistants to interact wi
 - [Usage with GitHub Copilot in VS Code](#usage-with-github-copilot-in-vs-code)
 - [Authentication](#authentication)
 - [Available Tools](#available-tools)
+- [Available Prompts](#available-prompts)
 - [Example Prompts](#example-prompts)
 - [Development](#development)
 - [Architecture](#architecture)
@@ -40,7 +41,9 @@ az login
 ## Features
 
 - **Dual SKU Support**: Works with both Consumption (`Microsoft.Logic/workflows`) and Standard (`Microsoft.Web/sites`) Logic Apps
-- **23 Read-Only Tools**: Comprehensive toolset for subscriptions, logic apps, workflows, triggers, runs, actions, connections, and more
+- **30 Tools**: Comprehensive toolset for reading and writing workflows, triggers, runs, connections, and more
+- **Write Operations**: Create, update, delete, enable/disable workflows; run triggers; cancel runs
+- **MCP Prompts**: Built-in guidance for AI assistants on tool selection and common workflows
 - **Multi-Cloud**: Supports Azure Public, Government, and China clouds
 - **Secure Authentication**: Uses Azure CLI tokens with automatic refresh
 - **No Azure SDK**: Pure REST API implementation with minimal dependencies
@@ -174,8 +177,10 @@ The authenticated user needs:
 
 | Role | Scope | Purpose |
 |------|-------|---------|
-| `Logic App Reader` | Subscription/RG/Resource | Read workflow definitions and run history |
+| `Logic App Contributor` | Subscription/RG/Resource | Create, update, delete workflows; run triggers |
 | `Reader` | Subscription/RG | List resources and resource groups |
+
+> **Note**: For read-only access, `Logic App Reader` is sufficient.
 
 ## Available Tools
 
@@ -226,22 +231,51 @@ The authenticated user needs:
 | `get_connection_details` | Get detailed information about a specific API connection |
 | `test_connection` | Test if an API connection is valid and healthy |
 
+### Write Operations
+
+| Tool | Description |
+|------|-------------|
+| `enable_workflow` | Enable a disabled workflow |
+| `disable_workflow` | Disable an active workflow |
+| `run_trigger` | Manually fire a workflow trigger |
+| `cancel_run` | Cancel a running or waiting workflow run |
+| `create_workflow` | Create a new workflow (Consumption: new Logic App; Standard: new workflow) |
+| `update_workflow` | Update an existing workflow's definition |
+| `delete_workflow` | Delete a workflow (use with caution) |
+
 ### Host & Diagnostics (Standard SKU)
 
 | Tool | Description |
 |------|-------------|
 | `get_host_status` | Get host status for Standard Logic Apps (runtime version, diagnostics) |
 
+## Available Prompts
+
+MCP Prompts provide AI assistants with guidance on tool selection and common workflows.
+
+| Prompt | Description |
+|--------|-------------|
+| `logic-apps-guide` | System guidance covering SKU differences, debugging workflows, and tool selection tips |
+
+> **Note**: Prompt availability depends on the MCP client. Claude Desktop supports prompts; GitHub Copilot does not yet.
+
 ## Example Prompts
 
 Once configured with an AI assistant, you can ask:
 
+### Reading
 - "List all my Azure subscriptions"
 - "Show me the Logic Apps in subscription xyz"
 - "What workflows are in my-logic-app?"
 - "Show me the definition of the order-processing workflow"
 - "List failed runs from the last 24 hours"
 - "What actions ran in run ID abc123?"
+
+### Writing
+- "Disable the order-processing workflow"
+- "Run the manual trigger on my-workflow"
+- "Cancel the currently running workflow"
+- "Update the workflow to add a new HTTP action"
 
 ## Development
 
@@ -264,7 +298,7 @@ src/
  server.ts          # Tool registration
  auth/              # Azure CLI token management
  config/            # Azure cloud endpoints & settings
- tools/             # MCP tool implementations (23 tools)
+ tools/             # MCP tool implementations (30 tools)
  types/             # TypeScript type definitions
  utils/             # HTTP client & error handling
 ```
