@@ -7,9 +7,9 @@ import {
   armRequestAllPages,
   workflowMgmtRequest,
 } from "../utils/http.js";
-import { WorkflowRun, RunAction } from "../types/logicApp.js";
+import { WorkflowRun, RunAction, ConsumptionLogicApp } from "../types/logicApp.js";
 import { McpError } from "../utils/errors.js";
-import { detectLogicAppSku, getStandardAppAccess } from "./shared.js";
+import { detectLogicAppSku, getStandardAppAccess, getConsumptionRunPortalUrl, getStandardRunPortalUrl } from "./shared.js";
 
 export interface ListRunHistoryResult {
   runs: Array<{
@@ -24,6 +24,7 @@ export interface ListRunHistoryResult {
     correlation?: {
       clientTrackingId: string;
     };
+    portalUrl?: string;
   }>;
 }
 
@@ -41,6 +42,7 @@ export interface GetRunDetailsResult {
       code: string;
       message: string;
     };
+    portalUrl?: string;
   };
 }
 
@@ -75,6 +77,13 @@ export async function listRunHistory(
   const effectiveTop = Math.min(top, 100);
 
   if (sku === "consumption") {
+    // Get Logic App to retrieve location for portal URLs
+    const logicApp = await armRequest<ConsumptionLogicApp>(
+      `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}`,
+      { queryParams: { "api-version": "2019-05-01" } }
+    );
+    const location = logicApp.location.toLowerCase().replace(/\s/g, "");
+
     const queryParams: Record<string, string> = {
       "api-version": "2019-05-01",
       $top: effectiveTop.toString(),
@@ -95,6 +104,7 @@ export async function listRunHistory(
         endTime: run.properties.endTime,
         trigger: { name: run.properties.trigger?.name ?? "unknown" },
         correlation: run.properties.correlation,
+        portalUrl: getConsumptionRunPortalUrl(subscriptionId, resourceGroupName, logicAppName, run.name, location),
       })),
     };
   }
@@ -133,6 +143,7 @@ export async function listRunHistory(
       endTime: run.properties.endTime,
       trigger: { name: run.properties.trigger?.name ?? "unknown" },
       correlation: run.properties.correlation,
+      portalUrl: getStandardRunPortalUrl(subscriptionId, resourceGroupName, logicAppName, workflowName, run.name),
     })),
   };
 }
@@ -151,6 +162,13 @@ export async function getRunDetails(
   );
 
   if (sku === "consumption") {
+    // Fetch Logic App details to get location
+    const logicApp = await armRequest<ConsumptionLogicApp>(
+      `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}`,
+      { queryParams: { "api-version": "2019-05-01" } }
+    );
+    const location = logicApp.location;
+
     const run = await armRequest<WorkflowRun>(
       `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}/runs/${runId}`,
       { queryParams: { "api-version": "2019-05-01" } }
@@ -165,6 +183,7 @@ export async function getRunDetails(
         endTime: run.properties.endTime,
         trigger: { name: run.properties.trigger?.name ?? "unknown" },
         error: run.properties.error,
+        portalUrl: getConsumptionRunPortalUrl(subscriptionId, resourceGroupName, logicAppName, run.name, location),
       },
     };
   }
@@ -197,6 +216,7 @@ export async function getRunDetails(
       endTime: run.properties.endTime,
       trigger: { name: run.properties.trigger?.name ?? "unknown" },
       error: run.properties.error,
+      portalUrl: getStandardRunPortalUrl(subscriptionId, resourceGroupName, logicAppName, workflowName, run.name),
     },
   };
 }

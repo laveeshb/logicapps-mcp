@@ -82,3 +82,41 @@ export async function getStandardAppAccess(
     masterKey: keys.masterKey,
   };
 }
+
+/**
+ * Generate Azure Portal URL for a Consumption Logic App run.
+ */
+export function getConsumptionRunPortalUrl(
+  subscriptionId: string,
+  resourceGroupName: string,
+  logicAppName: string,
+  runId: string,
+  location: string
+): string {
+  const workflowId = encodeURIComponent(
+    `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}`
+  );
+  const fullRunId = encodeURIComponent(
+    `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}/runs/${runId}`
+  );
+  return `https://portal.azure.com/#view/Microsoft_Azure_EMA/DesignerEditorConsumption.ReactView/id/${workflowId}/location/${location}/isReadOnly~/true/isMonitoringView~/true/runId/${fullRunId}`;
+}
+
+/**
+ * Generate Azure Portal URL for a Standard Logic App run.
+ */
+export function getStandardRunPortalUrl(
+  subscriptionId: string,
+  resourceGroupName: string,
+  logicAppName: string,
+  workflowName: string,
+  runId: string
+): string {
+  const workflowId = encodeURIComponent(
+    `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Web/sites/${logicAppName}/workflows/${workflowName}`
+  );
+  const fullRunId = encodeURIComponent(
+    `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Web/sites/${logicAppName}/workflows/${workflowName}/runs/${runId}`
+  );
+  return `https://portal.azure.com/#view/Microsoft_Azure_EMA/DesignerEditor.ReactView/id/${workflowId}/isReadOnly~/true/isMonitoringView~/true/runId/${fullRunId}`;
+}
