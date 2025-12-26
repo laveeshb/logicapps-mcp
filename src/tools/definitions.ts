@@ -262,6 +262,54 @@ export const TOOL_DEFINITIONS: Tool[] = [
     },
   },
   {
+    name: "invoke_connector_operation",
+    description:
+      "Invoke a dynamic operation on an API connection to fetch connection-specific data like dropdown values, schemas, or metadata. " +
+      "This is the equivalent of what the Logic Apps designer does when you click on a dropdown or text field - it calls the connector to populate the options.\n\n" +
+      "WHEN TO USE THIS TOOL:\n" +
+      "- After getting connector swagger with get_connector_swagger, you see operations with 'x-ms-dynamic-values' or 'x-ms-dynamic-schema'\n" +
+      "- You need to list available tables, queues, folders, or other resources from a connection\n" +
+      "- You need to get the schema/columns for a specific table or entity\n" +
+      "- You're authoring a workflow and need to know valid values for action parameters\n\n" +
+      "WORKFLOW FOR AUTHORING WITH CONNECTORS:\n" +
+      "1. Use get_connector_swagger to discover operations and see x-ms-dynamic-values annotations\n" +
+      "2. Use get_connections to find existing connections in the resource group\n" +
+      "3. Use invoke_connector_operation to call the dynamic operation (e.g., GetTables, GetQueues)\n" +
+      "4. Use the returned values to populate your workflow action parameters\n\n" +
+      "COMMON EXAMPLES:\n" +
+      "- SQL: operationId='GetTables' returns list of tables, operationId='GetTable' with table parameter returns column schema\n" +
+      "- Service Bus: operationId='GetQueues' returns available queues\n" +
+      "- SharePoint: operationId='GetDataSets' returns sites, then GetTables for lists\n" +
+      "- Blob Storage: operationId='GetDataSets' returns containers",
+    inputSchema: {
+      type: "object",
+      properties: {
+        subscriptionId: {
+          type: "string",
+          description: "Azure subscription ID",
+        },
+        resourceGroupName: {
+          type: "string",
+          description: "Resource group containing the API connection",
+        },
+        connectionName: {
+          type: "string",
+          description: "Name of the API connection (e.g., 'sql-1', 'servicebus', 'azureblob')",
+        },
+        operationId: {
+          type: "string",
+          description: "The operationId from the connector swagger to invoke (e.g., 'GetTables', 'GetQueues', 'GetDataSets')",
+        },
+        parameters: {
+          type: "object",
+          description: "Parameters required by the operation. Check the swagger for required parameters. For example, GetTable requires {table: 'tableName'}",
+          additionalProperties: true,
+        },
+      },
+      required: ["subscriptionId", "resourceGroupName", "connectionName", "operationId"],
+    },
+  },
+  {
     name: "get_host_status",
     description:
       "Get host status for a Standard Logic App including runtime version, extension bundle version, and diagnostics. Only available for Standard SKU.",

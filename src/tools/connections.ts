@@ -318,3 +318,171 @@ export async function getConnectorSwagger(
 
   return result;
 }
+
+export interface InvokeConnectorOperationResult {
+  operationId: string;
+  success: boolean;
+  data?: unknown;
+  error?: string;
+}
+
+/**
+ * Invoke a dynamic operation on an API connection to fetch connection-specific data.
+ * This is how the Logic Apps designer populates dropdowns and fetches schemas.
+ */
+export async function invokeConnectorOperation(
+  subscriptionId: string,
+  resourceGroupName: string,
+  connectionName: string,
+  operationId: string,
+  parameters?: Record<string, unknown>
+): Promise<InvokeConnectorOperationResult> {
+  // First, get the connection details to find the API it's connected to and its location
+  const connection = await armRequest<{
+    id: string;
+    name: string;
+    location: string;
+    properties: {
+      api: {
+        name: string;
+        id: string;
+      };
+    };
+  }>(
+    `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Web/connections/${connectionName}`,
+    { queryParams: { "api-version": "2018-07-01-preview" } }
+  );
+
+  const apiName = connection.properties.api.name;
+  const location = connection.location;
+
+  // Get the connector swagger to find the operation path
+  const connectorResponse = await armRequest<{
+    swagger?: string;
+    basePath?: string;
+    paths?: Record<string, Record<string, {
+      operationId?: string;
+      parameters?: Array<{
+        name: string;
+        in: string;
+        required?: boolean;
+      }>;
+    }>>;
+  }>(
+    `/subscriptions/${subscriptionId}/providers/Microsoft.Web/locations/${location}/managedApis/${apiName}`,
+    { queryParams: { "api-version": "2018-07-01-preview", "export": "true" } }
+  );
+
+  // Find the operation in the swagger
+  let operationPath: string | undefined;
+  let httpMethod: string | undefined;
+  let operationDef: {
+    operationId?: string;
+    parameters?: Array<{
+      name: string;
+      in: string;
+      required?: boolean;
+    }>;
+  } | undefined;
+
+  if (connectorResponse.paths) {
+    for (const [path, methods] of Object.entries(connectorResponse.paths)) {
+      for (const [method, def] of Object.entries(methods)) {
+        if (def.operationId === operationId) {
+          operationPath = path;
+          httpMethod = method.toUpperCase();
+          operationDef = def;
+          break;
+        }
+      }
+      if (operationPath) break;
+    }
+  }
+
+  if (!operationPath || !httpMethod) {
+    return {
+      operationId,
+      success: false,
+      error: `Operation '${operationId}' not found in connector '${apiName}'. Use get_connector_swagger to see available operations.`,
+    };
+  }
+
+  // Replace {connectionId} placeholder with actual connection ID
+  const connectionId = connection.id.split("/").pop() ?? connectionName;
+  let resolvedPath = operationPath.replace("{connectionId}", connectionId);
+
+  // Build query parameters and path parameters from the provided parameters
+  const queryParams: Record<string, string> = {};
+  
+  if (parameters && operationDef?.parameters) {
+    for (const param of operationDef.parameters) {
+      const value = parameters[param.name];
+      if (value !== undefined) {
+        if (param.in === "path") {
+          resolvedPath = resolvedPath.replace(`{${param.name}}`, encodeURIComponent(String(value)));
+        } else if (param.in === "query") {
+          queryParams[param.name] = String(value);
+        }
+      }
+    }
+  }
+
+  // Get the runtime URL from the connector
+  const connectorMetadata = await armRequest<{
+    properties: {
+      runtimeUrls?: string[];
+    };
+  }>(
+    `/subscriptions/${subscriptionId}/providers/Microsoft.Web/locations/${location}/managedApis/${apiName}`,
+    { queryParams: { "api-version": "2018-07-01-preview" } }
+  );
+
+  const runtimeUrl = connectorMetadata.properties.runtimeUrls?.[0];
+  if (!runtimeUrl) {
+    return {
+      operationId,
+      success: false,
+      error: `No runtime URL found for connector '${apiName}'`,
+    };
+  }
+
+  // Make the actual call to the connector runtime
+  try {
+    const token = await getAccessToken();
+    const url = new URL(resolvedPath, runtimeUrl);
+    for (const [key, value] of Object.entries(queryParams)) {
+      url.searchParams.set(key, value);
+    }
+
+    const response = await fetch(url.toString(), {
+      method: httpMethod,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: httpMethod === "POST" && parameters ? JSON.stringify(parameters) : undefined,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      return {
+        operationId,
+        success: false,
+        error: `HTTP ${response.status}: ${errorText}`,
+      };
+    }
+
+    const data = await response.json();
+    return {
+      operationId,
+      success: true,
+      data,
+    };
+  } catch (error) {
+    return {
+      operationId,
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error invoking operation",
+    };
+  }
+}

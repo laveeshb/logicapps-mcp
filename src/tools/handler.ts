@@ -24,7 +24,7 @@ import { getActionRepetitions, getScopeRepetitions } from "./repetitions.js";
 import { getActionRequestHistory } from "./requestHistory.js";
 import { getExpressionTraces } from "./expressions.js";
 import { getWorkflowSwagger } from "./swagger.js";
-import { getConnections, getConnectionDetails, testConnection, getConnectorSwagger } from "./connections.js";
+import { getConnections, getConnectionDetails, testConnection, getConnectorSwagger, invokeConnectorOperation } from "./connections.js";
 import { getHostStatus } from "./host.js";
 import { McpError, formatError } from "../utils/errors.js";
 
@@ -240,6 +240,15 @@ export async function handleToolCall(
           args.subscriptionId as string,
           args.location as string,
           args.connectorName as string
+        );
+        break;
+      case "invoke_connector_operation":
+        result = await invokeConnectorOperation(
+          args.subscriptionId as string,
+          args.resourceGroupName as string,
+          args.connectionName as string,
+          args.operationId as string,
+          args.parameters as Record<string, unknown> | undefined
         );
         break;
       // Write Operations
