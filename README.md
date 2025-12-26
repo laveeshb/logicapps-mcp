@@ -8,6 +8,7 @@ An MCP (Model Context Protocol) server that enables AI assistants to interact wi
 
 - [Quick Start](#quick-start)
 - [Features](#features)
+- [SKU Differences](#sku-differences)
 - [AI-Powered Logic Apps Development](#ai-powered-logic-apps-development)
 - [Installation](#installation)
 - [Configuration](#configuration)
@@ -42,12 +43,36 @@ az login
 ## Features
 
 - **Dual SKU Support**: Works with both Consumption (`Microsoft.Logic/workflows`) and Standard (`Microsoft.Web/sites`) Logic Apps
-- **30 Tools**: Comprehensive toolset for reading and writing workflows, triggers, runs, connections, and more
+- **33 Tools**: Comprehensive toolset for reading and writing workflows, triggers, runs, connections, and more
 - **Write Operations**: Create, update, delete, enable/disable workflows; run triggers; cancel runs
+- **Connector Support**: Discover connectors, invoke dynamic operations, create connections
 - **MCP Prompts**: Built-in guidance for AI assistants on tool selection and common workflows
 - **Multi-Cloud**: Supports Azure Public, Government, and China clouds
 - **Secure Authentication**: Uses Azure CLI tokens with automatic refresh
 - **No Azure SDK**: Pure REST API implementation with minimal dependencies
+
+## SKU Differences
+
+Logic Apps come in two SKUs with different architectures. This MCP server handles both transparently, but there are some important differences:
+
+| Aspect | Consumption | Standard |
+|--------|-------------|----------|
+| Resource Type | `Microsoft.Logic/workflows` | `Microsoft.Web/sites` + workflows |
+| Workflows per Resource | 1 (Logic App = Workflow) | Multiple workflows per Logic App |
+| Enable/Disable | Direct API call | Uses app settings (`Workflows.<name>.FlowState`) |
+| Connections | V1 API connections | V2 API connections with `connectionRuntimeUrl` |
+| Create/Update | ARM API | VFS API (file-based) |
+
+### API Connections for Standard Logic Apps
+
+Standard Logic Apps use **V2 API connections** which require additional setup:
+
+1. **Create V2 connection** with `kind: "V2"` property
+2. **Authorize via Azure Portal** (OAuth connectors require browser-based consent)
+3. **Create access policy** to grant the Logic App's managed identity access to the connection
+4. **Update connections.json** in the Logic App with the `connectionRuntimeUrl`
+
+> **Note**: The `create_connection` tool creates the connection resource, but for Standard Logic Apps with OAuth connectors (Office 365, SharePoint, etc.), you'll need to authorize the connection in the Azure Portal and manually configure the access policy and `connections.json`. This multi-step process is better suited for a custom agent workflow rather than individual MCP tool calls.
 
 ## AI-Powered Logic Apps Development
 
@@ -298,13 +323,16 @@ The authenticated user needs:
 | `get_action_request_history` | Get HTTP request/response details for connector actions |
 | `get_expression_traces` | Get expression evaluation traces for an action |
 
-### Connections
+### Connections & Connectors
 
 | Tool | Description |
 |------|-------------|
 | `get_connections` | List API connections in a resource group |
 | `get_connection_details` | Get detailed information about a specific API connection |
 | `test_connection` | Test if an API connection is valid and healthy |
+| `create_connection` | Create a new API connection for a managed connector |
+| `get_connector_swagger` | Get OpenAPI/Swagger definition for a managed connector |
+| `invoke_connector_operation` | Invoke dynamic operations to fetch schemas, tables, queues, etc. |
 
 ### Write Operations
 
