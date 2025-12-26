@@ -12,6 +12,8 @@ import {
   getWorkflowTriggers,
   listWorkflowVersions,
   getWorkflowVersion,
+  enableWorkflow,
+  disableWorkflow,
 } from "./workflows.js";
 import { getTriggerHistory, getTriggerCallbackUrl } from "./triggers.js";
 import { listRunHistory, getRunDetails, getRunActions, getActionIO, searchRuns } from "./runs.js";
@@ -228,6 +230,23 @@ export async function handleToolCall(
           args.subscriptionId as string,
           args.resourceGroupName as string,
           args.connectionName as string
+        );
+        break;
+      // Write Operations
+      case "enable_workflow":
+        result = await enableWorkflow(
+          args.subscriptionId as string,
+          args.resourceGroupName as string,
+          args.logicAppName as string,
+          args.workflowName as string | undefined
+        );
+        break;
+      case "disable_workflow":
+        result = await disableWorkflow(
+          args.subscriptionId as string,
+          args.resourceGroupName as string,
+          args.logicAppName as string,
+          args.workflowName as string | undefined
         );
         break;
       default:

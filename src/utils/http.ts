@@ -15,7 +15,7 @@ export interface ArmResponse<T> {
 export async function armRequest<T>(
   path: string,
   options: {
-    method?: "GET" | "POST";
+    method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
     body?: unknown;
     queryParams?: Record<string, string>;
   } = {}
@@ -87,15 +87,21 @@ export async function armRequestAllPages<T>(
 export async function workflowMgmtRequest<T>(
   logicAppHostname: string,
   path: string,
-  masterKey: string
+  masterKey: string,
+  options: {
+    method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+    body?: unknown;
+  } = {}
 ): Promise<T> {
   const url = `https://${logicAppHostname}${path}`;
 
   const response = await fetch(url, {
+    method: options.method ?? "GET",
     headers: {
       "x-functions-key": masterKey,
       "Content-Type": "application/json",
     },
+    body: options.body ? JSON.stringify(options.body) : undefined,
   });
 
   if (!response.ok) {

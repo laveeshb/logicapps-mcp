@@ -695,4 +695,61 @@ export const TOOL_DEFINITIONS: Tool[] = [
       required: ["subscriptionId", "resourceGroupName", "connectionName"],
     },
   },
+  // ============================================================================
+  // Write Operations
+  // ============================================================================
+  {
+    name: "enable_workflow",
+    description:
+      "Enable a disabled workflow, allowing it to process triggers and run. For Consumption Logic Apps, enables the entire Logic App. For Standard Logic Apps, enables a specific workflow within the Logic App.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        subscriptionId: {
+          type: "string",
+          description: "Azure subscription ID",
+        },
+        resourceGroupName: {
+          type: "string",
+          description: "Resource group name",
+        },
+        logicAppName: {
+          type: "string",
+          description: "Logic App resource name",
+        },
+        workflowName: {
+          type: "string",
+          description: "Workflow name (required for Standard SKU)",
+        },
+      },
+      required: ["subscriptionId", "resourceGroupName", "logicAppName"],
+    },
+  },
+  {
+    name: "disable_workflow",
+    description:
+      "Disable an active workflow, stopping it from processing triggers and running. In-progress runs will continue until completion. For Consumption Logic Apps, disables the entire Logic App. For Standard Logic Apps, disables a specific workflow within the Logic App.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        subscriptionId: {
+          type: "string",
+          description: "Azure subscription ID",
+        },
+        resourceGroupName: {
+          type: "string",
+          description: "Resource group name",
+        },
+        logicAppName: {
+          type: "string",
+          description: "Logic App resource name",
+        },
+        workflowName: {
+          type: "string",
+          description: "Workflow name (required for Standard SKU)",
+        },
+      },
+      required: ["subscriptionId", "resourceGroupName", "logicAppName"],
+    },
+  },
 ];

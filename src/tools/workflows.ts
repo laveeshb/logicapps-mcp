@@ -310,3 +310,134 @@ export async function getWorkflowVersion(
     parameters: version.properties.parameters,
   };
 }
+
+// ============================================================================
+// Write Operations
+// ============================================================================
+
+export interface EnableDisableWorkflowResult {
+  success: boolean;
+  name: string;
+  state: "Enabled" | "Disabled";
+  message: string;
+}
+
+/**
+ * Enable a workflow (set state to Enabled).
+ */
+export async function enableWorkflow(
+  subscriptionId: string,
+  resourceGroupName: string,
+  logicAppName: string,
+  workflowName?: string
+): Promise<EnableDisableWorkflowResult> {
+  const sku = await detectLogicAppSku(
+    subscriptionId,
+    resourceGroupName,
+    logicAppName
+  );
+
+  if (sku === "consumption") {
+    await armRequest(
+      `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}/enable`,
+      { method: "POST", queryParams: { "api-version": "2019-05-01" } }
+    );
+
+    return {
+      success: true,
+      name: logicAppName,
+      state: "Enabled",
+      message: `Consumption workflow '${logicAppName}' has been enabled.`,
+    };
+  }
+
+  // Standard - requires workflowName
+  if (!workflowName) {
+    throw new McpError(
+      "InvalidParameter",
+      "workflowName is required for Standard Logic Apps"
+    );
+  }
+
+  // Standard Logic Apps use the ARM API at Microsoft.Web/sites/{siteName}/workflows/{workflowName}
+  // to enable/disable workflows via a PATCH request
+  await armRequest(
+    `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Web/sites/${logicAppName}/workflows/${workflowName}`,
+    {
+      method: "PATCH",
+      queryParams: { "api-version": "2024-04-01" },
+      body: {
+        properties: {
+          state: "Enabled",
+        },
+      },
+    }
+  );
+
+  return {
+    success: true,
+    name: workflowName,
+    state: "Enabled",
+    message: `Standard workflow '${workflowName}' in '${logicAppName}' has been enabled.`,
+  };
+}
+
+/**
+ * Disable a workflow (set state to Disabled).
+ */
+export async function disableWorkflow(
+  subscriptionId: string,
+  resourceGroupName: string,
+  logicAppName: string,
+  workflowName?: string
+): Promise<EnableDisableWorkflowResult> {
+  const sku = await detectLogicAppSku(
+    subscriptionId,
+    resourceGroupName,
+    logicAppName
+  );
+
+  if (sku === "consumption") {
+    await armRequest(
+      `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}/disable`,
+      { method: "POST", queryParams: { "api-version": "2019-05-01" } }
+    );
+
+    return {
+      success: true,
+      name: logicAppName,
+      state: "Disabled",
+      message: `Consumption workflow '${logicAppName}' has been disabled.`,
+    };
+  }
+
+  // Standard - requires workflowName
+  if (!workflowName) {
+    throw new McpError(
+      "InvalidParameter",
+      "workflowName is required for Standard Logic Apps"
+    );
+  }
+
+  // Standard Logic Apps use the ARM API at Microsoft.Web/sites/{siteName}/workflows/{workflowName}
+  // to enable/disable workflows via a PATCH request
+  await armRequest(
+    `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Web/sites/${logicAppName}/workflows/${workflowName}`,
+    {
+      method: "PATCH",
+      queryParams: { "api-version": "2024-04-01" },
+      body: {
+        properties: {
+          state: "Disabled",
+        },
+      },
+    }
+  );
+
+  return {
+    success: true,
+    name: workflowName,
+    state: "Disabled",
+    message: `Standard workflow '${workflowName}' in '${logicAppName}' has been disabled.`,
+  };
+}
