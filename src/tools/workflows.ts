@@ -314,6 +314,55 @@ export async function getWorkflowVersion(
 }
 
 // ============================================================================
+// Standard App Settings Helper
+// ============================================================================
+
+interface AppSettingsResponse {
+  properties: Record<string, string>;
+}
+
+/**
+ * Update the FlowState app setting for a Standard Logic App workflow.
+ * For enable: removes the app setting (or sets to empty)
+ * For disable: sets "Workflows.<workflowName>.FlowState" to "Disabled"
+ */
+async function updateStandardWorkflowFlowState(
+  subscriptionId: string,
+  resourceGroupName: string,
+  logicAppName: string,
+  workflowName: string,
+  state: "Enabled" | "Disabled"
+): Promise<void> {
+  const settingName = `Workflows.${workflowName}.FlowState`;
+
+  // First, get current app settings
+  const currentSettings = await armRequest<AppSettingsResponse>(
+    `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Web/sites/${logicAppName}/config/appsettings/list`,
+    { method: "POST", queryParams: { "api-version": "2023-01-01" } }
+  );
+
+  const properties = { ...currentSettings.properties };
+
+  if (state === "Disabled") {
+    // Set the FlowState to Disabled
+    properties[settingName] = "Disabled";
+  } else {
+    // Remove the FlowState setting to enable (or set to empty string)
+    delete properties[settingName];
+  }
+
+  // Update app settings
+  await armRequest(
+    `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Web/sites/${logicAppName}/config/appsettings`,
+    {
+      method: "PUT",
+      queryParams: { "api-version": "2023-01-01" },
+      body: { properties },
+    }
+  );
+}
+
+// ============================================================================
 // Write Operations
 // ============================================================================
 
@@ -361,18 +410,14 @@ export async function enableWorkflow(
     );
   }
 
-  // Standard Logic Apps use the workflow management API to enable workflows
-  const { hostname, masterKey } = await getStandardAppAccess(
+  // Standard Logic Apps use app settings to control workflow state
+  // Setting "Workflows.<workflowName>.FlowState" to empty or removing it enables the workflow
+  await updateStandardWorkflowFlowState(
     subscriptionId,
     resourceGroupName,
-    logicAppName
-  );
-
-  await workflowMgmtRequest(
-    hostname,
-    `/runtime/webhooks/workflow/api/management/workflows/${workflowName}/enable?api-version=2020-05-01-preview`,
-    masterKey,
-    { method: "POST" }
+    logicAppName,
+    workflowName,
+    "Enabled"
   );
 
   return {
@@ -420,18 +465,14 @@ export async function disableWorkflow(
     );
   }
 
-  // Standard Logic Apps use the workflow management API to disable workflows
-  const { hostname, masterKey } = await getStandardAppAccess(
+  // Standard Logic Apps use app settings to control workflow state
+  // Setting "Workflows.<workflowName>.FlowState" to "Disabled" disables the workflow
+  await updateStandardWorkflowFlowState(
     subscriptionId,
     resourceGroupName,
-    logicAppName
-  );
-
-  await workflowMgmtRequest(
-    hostname,
-    `/runtime/webhooks/workflow/api/management/workflows/${workflowName}/disable?api-version=2020-05-01-preview`,
-    masterKey,
-    { method: "POST" }
+    logicAppName,
+    workflowName,
+    "Disabled"
   );
 
   return {
