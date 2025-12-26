@@ -198,3 +198,112 @@ export async function testConnection(
 
   return result;
 }
+
+export interface GetConnectorSwaggerResult {
+  connectorName: string;
+  displayName: string;
+  description: string;
+  iconUri?: string;
+  swagger?: {
+    basePath?: string;
+    paths: Record<string, Record<string, {
+      operationId?: string;
+      summary?: string;
+      description?: string;
+      parameters?: Array<{
+        name: string;
+        in: string;
+        required?: boolean;
+        type?: string;
+        description?: string;
+      }>;
+    }>>;
+    definitions?: Record<string, unknown>;
+  };
+  capabilities?: string[];
+  connectionParameters?: Record<string, unknown>;
+}
+
+/**
+ * Get the OpenAPI/Swagger definition for a managed connector.
+ * This is essential for discovering correct action paths when creating workflows.
+ */
+export async function getConnectorSwagger(
+  subscriptionId: string,
+  location: string,
+  connectorName: string
+): Promise<GetConnectorSwaggerResult> {
+  interface ConnectorResponse {
+    id: string;
+    name: string;
+    properties: {
+      name: string;
+      generalInformation?: {
+        displayName?: string;
+        description?: string;
+        iconUrl?: string;
+      };
+      capabilities?: string[];
+      connectionParameters?: Record<string, unknown>;
+      swagger?: {
+        basePath?: string;
+        paths: Record<string, Record<string, {
+          operationId?: string;
+          summary?: string;
+          description?: string;
+          parameters?: Array<{
+            name: string;
+            in: string;
+            required?: boolean;
+            type?: string;
+            description?: string;
+          }>;
+        }>>;
+        definitions?: Record<string, unknown>;
+      };
+      apiDefinitions?: {
+        originalSwaggerUrl?: string;
+        modifiedSwaggerUrl?: string;
+      };
+    };
+  }
+
+  // Try to get the connector with swagger export
+  const connector = await armRequest<ConnectorResponse>(
+    `/subscriptions/${subscriptionId}/providers/Microsoft.Web/locations/${location}/managedApis/${connectorName}`,
+    { queryParams: { "api-version": "2016-06-01", "export": "true" } }
+  );
+
+  const result: GetConnectorSwaggerResult = {
+    connectorName: connector.name,
+    displayName: connector.properties.generalInformation?.displayName ?? connector.name,
+    description: connector.properties.generalInformation?.description ?? "",
+    iconUri: connector.properties.generalInformation?.iconUrl,
+    capabilities: connector.properties.capabilities,
+    connectionParameters: connector.properties.connectionParameters,
+  };
+
+  // If swagger was included in the response, add it
+  if (connector.properties.swagger) {
+    result.swagger = connector.properties.swagger;
+  }
+
+  // If no swagger but there's a swagger URL, try to fetch it
+  if (!result.swagger && connector.properties.apiDefinitions?.modifiedSwaggerUrl) {
+    try {
+      const token = await getAccessToken();
+      const swaggerResponse = await fetch(connector.properties.apiDefinitions.modifiedSwaggerUrl, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (swaggerResponse.ok) {
+        result.swagger = await swaggerResponse.json() as GetConnectorSwaggerResult["swagger"];
+      }
+    } catch {
+      // Swagger fetch failed, continue without it
+    }
+  }
+
+  return result;
+}

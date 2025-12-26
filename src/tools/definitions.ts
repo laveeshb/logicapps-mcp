@@ -240,6 +240,28 @@ export const TOOL_DEFINITIONS: Tool[] = [
     },
   },
   {
+    name: "get_connector_swagger",
+    description: "Get the OpenAPI/Swagger definition for a managed connector (e.g., msnweather, sql, servicebus, office365). Returns available operations, paths, and schemas. ESSENTIAL for discovering correct action paths when creating or updating workflows with connector actions.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        subscriptionId: {
+          type: "string",
+          description: "Azure subscription ID",
+        },
+        location: {
+          type: "string",
+          description: "Azure region where the connector is available (e.g., 'westus2', 'eastus')",
+        },
+        connectorName: {
+          type: "string",
+          description: "Connector name (e.g., 'msnweather', 'sql', 'servicebus', 'office365', 'azureblob')",
+        },
+      },
+      required: ["subscriptionId", "location", "connectorName"],
+    },
+  },
+  {
     name: "get_host_status",
     description:
       "Get host status for a Standard Logic App including runtime version, extension bundle version, and diagnostics. Only available for Standard SKU.",
@@ -817,7 +839,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "create_workflow",
     description:
-      "Create a new workflow. For Consumption SKU, creates a new Logic App resource. For Standard SKU, creates a new workflow within an existing Logic App. Requires a valid workflow definition JSON that follows the Logic Apps schema.",
+      "Create a new workflow. For Consumption SKU, creates a new Logic App resource. For Standard SKU, creates a new workflow within an existing Logic App. Requires a valid workflow definition JSON that follows the Logic Apps schema. IMPORTANT: When adding connector actions (e.g., SQL, Service Bus, MSN Weather), use get_connector_swagger first to discover the correct action paths and schemas.",
     inputSchema: {
       type: "object",
       properties: {
@@ -857,7 +879,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "update_workflow",
     description:
-      "Update an existing workflow's definition. Replaces the entire definition with the new one. For Standard SKU, workflowName is required. Use get_workflow_definition first to get the current definition, modify it, then update.",
+      "Update an existing workflow's definition. Replaces the entire definition with the new one. For Standard SKU, workflowName is required. Use get_workflow_definition first to get the current definition, modify it, then update. IMPORTANT: When adding connector actions, use get_connector_swagger to discover correct action paths and schemas.",
     inputSchema: {
       type: "object",
       properties: {
