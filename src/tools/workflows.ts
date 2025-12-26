@@ -361,19 +361,18 @@ export async function enableWorkflow(
     );
   }
 
-  // Standard Logic Apps use the ARM API at Microsoft.Web/sites/{siteName}/workflows/{workflowName}
-  // to enable/disable workflows via a PATCH request
-  await armRequest(
-    `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Web/sites/${logicAppName}/workflows/${workflowName}`,
-    {
-      method: "PATCH",
-      queryParams: { "api-version": "2024-04-01" },
-      body: {
-        properties: {
-          state: "Enabled",
-        },
-      },
-    }
+  // Standard Logic Apps use the workflow management API to enable workflows
+  const { hostname, masterKey } = await getStandardAppAccess(
+    subscriptionId,
+    resourceGroupName,
+    logicAppName
+  );
+
+  await workflowMgmtRequest(
+    hostname,
+    `/runtime/webhooks/workflow/api/management/workflows/${workflowName}/enable?api-version=2020-05-01-preview`,
+    masterKey,
+    { method: "POST" }
   );
 
   return {
@@ -421,19 +420,18 @@ export async function disableWorkflow(
     );
   }
 
-  // Standard Logic Apps use the ARM API at Microsoft.Web/sites/{siteName}/workflows/{workflowName}
-  // to enable/disable workflows via a PATCH request
-  await armRequest(
-    `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Web/sites/${logicAppName}/workflows/${workflowName}`,
-    {
-      method: "PATCH",
-      queryParams: { "api-version": "2024-04-01" },
-      body: {
-        properties: {
-          state: "Disabled",
-        },
-      },
-    }
+  // Standard Logic Apps use the workflow management API to disable workflows
+  const { hostname, masterKey } = await getStandardAppAccess(
+    subscriptionId,
+    resourceGroupName,
+    logicAppName
+  );
+
+  await workflowMgmtRequest(
+    hostname,
+    `/runtime/webhooks/workflow/api/management/workflows/${workflowName}/disable?api-version=2020-05-01-preview`,
+    masterKey,
+    { method: "POST" }
   );
 
   return {
