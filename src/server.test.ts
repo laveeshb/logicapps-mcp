@@ -35,9 +35,11 @@ describe("server", () => {
       const handler = handlers.get(ListPromptsRequestSchema);
       const result = await handler!();
 
-      expect(result.prompts).toHaveLength(1);
+      expect(result.prompts).toHaveLength(2);
       expect(result.prompts[0].name).toBe("logic-apps-guide");
       expect(result.prompts[0].description).toContain("Azure Logic Apps");
+      expect(result.prompts[1].name).toBe("native-operations-guide");
+      expect(result.prompts[1].description).toContain("native Logic Apps operations");
     });
 
     it("should return logic-apps-guide content", async () => {
@@ -50,6 +52,19 @@ describe("server", () => {
       expect(result.messages[0].content.text).toContain("SKU Types");
       expect(result.messages[0].content.text).toContain("Consumption");
       expect(result.messages[0].content.text).toContain("Standard");
+    });
+
+    it("should return native-operations-guide content", async () => {
+      const handler = handlers.get(GetPromptRequestSchema);
+      const result = await handler!({ params: { name: "native-operations-guide" } });
+
+      expect(result.messages).toHaveLength(1);
+      expect(result.messages[0].role).toBe("user");
+      expect(result.messages[0].content.type).toBe("text");
+      expect(result.messages[0].content.text).toContain("Native Operations Reference");
+      expect(result.messages[0].content.text).toContain("Compose");
+      expect(result.messages[0].content.text).toContain("For Each Loop");
+      expect(result.messages[0].content.text).toContain("Condition");
     });
 
     it("should throw error for unknown prompt", async () => {
