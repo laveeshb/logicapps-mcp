@@ -43,7 +43,13 @@ export async function armRequest<T>(
     await handleArmError(response);
   }
 
-  return (await response.json()) as T;
+  // Handle empty responses (e.g., 202 Accepted, 204 No Content)
+  const text = await response.text();
+  if (!text) {
+    return undefined as T;
+  }
+  
+  return JSON.parse(text) as T;
 }
 
 export async function armRequestAllPages<T>(
