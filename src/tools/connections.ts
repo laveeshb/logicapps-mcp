@@ -337,7 +337,17 @@ export async function invokeConnectorOperation(
   operationId: string,
   parameters?: Record<string, unknown>
 ): Promise<InvokeConnectorOperationResult> {
-  // First, get the connection details to find the API it's connected to and its location
+  // First, test if the connection is authorized/connected
+  const connectionTest = await testConnection(subscriptionId, resourceGroupName, connectionName);
+  if (!connectionTest.isValid) {
+    return {
+      operationId,
+      success: false,
+      error: `Connection '${connectionName}' is not authorized. Status: ${connectionTest.status}. ${connectionTest.error ? `Error: ${connectionTest.error.message}` : 'Please authorize the connection first using create_connection or through the Azure portal.'}`,
+    };
+  }
+
+  // Get the connection details to find the API it's connected to and its location
   const connection = await armRequest<{
     id: string;
     name: string;
