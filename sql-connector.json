@@ -1,0 +1,902 @@
+{
+  "properties": {
+    "name": "sql",
+    "connectionParameters": {
+      "server": {
+        "type": "string",
+        "uiDefinition": {
+          "displayName": "SQL server name",
+          "description": "SQL server name",
+          "tooltip": "SQL server name",
+          "constraints": {
+            "tabIndex": 1,
+            "required": "true",
+            "capability": [
+              "gateway",
+              "cloud"
+            ]
+          }
+        }
+      },
+      "database": {
+        "type": "string",
+        "uiDefinition": {
+          "displayName": "SQL database name",
+          "description": "SQL database name",
+          "tooltip": "SQL database name",
+          "constraints": {
+            "tabIndex": 2,
+            "required": "true",
+            "capability": [
+              "gateway",
+              "cloud"
+            ]
+          }
+        }
+      },
+      "authType": {
+        "type": "string",
+        "allowedValues": [
+          {
+            "value": "windows"
+          },
+          {
+            "value": "basic"
+          }
+        ],
+        "uiDefinition": {
+          "displayName": "Authentication Type",
+          "description": "Authentication type to connect to your database",
+          "tooltip": "Authentication type to connect to your database",
+          "constraints": {
+            "tabIndex": 3,
+            "required": "false",
+            "allowedValues": [
+              {
+                "text": "Windows",
+                "value": "windows"
+              },
+              {
+                "text": "Basic",
+                "value": "basic"
+              }
+            ],
+            "capability": [
+              "gateway"
+            ]
+          }
+        }
+      },
+      "username": {
+        "type": "securestring",
+        "uiDefinition": {
+          "displayName": "Username",
+          "description": "Username credential",
+          "tooltip": "Username credential",
+          "constraints": {
+            "tabIndex": 4,
+            "clearText": true,
+            "required": "true",
+            "capability": [
+              "gateway",
+              "cloud"
+            ]
+          }
+        }
+      },
+      "password": {
+        "type": "securestring",
+        "uiDefinition": {
+          "displayName": "Password",
+          "description": "Password credential",
+          "tooltip": "Password credential",
+          "constraints": {
+            "tabIndex": 5,
+            "required": "true",
+            "capability": [
+              "gateway",
+              "cloud"
+            ]
+          }
+        }
+      },
+      "gateway": {
+        "type": "gatewaySetting",
+        "gatewaySettings": {
+          "dataSourceType": "sql",
+          "connectionDetails": [
+            "server",
+            "database"
+          ]
+        },
+        "uiDefinition": {
+          "displayName": "Gateway",
+          "description": "On-prem gateway (see https://docs.microsoft.com/data-integration/gateway for more details)",
+          "tooltip": "On-prem gateway",
+          "constraints": {
+            "tabIndex": 6,
+            "required": "false",
+            "capability": [
+              "gateway"
+            ]
+          }
+        }
+      },
+      "encryptConnection": {
+        "type": "bool",
+        "uiDefinition": {
+          "displayName": "Encrypt Connection",
+          "description": "Encrypt Connection",
+          "tooltip": "Encrypt Connection",
+          "constraints": {
+            "hidden": "true",
+            "tabIndex": 7,
+            "required": "false",
+            "capability": [
+              "cloud",
+              "gateway"
+            ]
+          }
+        }
+      },
+      "privacySetting": {
+        "type": "string",
+        "allowedValues": [
+          {
+            "value": "None"
+          },
+          {
+            "value": "Private"
+          },
+          {
+            "value": "Organizational"
+          },
+          {
+            "value": "Public"
+          }
+        ],
+        "uiDefinition": {
+          "displayName": "Privacy Setting",
+          "description": "Privacy Setting",
+          "tooltip": "Privacy Setting",
+          "constraints": {
+            "tabIndex": 8,
+            "required": "false",
+            "hidden": "true",
+            "capability": [
+              "cloud",
+              "gateway"
+            ],
+            "allowedValues": [
+              {
+                "name": "None",
+                "value": "None"
+              },
+              {
+                "name": "Private",
+                "value": "Private"
+              },
+              {
+                "name": "Organizational",
+                "value": "Organizational"
+              },
+              {
+                "name": "Public",
+                "value": "Public"
+              }
+            ]
+          }
+        }
+      },
+      "sqlConnectionString": {
+        "type": "securestring",
+        "uiDefinition": {
+          "displayName": "SQL Connection String",
+          "description": "SQL Connection String",
+          "tooltip": "Password credential",
+          "constraints": {
+            "required": "false",
+            "hidden": "true"
+          }
+        }
+      }
+    },
+    "connectionParameterSets": {
+      "uiDefinition": {
+        "displayName": "Authentication type",
+        "description": "Type of authentication to be used."
+      },
+      "values": [
+        {
+          "name": "certOauth",
+          "uiDefinition": {
+            "displayName": "Client Certificate Auth",
+            "description": "Provide Microsoft Entra ID credentials using PFX certificate and password"
+          },
+          "parameters": {
+            "token": {
+              "type": "oauthSetting",
+              "oAuthSettings": {
+                "identityProvider": "aadcertificate",
+                "clientId": "7ab7862c-4c57-491e-8a45-d52a7e023983",
+                "scopes": [],
+                "redirectMode": "GlobalPerConnector",
+                "redirectUrl": "https://global.consent.azure-apim.net/redirect/sql",
+                "properties": {
+                  "IsFirstParty": "True",
+                  "AzureActiveDirectoryResourceId": "https://database.windows.net/",
+                  "IsOnbehalfofLoginSupported": true
+                },
+                "customParameters": {
+                  "grantType": {
+                    "value": "client_credentials"
+                  },
+                  "resourceUri": {
+                    "value": "https://database.windows.net/"
+                  }
+                }
+              },
+              "uiDefinition": {
+                "displayName": "Login your Credentials",
+                "description": "Login your Credentials",
+                "tooltip": "Provide your Credentials",
+                "constraints": {
+                  "required": "true",
+                  "hidden": "false"
+                }
+              }
+            },
+            "token:TenantId": {
+              "type": "string",
+              "uiDefinition": {
+                "schema": {
+                  "description": "The tenant ID of the Microsoft Entra ID application",
+                  "type": "string"
+                },
+                "displayName": "Tenant",
+                "constraints": {
+                  "required": "true",
+                  "hidden": "false"
+                }
+              }
+            },
+            "token:clientId": {
+              "type": "string",
+              "uiDefinition": {
+                "displayName": "Client ID",
+                "description": "The client ID of for the Microsoft Entra ID application",
+                "constraints": {
+                  "required": "false",
+                  "hidden": "false"
+                }
+              }
+            },
+            "token:clientCertificateSecret": {
+              "type": "clientCertificate",
+              "uiDefinition": {
+                "displayName": "Client certificate secret",
+                "description": "The client certificate secret allowed by this application",
+                "constraints": {
+                  "required": "true",
+                  "hidden": "false"
+                }
+              }
+            }
+          },
+          "metadata": {
+            "allowSharing": true
+          }
+        },
+        {
+          "name": "oauthSP",
+          "uiDefinition": {
+            "displayName": "Service principal (Microsoft Entra ID application)",
+            "description": "Use Microsoft Entra ID application to access your SQL database."
+          },
+          "parameters": {
+            "token": {
+              "type": "oauthSetting",
+              "oAuthSettings": {
+                "identityProvider": "aadcertificate",
+                "scopes": [],
+                "redirectMode": "GlobalPerConnector",
+                "redirectUrl": "https://global.consent.azure-apim.net/redirect/sql",
+                "properties": {
+                  "IsFirstParty": "True",
+                  "AzureActiveDirectoryResourceId": "https://database.windows.net/",
+                  "IsOnbehalfofLoginSupported": true
+                },
+                "customParameters": {
+                  "grantType": {
+                    "value": "client_credentials"
+                  },
+                  "resourceUri": {
+                    "value": "https://database.windows.net/"
+                  },
+                  "loginUri": {
+                    "value": "https://login.windows.net"
+                  },
+                  "loginUriAAD": {
+                    "value": "https://login.windows.net"
+                  }
+                }
+              },
+              "uiDefinition": {
+                "displayName": "Sign in with your Microsoft Entra ID credentials",
+                "description": "Sign in with your Microsoft Entra ID credentials",
+                "tooltip": "Provide Microsoft Entra ID credentials",
+                "constraints": {
+                  "required": "false",
+                  "hidden": "true"
+                }
+              }
+            },
+            "token:TenantId": {
+              "type": "string",
+              "uiDefinition": {
+                "schema": {
+                  "description": "The tenant ID of the Microsoft Entra ID application",
+                  "type": "string"
+                },
+                "displayName": "Tenant",
+                "constraints": {
+                  "required": "true",
+                  "hidden": "false"
+                }
+              }
+            },
+            "token:clientId": {
+              "type": "string",
+              "uiDefinition": {
+                "displayName": "Client ID",
+                "schema": {
+                  "type": "string",
+                  "description": "Client (or Application) ID of your Microsoft Entra ID application"
+                },
+                "constraints": {
+                  "required": "true",
+                  "hidden": "false"
+                }
+              }
+            },
+            "token:clientSecret": {
+              "type": "securestring",
+              "uiDefinition": {
+                "displayName": "Client Secret",
+                "schema": {
+                  "type": "securestring",
+                  "description": "Client secret of your Microsoft Entra ID application"
+                },
+                "constraints": {
+                  "required": "true",
+                  "hidden": "false"
+                }
+              }
+            }
+          },
+          "metadata": {
+            "allowSharing": true
+          }
+        },
+        {
+          "name": "oauthMI",
+          "uiDefinition": {
+            "displayName": "Logic Apps Managed Identity",
+            "description": "Create a connection using a LogicApps Managed Identity"
+          },
+          "parameters": {
+            "token": {
+              "type": "managedIdentity",
+              "managedIdentitySettings": {
+                "resourceUri": "https://database.windows.net/"
+              },
+              "uiDefinition": {
+                "displayName": "Logic Apps Managed Identity",
+                "description": "Sign in with a Logic Apps Managed Identity",
+                "tooltip": "Managed Identity",
+                "constraints": {
+                  "location": "logicapp",
+                  "required": "true"
+                }
+              }
+            }
+          },
+          "metadata": {
+            "allowSharing": true
+          }
+        },
+        {
+          "name": "oauth",
+          "uiDefinition": {
+            "displayName": "Microsoft Entra ID Integrated",
+            "description": "Use Microsoft Entra ID to access your SQL database."
+          },
+          "parameters": {
+            "token": {
+              "type": "oauthSetting",
+              "oAuthSettings": {
+                "identityProvider": "aadcertificate",
+                "clientId": "7ab7862c-4c57-491e-8a45-d52a7e023983",
+                "scopes": [],
+                "redirectMode": "GlobalPerConnector",
+                "redirectUrl": "https://global.consent.azure-apim.net/redirect/sql",
+                "properties": {
+                  "IsFirstParty": "True",
+                  "AzureActiveDirectoryResourceId": "https://database.windows.net/",
+                  "IsOnbehalfofLoginSupported": true
+                },
+                "customParameters": {
+                  "resourceUri": {
+                    "value": "https://database.windows.net/"
+                  },
+                  "loginUri": {
+                    "value": "https://login.windows.net"
+                  },
+                  "loginUriAAD": {
+                    "value": "https://login.windows.net"
+                  }
+                }
+              },
+              "uiDefinition": {
+                "displayName": "Sign in with your Microsoft Entra ID credentials",
+                "description": "Sign in with your Microsoft Entra ID credentials",
+                "tooltip": "Provide  Microsoft Entra ID credentials",
+                "constraints": {
+                  "required": "true"
+                }
+              }
+            },
+            "encryptConnection": {
+              "type": "bool",
+              "uiDefinition": {
+                "displayName": "Encrypt Connection",
+                "description": "Encrypt Connection",
+                "tooltip": "Encrypt Connection",
+                "constraints": {
+                  "hidden": "true",
+                  "required": "false",
+                  "capability": [
+                    "cloud",
+                    "gateway"
+                  ]
+                }
+              }
+            },
+            "privacySetting": {
+              "type": "string",
+              "allowedValues": [
+                {
+                  "value": "None"
+                },
+                {
+                  "value": "Private"
+                },
+                {
+                  "value": "Organizational"
+                },
+                {
+                  "value": "Public"
+                }
+              ],
+              "uiDefinition": {
+                "displayName": "Privacy Setting",
+                "description": "Privacy Setting",
+                "tooltip": "Privacy Setting",
+                "constraints": {
+                  "required": "false",
+                  "hidden": "true",
+                  "capability": [
+                    "cloud",
+                    "gateway"
+                  ],
+                  "allowedValues": [
+                    {
+                      "name": "None",
+                      "value": "None"
+                    },
+                    {
+                      "name": "Private",
+                      "value": "Private"
+                    },
+                    {
+                      "name": "Organizational",
+                      "value": "Organizational"
+                    },
+                    {
+                      "name": "Public",
+                      "value": "Public"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "metadata": {
+            "allowSharing": false
+          }
+        },
+        {
+          "name": "sqlAuthentication",
+          "uiDefinition": {
+            "displayName": "SQL Server Authentication",
+            "description": "Use an account name and password to access your SQL database."
+          },
+          "parameters": {
+            "server": {
+              "type": "string",
+              "uiDefinition": {
+                "displayName": "SQL server name",
+                "description": "Specify the name of the SQL server (server[:port])",
+                "tooltip": "SQL server name",
+                "constraints": {
+                  "tabIndex": 1,
+                  "required": "true"
+                }
+              }
+            },
+            "database": {
+              "type": "string",
+              "uiDefinition": {
+                "displayName": "SQL database name",
+                "description": "SQL database name",
+                "tooltip": "SQL database name",
+                "constraints": {
+                  "tabIndex": 2,
+                  "required": "true"
+                }
+              }
+            },
+            "username": {
+              "type": "securestring",
+              "uiDefinition": {
+                "displayName": "Username",
+                "description": "Username credential",
+                "tooltip": "Username credential",
+                "constraints": {
+                  "tabIndex": 3,
+                  "clearText": true,
+                  "required": "true"
+                }
+              }
+            },
+            "password": {
+              "type": "securestring",
+              "uiDefinition": {
+                "displayName": "Password",
+                "description": "Password credential",
+                "tooltip": "Password credential",
+                "constraints": {
+                  "tabIndex": 4,
+                  "required": "true"
+                }
+              }
+            },
+            "gateway": {
+              "type": "gatewaySetting",
+              "gatewaySettings": {
+                "dataSourceType": "sql",
+                "credentialType": "Basic",
+                "connectionDetails": [
+                  "server",
+                  "database"
+                ]
+              },
+              "uiDefinition": {
+                "displayName": "Gateway",
+                "description": "On-prem gateway (see https://docs.microsoft.com/data-integration/gateway for more details)",
+                "tooltip": "On-prem gateway",
+                "constraints": {
+                  "tabIndex": 5,
+                  "required": "false"
+                }
+              }
+            },
+            "encryptConnection": {
+              "type": "bool",
+              "uiDefinition": {
+                "displayName": "Encrypt Connection",
+                "description": "Encrypt Connection",
+                "tooltip": "Encrypt Connection",
+                "constraints": {
+                  "hidden": "true",
+                  "tabIndex": 6,
+                  "required": "false",
+                  "capability": [
+                    "cloud",
+                    "gateway"
+                  ]
+                }
+              }
+            },
+            "privacySetting": {
+              "type": "string",
+              "allowedValues": [
+                {
+                  "value": "None"
+                },
+                {
+                  "value": "Private"
+                },
+                {
+                  "value": "Organizational"
+                },
+                {
+                  "value": "Public"
+                }
+              ],
+              "uiDefinition": {
+                "displayName": "Privacy Setting",
+                "description": "Privacy Setting",
+                "tooltip": "Privacy Setting",
+                "constraints": {
+                  "tabIndex": 7,
+                  "required": "false",
+                  "hidden": "true",
+                  "capability": [
+                    "cloud",
+                    "gateway"
+                  ],
+                  "allowedValues": [
+                    {
+                      "name": "None",
+                      "value": "None"
+                    },
+                    {
+                      "name": "Private",
+                      "value": "Private"
+                    },
+                    {
+                      "name": "Organizational",
+                      "value": "Organizational"
+                    },
+                    {
+                      "name": "Public",
+                      "value": "Public"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "metadata": {
+            "allowSharing": true
+          }
+        },
+        {
+          "name": "windowsAuthentication",
+          "uiDefinition": {
+            "displayName": "Windows Authentication",
+            "description": "Use an on-premise Microsoft Entra ID account name and password to access your SQL database."
+          },
+          "parameters": {
+            "server": {
+              "type": "string",
+              "uiDefinition": {
+                "displayName": "SQL server name",
+                "description": "Specify the name of the SQL server (server[:port])",
+                "tooltip": "SQL server name",
+                "constraints": {
+                  "tabIndex": 1,
+                  "required": "true"
+                }
+              }
+            },
+            "database": {
+              "type": "string",
+              "uiDefinition": {
+                "displayName": "SQL database name",
+                "description": "SQL database name",
+                "tooltip": "SQL database name",
+                "constraints": {
+                  "tabIndex": 2,
+                  "required": "true"
+                }
+              }
+            },
+            "username": {
+              "type": "securestring",
+              "uiDefinition": {
+                "displayName": "Username",
+                "description": "Username credential",
+                "tooltip": "Username credential",
+                "constraints": {
+                  "tabIndex": 3,
+                  "clearText": true,
+                  "required": "true"
+                }
+              }
+            },
+            "password": {
+              "type": "securestring",
+              "uiDefinition": {
+                "displayName": "Password",
+                "description": "Password credential",
+                "tooltip": "Password credential",
+                "constraints": {
+                  "tabIndex": 4,
+                  "required": "true"
+                }
+              }
+            },
+            "gateway": {
+              "type": "gatewaySetting",
+              "gatewaySettings": {
+                "dataSourceType": "sql",
+                "credentialType": "Windows",
+                "connectionDetails": [
+                  "server",
+                  "database"
+                ]
+              },
+              "uiDefinition": {
+                "displayName": "Gateway",
+                "description": "On-prem gateway (see https://docs.microsoft.com/data-integration/gateway for more details)",
+                "tooltip": "On-prem gateway",
+                "constraints": {
+                  "tabIndex": 5,
+                  "required": "true"
+                }
+              }
+            },
+            "encryptConnection": {
+              "type": "bool",
+              "uiDefinition": {
+                "displayName": "Encrypt Connection",
+                "description": "Encrypt Connection",
+                "tooltip": "Encrypt Connection",
+                "constraints": {
+                  "hidden": "true",
+                  "tabIndex": 6,
+                  "required": "false",
+                  "capability": [
+                    "cloud",
+                    "gateway"
+                  ]
+                }
+              }
+            },
+            "privacySetting": {
+              "type": "string",
+              "allowedValues": [
+                {
+                  "value": "None"
+                },
+                {
+                  "value": "Private"
+                },
+                {
+                  "value": "Organizational"
+                },
+                {
+                  "value": "Public"
+                }
+              ],
+              "uiDefinition": {
+                "displayName": "Privacy Setting",
+                "description": "Privacy Setting",
+                "tooltip": "Privacy Setting",
+                "constraints": {
+                  "tabIndex": 7,
+                  "required": "false",
+                  "hidden": "true",
+                  "capability": [
+                    "cloud",
+                    "gateway"
+                  ],
+                  "allowedValues": [
+                    {
+                      "name": "None",
+                      "value": "None"
+                    },
+                    {
+                      "name": "Private",
+                      "value": "Private"
+                    },
+                    {
+                      "name": "Organizational",
+                      "value": "Organizational"
+                    },
+                    {
+                      "name": "Public",
+                      "value": "Public"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "metadata": {
+            "allowSharing": true
+          }
+        },
+        {
+          "name": "windowsAuthenticationNonShared",
+          "uiDefinition": {
+            "displayName": "Windows Authentication (Non Shared)",
+            "description": "Use an on-premise Microsoft Entra ID account name and password to access your SQL database."
+          },
+          "parameters": {
+            "username": {
+              "type": "securestring",
+              "uiDefinition": {
+                "displayName": "Username",
+                "description": "Username credential",
+                "tooltip": "Username credential",
+                "constraints": {
+                  "tabIndex": 1,
+                  "clearText": true,
+                  "required": "true"
+                }
+              }
+            },
+            "password": {
+              "type": "securestring",
+              "uiDefinition": {
+                "displayName": "Password",
+                "description": "Password credential",
+                "tooltip": "Password credential",
+                "constraints": {
+                  "tabIndex": 2,
+                  "required": "true"
+                }
+              }
+            },
+            "gateway": {
+              "type": "gatewaySetting",
+              "gatewaySettings": {
+                "dataSourceType": "sql",
+                "credentialType": "Windows",
+                "connectionDetails": [
+                  "server",
+                  "database"
+                ]
+              },
+              "uiDefinition": {
+                "displayName": "Gateway",
+                "description": "On-prem gateway",
+                "tooltip": "On-prem gateway",
+                "constraints": {
+                  "tabIndex": 3,
+                  "required": "true"
+                }
+              }
+            }
+          },
+          "metadata": {
+            "allowSharing": false
+          }
+        }
+      ]
+    },
+    "metadata": {
+      "source": "marketplace",
+      "brandColor": "#ba141a",
+      "useNewApimVersion": true
+    },
+    "runtimeUrls": [
+      "https://logic-apis-westus2.azure-apim.net/apim/sql"
+    ],
+    "generalInformation": {
+      "iconUrl": "https://conn-afd-prod-endpoint-bmc9bqahasf3grgk.b01.azurefd.net/releases/v1.0.1788/1.0.1788.4529/Sql/icon.png",
+      "displayName": "SQL Server",
+      "description": "Microsoft SQL Server is a relational database management system developed by Microsoft. Connect to SQL Server to manage data. You can perform various actions such as create, update, get, and delete on rows in a table.",
+      "releaseTag": "Production",
+      "tier": "Premium"
+    },
+    "capabilities": [
+      "actions",
+      "tabular",
+      "gateway",
+      "cloud",
+      "vnetgateway",
+      "federatedKnowledgeSource"
+    ],
+    "isExportSupported": true,
+    "isSecureByDefault": false,
+    "isDynamicConnectionAllowed": true
+  },
+  "id": "/subscriptions/7246da25-bfbb-4bd2-acad-3658085e2e6d/providers/Microsoft.Web/locations/westus2/managedApis/sql",
+  "name": "sql",
+  "type": "Microsoft.Web/locations/managedApis",
+  "location": "westus2"
+}

@@ -233,7 +233,45 @@ export async function getConnectorSwagger(
   location: string,
   connectorName: string
 ): Promise<GetConnectorSwaggerResult> {
-  interface ConnectorResponse {
+  // Swagger response structure (returned when export=true)
+  interface SwaggerResponse {
+    swagger?: string;
+    info?: {
+      title?: string;
+      description?: string;
+    };
+    host?: string;
+    basePath?: string;
+    paths?: Record<string, Record<string, {
+      operationId?: string;
+      summary?: string;
+      description?: string;
+      parameters?: Array<{
+        name: string;
+        in: string;
+        required?: boolean;
+        type?: string;
+        description?: string;
+        "x-ms-dynamic-values"?: {
+          operationId?: string;
+          parameters?: Record<string, unknown>;
+          "value-path"?: string;
+          "value-title"?: string;
+          "value-collection"?: string;
+        };
+        "x-ms-dynamic-schema"?: {
+          operationId?: string;
+          parameters?: Record<string, unknown>;
+          "value-path"?: string;
+        };
+      }>;
+    }>>;
+    definitions?: Record<string, unknown>;
+    "x-ms-capabilities"?: Record<string, unknown>;
+  }
+
+  // Connector metadata response (returned without export)
+  interface ConnectorMetadataResponse {
     id: string;
     name: string;
     properties: {
@@ -245,64 +283,37 @@ export async function getConnectorSwagger(
       };
       capabilities?: string[];
       connectionParameters?: Record<string, unknown>;
-      swagger?: {
-        basePath?: string;
-        paths: Record<string, Record<string, {
-          operationId?: string;
-          summary?: string;
-          description?: string;
-          parameters?: Array<{
-            name: string;
-            in: string;
-            required?: boolean;
-            type?: string;
-            description?: string;
-          }>;
-        }>>;
-        definitions?: Record<string, unknown>;
-      };
-      apiDefinitions?: {
-        originalSwaggerUrl?: string;
-        modifiedSwaggerUrl?: string;
-      };
     };
   }
 
-  // Try to get the connector with swagger export
-  const connector = await armRequest<ConnectorResponse>(
+  // First, get the swagger definition with export=true
+  const swagger = await armRequest<SwaggerResponse>(
     `/subscriptions/${subscriptionId}/providers/Microsoft.Web/locations/${location}/managedApis/${connectorName}`,
-    { queryParams: { "api-version": "2016-06-01", "export": "true" } }
+    { queryParams: { "api-version": "2018-07-01-preview", "export": "true" } }
+  );
+
+  // Then get connector metadata (without export) for display info
+  const metadata = await armRequest<ConnectorMetadataResponse>(
+    `/subscriptions/${subscriptionId}/providers/Microsoft.Web/locations/${location}/managedApis/${connectorName}`,
+    { queryParams: { "api-version": "2018-07-01-preview" } }
   );
 
   const result: GetConnectorSwaggerResult = {
-    connectorName: connector.name,
-    displayName: connector.properties.generalInformation?.displayName ?? connector.name,
-    description: connector.properties.generalInformation?.description ?? "",
-    iconUri: connector.properties.generalInformation?.iconUrl,
-    capabilities: connector.properties.capabilities,
-    connectionParameters: connector.properties.connectionParameters,
+    connectorName: metadata.name,
+    displayName: metadata.properties.generalInformation?.displayName ?? swagger.info?.title ?? metadata.name,
+    description: metadata.properties.generalInformation?.description ?? swagger.info?.description ?? "",
+    iconUri: metadata.properties.generalInformation?.iconUrl,
+    capabilities: metadata.properties.capabilities,
+    connectionParameters: metadata.properties.connectionParameters,
   };
 
-  // If swagger was included in the response, add it
-  if (connector.properties.swagger) {
-    result.swagger = connector.properties.swagger;
-  }
-
-  // If no swagger but there's a swagger URL, try to fetch it
-  if (!result.swagger && connector.properties.apiDefinitions?.modifiedSwaggerUrl) {
-    try {
-      const token = await getAccessToken();
-      const swaggerResponse = await fetch(connector.properties.apiDefinitions.modifiedSwaggerUrl, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (swaggerResponse.ok) {
-        result.swagger = await swaggerResponse.json() as GetConnectorSwaggerResult["swagger"];
-      }
-    } catch {
-      // Swagger fetch failed, continue without it
-    }
+  // Add swagger if available
+  if (swagger.paths) {
+    result.swagger = {
+      basePath: swagger.basePath,
+      paths: swagger.paths,
+      definitions: swagger.definitions,
+    };
   }
 
   return result;
