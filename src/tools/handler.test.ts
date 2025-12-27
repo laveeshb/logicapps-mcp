@@ -135,7 +135,8 @@ describe("handleToolCall", () => {
       "my-app",
       undefined,
       50,
-      "status eq 'Failed'"
+      "status eq 'Failed'",
+      undefined
     );
   });
 

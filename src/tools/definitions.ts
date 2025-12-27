@@ -120,7 +120,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   },
   {
     name: "list_run_history",
-    description: "Get the run history for a workflow with optional filtering. For Standard SKU, workflowName is required. Use search_runs for easier filtering by status/date. After finding a run, use get_run_details and get_run_actions to debug.",
+    description: "Get the run history for a workflow with optional filtering. For Standard SKU, workflowName is required. Use search_runs for easier filtering by status/date. After finding a run, use get_run_details and get_run_actions to debug. Returns a nextLink if more pages are available - use skipToken to fetch the next page.",
     inputSchema: {
       type: "object",
       properties: {
@@ -142,11 +142,15 @@ export const TOOL_DEFINITIONS: Tool[] = [
         },
         top: {
           type: "number",
-          description: "Number of runs to return (default: 25, max: 100)",
+          description: "Number of runs to return per page (default: 25, max: 100)",
         },
         filter: {
           type: "string",
           description: "OData filter (e.g., \"status eq 'Failed'\")",
+        },
+        skipToken: {
+          type: "string",
+          description: "Pagination token from a previous response's nextLink to fetch the next page of results",
         },
       },
       required: ["subscriptionId", "resourceGroupName", "logicAppName"],
@@ -692,7 +696,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "search_runs",
     description:
-      "Search run history with friendly parameters (status, startTime, endTime, clientTrackingId) instead of raw OData filter syntax. For Standard SKU, workflowName is required. Use this instead of list_run_history when filtering by specific criteria.",
+      "Search run history with friendly parameters (status, startTime, endTime, clientTrackingId) instead of raw OData filter syntax. For Standard SKU, workflowName is required. Use this instead of list_run_history when filtering by specific criteria. Returns a nextLink if more pages are available - use skipToken to fetch the next page.",
     inputSchema: {
       type: "object",
       properties: {
@@ -731,7 +735,11 @@ export const TOOL_DEFINITIONS: Tool[] = [
         },
         top: {
           type: "number",
-          description: "Number of runs to return (default: 25, max: 100)",
+          description: "Number of runs to return per page (default: 25, max: 100)",
+        },
+        skipToken: {
+          type: "string",
+          description: "Pagination token from a previous response's nextLink to fetch the next page of results",
         },
       },
       required: ["subscriptionId", "resourceGroupName", "logicAppName"],
@@ -1066,6 +1074,55 @@ export const TOOL_DEFINITIONS: Tool[] = [
         },
       },
       required: ["subscriptionId", "resourceGroupName", "logicAppName"],
+    },
+  },
+  // Knowledge Tools - provide access to bundled documentation
+  {
+    name: "get_troubleshooting_guide",
+    description:
+      "Get troubleshooting guidance for Logic Apps issues. Call this when debugging failed runs, expression errors, connection problems, or to understand platform limitations. Returns detailed patterns and solutions.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        topic: {
+          type: "string",
+          enum: ["expression-errors", "connection-issues", "run-failures", "known-limitations"],
+          description: "The troubleshooting topic: 'expression-errors' for null checks, type conversions, date handling; 'connection-issues' for OAuth, Managed Identity, auth problems; 'run-failures' for action failures, triggers, loops, timeouts; 'known-limitations' for platform constraints and workarounds",
+        },
+      },
+      required: ["topic"],
+    },
+  },
+  {
+    name: "get_authoring_guide",
+    description:
+      "Get guidance for creating and modifying Logic Apps workflows. Call this when helping users build workflows, understand connector patterns, or set up deployment pipelines.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        topic: {
+          type: "string",
+          enum: ["workflow-patterns", "connector-patterns", "deployment"],
+          description: "The authoring topic: 'workflow-patterns' for triggers, control flow, error handling; 'connector-patterns' for SQL, Service Bus, Blob, Office 365; 'deployment' for ARM, Terraform, CI/CD",
+        },
+      },
+      required: ["topic"],
+    },
+  },
+  {
+    name: "get_reference",
+    description:
+      "Get reference documentation for Logic Apps. Call this for comprehensive tool usage details or when users ask about differences between Consumption and Standard SKUs.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        topic: {
+          type: "string",
+          enum: ["tool-catalog", "sku-differences"],
+          description: "The reference topic: 'tool-catalog' for all 33 MCP tools with examples; 'sku-differences' for Consumption vs Standard deep dive",
+        },
+      },
+      required: ["topic"],
     },
   },
 ];

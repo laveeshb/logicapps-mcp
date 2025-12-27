@@ -26,6 +26,7 @@ export interface ListRunHistoryResult {
     };
     portalUrl?: string;
   }>;
+  nextLink?: string;
 }
 
 export interface GetRunDetailsResult {
@@ -67,7 +68,8 @@ export async function listRunHistory(
   logicAppName: string,
   workflowName?: string,
   top: number = 25,
-  filter?: string
+  filter?: string,
+  skipToken?: string
 ): Promise<ListRunHistoryResult> {
   const sku = await detectLogicAppSku(
     subscriptionId,
@@ -89,14 +91,17 @@ export async function listRunHistory(
       $top: effectiveTop.toString(),
     };
     if (filter) queryParams["$filter"] = filter;
+    if (skipToken) queryParams["$skiptoken"] = skipToken;
 
-    const runs = await armRequestAllPages<WorkflowRun>(
+    const response = await armRequest<{ value: WorkflowRun[]; nextLink?: string }>(
       `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}/runs`,
-      queryParams
+      { queryParams }
     );
 
+    const runs = response.value ?? [];
+
     return {
-      runs: runs.slice(0, effectiveTop).map((run) => ({
+      runs: runs.map((run) => ({
         id: run.id,
         name: run.name,
         status: run.properties.status,
@@ -106,6 +111,7 @@ export async function listRunHistory(
         correlation: run.properties.correlation,
         portalUrl: getConsumptionRunPortalUrl(subscriptionId, resourceGroupName, logicAppName, run.name, location),
       })),
+      nextLink: response.nextLink,
     };
   }
 
@@ -125,8 +131,9 @@ export async function listRunHistory(
 
   let path = `/runtime/webhooks/workflow/api/management/workflows/${workflowName}/runs?api-version=2020-05-01-preview&$top=${effectiveTop}`;
   if (filter) path += `&$filter=${encodeURIComponent(filter)}`;
+  if (skipToken) path += `&$skiptoken=${encodeURIComponent(skipToken)}`;
 
-  const response = await workflowMgmtRequest<{ value?: WorkflowRun[] }>(
+  const response = await workflowMgmtRequest<{ value?: WorkflowRun[]; nextLink?: string }>(
     hostname,
     path,
     masterKey
@@ -145,6 +152,7 @@ export async function listRunHistory(
       correlation: run.properties.correlation,
       portalUrl: getStandardRunPortalUrl(subscriptionId, resourceGroupName, logicAppName, workflowName, run.name),
     })),
+    nextLink: response.nextLink,
   };
 }
 
@@ -466,6 +474,7 @@ export interface SearchRunsResult {
     };
   }>;
   count: number;
+  nextLink?: string;
 }
 
 /**
@@ -481,7 +490,8 @@ export async function searchRuns(
   startTime?: string,
   endTime?: string,
   clientTrackingId?: string,
-  top: number = 25
+  top: number = 25,
+  skipToken?: string
 ): Promise<SearchRunsResult> {
   // Build OData filter from friendly parameters
   const filterParts: string[] = [];
@@ -505,7 +515,8 @@ export async function searchRuns(
     logicAppName,
     workflowName,
     top,
-    filter
+    filter,
+    skipToken
   );
 
   // Client-side filter for clientTrackingId if provided (API doesn't support it in filter)
@@ -519,6 +530,7 @@ export async function searchRuns(
   return {
     runs,
     count: runs.length,
+    nextLink: result.nextLink,
   };
 }
 
