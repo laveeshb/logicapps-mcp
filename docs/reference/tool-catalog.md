@@ -7,6 +7,20 @@ lastUpdated: 2025-12-26
 
 Complete reference for all 36 MCP tools available in `@laveeshb/logicapps-mcp`.
 
+**Microsoft Docs:**
+- [Logic Apps REST API reference](https://learn.microsoft.com/rest/api/logic/)
+- [Standard workflow management API](https://learn.microsoft.com/azure/logic-apps/devops-deployment-single-tenant-azure-logic-apps#workflow-management-api)
+
+## SKU Parameter Note
+
+Most tools work with both **Consumption** and **Standard** Logic Apps. Key difference:
+
+| Parameter | Consumption | Standard |
+|-----------|-------------|----------|
+| `workflowName` | **Omit** (Logic App = workflow) | **Required** (Logic App contains multiple workflows) |
+
+When you see `workflowName` marked as "Standard only" - it's required for Standard, ignored for Consumption.
+
 ---
 
 ## Discovery Tools

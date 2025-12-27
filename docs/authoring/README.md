@@ -2,6 +2,23 @@
 
 Patterns and examples for creating Logic Apps workflows.
 
+**Microsoft Docs:**
+- [Create workflows (Consumption)](https://learn.microsoft.com/azure/logic-apps/quickstart-create-example-consumption-workflow)
+- [Create workflows (Standard)](https://learn.microsoft.com/azure/logic-apps/create-single-tenant-workflows-azure-portal)
+- [Workflow definition language](https://learn.microsoft.com/azure/logic-apps/logic-apps-workflow-definition-language)
+
+## SKU Quick Reference
+
+| Aspect | Consumption | Standard |
+|--------|-------------|----------|
+| Resource type | `Microsoft.Logic/workflows` | `Microsoft.Web/sites` |
+| Workflows per resource | 1 | Multiple |
+| Connections | V1 API connections | V2 + built-in connectors |
+| Deployment | ARM template only | ARM + workflow files |
+| `workflowName` param | Not needed | **Required** |
+
+See [SKU Differences](../reference/sku-differences.md) for full details.
+
 ## Quick Start
 
 1. Identify trigger type (HTTP, Schedule, Connector)

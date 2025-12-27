@@ -7,6 +7,11 @@ lastUpdated: 2025-12-26
 
 Deploying Logic Apps via ARM templates, Terraform, and CI/CD pipelines.
 
+**Microsoft Docs:**
+- [Automate deployment (Consumption)](https://learn.microsoft.com/azure/logic-apps/logic-apps-azure-resource-manager-templates-overview)
+- [DevOps deployment (Standard)](https://learn.microsoft.com/azure/logic-apps/devops-deployment-single-tenant-azure-logic-apps)
+- [Set up CI/CD (Standard)](https://learn.microsoft.com/azure/logic-apps/set-up-devops-deployment-single-tenant-azure-logic-apps)
+
 ---
 
 ## Deployment Models

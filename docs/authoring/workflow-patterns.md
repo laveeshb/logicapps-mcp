@@ -7,6 +7,14 @@ lastUpdated: 2025-12-26
 
 Common workflow patterns with copy-paste examples.
 
+**Microsoft Docs:**
+- [Triggers and actions reference](https://learn.microsoft.com/azure/logic-apps/logic-apps-workflow-actions-triggers)
+- [Error handling and retries](https://learn.microsoft.com/azure/logic-apps/logic-apps-exception-handling)
+- [Workflow definition schema](https://learn.microsoft.com/azure/logic-apps/logic-apps-workflow-definition-language)
+
+> **Note:** These patterns work for both Consumption and Standard SKUs unless noted otherwise.
+> For Standard, always provide `workflowName` when using MCP tools.
+
 ---
 
 ## Trigger Patterns

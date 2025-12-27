@@ -7,6 +7,11 @@ lastUpdated: 2025-12-26
 
 Debugging failed workflow runs, stuck executions, and trigger issues.
 
+**Microsoft Docs:**
+- [Monitor workflow run status](https://learn.microsoft.com/azure/logic-apps/monitor-logic-apps)
+- [Handle errors and exceptions](https://learn.microsoft.com/azure/logic-apps/logic-apps-exception-handling)
+- [Diagnose failures with Azure Monitor](https://learn.microsoft.com/azure/logic-apps/monitor-logic-apps-log-analytics)
+
 ## Debugging Steps
 
 ```
@@ -285,3 +290,118 @@ Look for runs that started long ago but are still "Running".
 2. Set limits on Until loops
 3. Configure webhook timeout
 4. Add monitoring/alerting for long runs
+
+---
+
+## Standard SKU: Platform-Specific Debugging
+
+Standard Logic Apps run on the Azure Functions runtime with important differences for debugging.
+
+### Understanding the Standard Architecture
+
+```
+Standard Logic App (Microsoft.Web/sites)
+├── host.json                    # Runtime configuration
+├── connections.json             # All connection definitions
+├── local.settings.json          # App settings (local dev)
+├── workflow1/
+│   └── workflow.json            # Workflow definition
+└── workflow2/
+    └── workflow.json
+```
+
+Unlike Consumption (where everything is in the ARM resource), Standard stores workflows as **files in the VFS**.
+
+### Check Host Runtime Status
+
+Before debugging run failures, verify the runtime is healthy:
+
+```
+get_host_status(subscriptionId, resourceGroupName, logicAppName)
+```
+
+Returns:
+- Runtime version
+- Extension bundle version
+- Health status
+
+### Common Standard-Specific Issues
+
+#### Workflow Not Starting After Deployment
+
+**Symptom:** Workflow deployed but not triggering.
+
+**Check:**
+1. Is the workflow enabled?
+   ```
+   list_workflows(...) → Check state: "Enabled" vs "Disabled"
+   ```
+2. Check app settings for workflow state:
+   ```
+   App Setting: Workflows.{workflowName}.FlowState = Enabled
+   ```
+
+#### Connection Issues with Built-in Connectors
+
+Built-in (Service Provider) connectors use app settings for connection strings:
+
+```json
+{
+  "serviceProviderConnections": {
+    "serviceBus": {
+      "parameterValues": {
+        "connectionString": "@appsetting('ServiceBusConnection')"
+      }
+    }
+  }
+}
+```
+
+**Debug:**
+1. Check if app setting exists: Azure Portal → Logic App → Configuration
+2. Verify connection string is valid
+3. Check if Managed Identity has access (if using MI)
+
+#### Extension Bundle Errors
+
+**Symptom:** Actions fail with "extension not found" or binding errors.
+
+**Solution:**
+1. Check `host.json` for extension bundle version:
+   ```json
+   {
+     "extensionBundle": {
+       "id": "Microsoft.Azure.Functions.ExtensionBundle.Workflows",
+       "version": "[1.*, 2.0.0)"
+     }
+   }
+   ```
+2. Update to latest bundle version if needed
+
+### Standard vs Consumption: Debugging Differences
+
+| Aspect | Consumption | Standard |
+|--------|-------------|----------|
+| Get definition | ARM resource property | VFS file read |
+| Enable/disable | Direct API | App settings update |
+| Connection config | ARM resource | connections.json file |
+| Runtime health | N/A (PaaS managed) | `get_host_status` |
+| Logs | Azure Monitor | Azure Monitor + App Insights |
+
+### Accessing Application Insights Logs (Standard)
+
+Standard Logic Apps can integrate with Application Insights for deeper debugging:
+
+1. **Transaction Search** - Find specific run by correlation ID
+2. **Failures** - Aggregated exception view
+3. **Performance** - Action duration metrics
+4. **Logs (KQL)** - Custom queries:
+
+```kusto
+// Find failed workflow runs
+traces
+| where customDimensions.Category == "Workflow"
+| where customDimensions.prop__status == "Failed"
+| project timestamp, operation_Name, customDimensions.prop__workflowName, message
+| order by timestamp desc
+```

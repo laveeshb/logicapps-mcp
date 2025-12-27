@@ -7,6 +7,24 @@ lastUpdated: 2025-12-26
 
 Examples for common connectors. Use `get_connector_swagger` for full operation details.
 
+**Microsoft Docs:**
+- [Managed connectors list](https://learn.microsoft.com/azure/connectors/managed)
+- [Built-in connectors (Standard)](https://learn.microsoft.com/azure/connectors/built-in)
+- [Create API connections](https://learn.microsoft.com/azure/logic-apps/logic-apps-create-api-connection)
+
+---
+
+## SKU Connection Differences
+
+| SKU | Connection Type | Notes |
+|-----|-----------------|-------|
+| **Consumption** | V1 API connections | `$connections` parameter in definition |
+| **Standard** | V2 managed + built-in | `connectionRuntimeUrl` required; built-in connectors don't need API connections |
+
+**Standard built-in connectors** (no API connection needed): HTTP, Service Bus, Event Hub, Azure Blob, SQL, Azure Functions
+
+See [SKU Differences](../reference/sku-differences.md#connections) for full details.
+
 ---
 
 ## Discovery Workflow
@@ -489,3 +507,143 @@ When creating connections with `create_connection`:
 - No parameters needed for creation
 - Returns consent link
 - User must authorize in browser
+
+---
+
+## Standard SKU: Service Provider Connectors (Built-in)
+
+Standard Logic Apps include **built-in connectors** that run in-process with higher performance. These use `serviceProviderConnections` instead of managed API connections.
+
+### Key Differences from Managed Connectors
+
+| Aspect | Managed API Connection | Service Provider (Built-in) |
+|--------|------------------------|----------------------------|
+| Where defined | Separate Azure resource | In `connections.json` file |
+| Action type | `ApiConnection` | `ServiceProvider` |
+| Auth | Connection resource | App settings / Managed Identity |
+| Performance | HTTP to connector service | In-process, higher throughput |
+
+### connections.json Structure
+
+Standard Logic Apps have a `connections.json` file at the root:
+
+```json
+{
+  "managedApiConnections": {
+    "office365": { ... }
+  },
+  "serviceProviderConnections": {
+    "AzureBlob": {
+      "parameterValues": {
+        "connectionString": "@appsetting('AzureWebJobsStorage')"
+      },
+      "serviceProvider": {
+        "id": "/serviceProviders/AzureBlob"
+      },
+      "displayName": "Azure Blob (built-in)"
+    },
+    "serviceBus": {
+      "parameterValues": {
+        "connectionString": "@appsetting('ServiceBusConnection')"
+      },
+      "serviceProvider": {
+        "id": "/serviceProviders/serviceBus"
+      },
+      "displayName": "Service Bus (built-in)"
+    },
+    "sql": {
+      "parameterValues": {
+        "connectionString": "@appsetting('SqlConnectionString')"
+      },
+      "serviceProvider": {
+        "id": "/serviceProviders/sql"
+      },
+      "displayName": "SQL Server (built-in)"
+    }
+  }
+}
+```
+
+### Built-in Service Bus (Standard)
+
+```json
+{
+  "Send_Message_Builtin": {
+    "type": "ServiceProvider",
+    "inputs": {
+      "parameters": {
+        "entityName": "orders",
+        "message": {
+          "contentData": "@triggerBody()",
+          "contentType": "application/json",
+          "messageId": "@{guid()}",
+          "sessionId": "@{triggerBody()?['customerId']}"
+        }
+      },
+      "serviceProviderConfiguration": {
+        "connectionName": "serviceBus",
+        "operationId": "sendMessage",
+        "serviceProviderId": "/serviceProviders/serviceBus"
+      }
+    }
+  }
+}
+```
+
+### Built-in Azure Blob (Standard)
+
+```json
+{
+  "Read_Blob_Builtin": {
+    "type": "ServiceProvider",
+    "inputs": {
+      "parameters": {
+        "containerName": "data",
+        "blobName": "@triggerBody()?['fileName']"
+      },
+      "serviceProviderConfiguration": {
+        "connectionName": "AzureBlob",
+        "operationId": "readBlob",
+        "serviceProviderId": "/serviceProviders/AzureBlob"
+      }
+    }
+  }
+}
+```
+
+### Built-in SQL (Standard)
+
+```json
+{
+  "Execute_Query_Builtin": {
+    "type": "ServiceProvider",
+    "inputs": {
+      "parameters": {
+        "query": "SELECT * FROM Orders WHERE Status = @Status",
+        "queryParameters": {
+          "Status": "@triggerBody()?['status']"
+        }
+      },
+      "serviceProviderConfiguration": {
+        "connectionName": "sql",
+        "operationId": "executeQuery",
+        "serviceProviderId": "/serviceProviders/sql"
+      }
+    }
+  }
+}
+```
+
+### When to Use Built-in vs Managed
+
+**Use Built-in (Service Provider) when:**
+- High throughput needed (thousands of messages/second)
+- Lower latency required (in-process execution)
+- Using Standard SKU
+- Connecting to: Service Bus, Event Hub, Azure Blob, SQL, Cosmos DB
+
+**Use Managed API Connection when:**
+- Using Consumption SKU
+- Connecting to SaaS services (Office 365, Salesforce, Dynamics)
+- Need OAuth-based authentication
+- Built-in connector not available

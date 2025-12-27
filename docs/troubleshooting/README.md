@@ -2,6 +2,28 @@
 
 Quick reference for common Logic Apps issues. Each section links to detailed docs.
 
+**Microsoft Docs:**
+- [Monitor Logic Apps](https://learn.microsoft.com/azure/logic-apps/monitor-logic-apps)
+- [Handle errors and exceptions](https://learn.microsoft.com/azure/logic-apps/logic-apps-exception-handling)
+- [Troubleshoot common errors](https://learn.microsoft.com/azure/logic-apps/logic-apps-diagnosing-failures)
+
+## SKU Note
+
+Most debugging steps apply to both **Consumption** and **Standard** SKUs. Key difference:
+- **Standard**: Always provide `workflowName` parameter (Logic App can have multiple workflows)
+- **Consumption**: Omit `workflowName` (Logic App = single workflow)
+
+### Standard SKU: Extra Considerations
+
+Standard Logic Apps run on Azure Functions runtime. Additional debugging steps:
+
+1. **Check runtime health**: `get_host_status(...)` - Verify runtime is running
+2. **Check connections.json**: Built-in connectors use `serviceProviderConnections` with app settings
+3. **Check app settings**: Connection strings stored in Configuration, not ARM resources
+4. **Enable App Insights**: For deeper logs and distributed tracing
+
+See [Run Failures - Standard SKU Debugging](run-failures.md#standard-sku-platform-specific-debugging) for details.
+
 ## Quick Diagnosis
 
 | Symptom | Likely Cause | Start Here |

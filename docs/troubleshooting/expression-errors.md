@@ -7,6 +7,10 @@ lastUpdated: 2025-12-26
 
 Common expression issues and how to fix them.
 
+**Microsoft Docs:**
+- [Workflow expression functions](https://learn.microsoft.com/azure/logic-apps/workflow-definition-language-functions-reference)
+- [Workflow definition language](https://learn.microsoft.com/azure/logic-apps/logic-apps-workflow-definition-language)
+
 ## Debugging Expressions
 
 Use `get_expression_traces` to see exactly how expressions evaluated at runtime:

@@ -7,6 +7,10 @@ lastUpdated: 2025-12-26
 
 Platform constraints that customers frequently encounter, with workarounds.
 
+**Microsoft Docs:**
+- [Logic Apps limits and configuration](https://learn.microsoft.com/azure/logic-apps/logic-apps-limits-and-config)
+- [Consumption vs Standard comparison](https://learn.microsoft.com/azure/logic-apps/logic-apps-overview#resource-environment-differences)
+
 ---
 
 ## Workflow Structure
@@ -210,6 +214,22 @@ Azure Government has different endpoints and some connectors unavailable.
 ---
 
 ## Standard SKU Specific
+
+### Storage Account Issues
+
+**Common errors:**
+- "Access to the path is denied"
+- "Cannot reach host runtime"
+- "BadGateway" or "ServiceUnavailable"
+
+**Causes:** Storage account behind firewall, private endpoints not configured, connection string invalid.
+
+**Debug:**
+1. Check `AzureWebJobsStorage` app setting has valid connection string
+2. For VNet-integrated apps, ensure private endpoints for Blob, File, Table, Queue
+3. Check DNS resolution from within the VNet
+
+→ [Troubleshoot storage access (Standard)](https://learn.microsoft.com/azure/logic-apps/logic-apps-diagnosing-failures#inaccessible-artifacts-in-azure-storage-account)
 
 ### Linux Not Supported
 

@@ -7,6 +7,11 @@ lastUpdated: 2025-12-26
 
 Detailed comparison of Consumption and Standard Logic Apps.
 
+**Microsoft Docs:**
+- [Consumption vs Standard overview](https://learn.microsoft.com/azure/logic-apps/logic-apps-overview#resource-environment-differences)
+- [Single-tenant (Standard) architecture](https://learn.microsoft.com/azure/logic-apps/single-tenant-overview-compare)
+- [Limits and configuration](https://learn.microsoft.com/azure/logic-apps/logic-apps-limits-and-config)
+
 ---
 
 ## Quick Comparison
@@ -14,7 +19,8 @@ Detailed comparison of Consumption and Standard Logic Apps.
 | Aspect | Consumption | Standard |
 |--------|-------------|----------|
 | Pricing | Per action execution | Dedicated compute |
-| Scale | Auto, serverless | VNet, App Service plan |
+| Scale | Auto, serverless | Manual or auto-scale (App Service plan) |
+| VNet integration | ❌ No | ✅ Yes (private endpoints, VNet injection) |
 | Workflows | 1 per resource | Multiple per Logic App |
 | Connections | V1 API connections | V2 with connectionRuntimeUrl |
 | State | Stored in Azure | Local file storage |
@@ -284,6 +290,8 @@ my-logic-app/
 - Cold start latency possible
 - Pay per execution (cheap for low volume)
 - Regional redundancy built-in
+- **No scaling control** - Azure manages scaling automatically
+- **No VNet** - runs on shared infrastructure
 
 ### Standard
 
@@ -292,6 +300,115 @@ my-logic-app/
 - Pay for compute time
 - VNet integration supported
 - Can be more cost-effective at high volume
+
+---
+
+## Scaling (Standard Only)
+
+Standard Logic Apps run on an **App Service Plan** (Workflow Standard plans: WS1, WS2, WS3). You control scaling:
+
+**Microsoft Docs:** [Scale Standard Logic Apps](https://learn.microsoft.com/azure/logic-apps/edit-app-settings-host-settings?tabs=azure-portal#scale-out)
+
+### Manual Scaling
+
+```json
+// ARM template - set instance count
+{
+  "type": "Microsoft.Web/serverfarms",
+  "sku": {
+    "name": "WS1",
+    "capacity": 3  // Number of instances
+  }
+}
+```
+
+### Auto-scale Rules
+
+Configure auto-scale based on metrics:
+
+```json
+{
+  "type": "Microsoft.Insights/autoscalesettings",
+  "properties": {
+    "targetResourceUri": "[resourceId('Microsoft.Web/serverfarms', parameters('planName'))]",
+    "profiles": [{
+      "capacity": {
+        "minimum": "1",
+        "maximum": "10",
+        "default": "2"
+      },
+      "rules": [{
+        "metricTrigger": {
+          "metricName": "CpuPercentage",
+          "operator": "GreaterThan",
+          "threshold": 70
+        },
+        "scaleAction": {
+          "direction": "Increase",
+          "value": "1"
+        }
+      }]
+    }]
+  }
+}
+```
+
+### Scaling Comparison
+
+| Aspect | Consumption | Standard |
+|--------|-------------|----------|
+| Scale control | None (auto) | Full control |
+| Instance count | N/A | 1-20+ (plan dependent) |
+| Scale triggers | N/A | CPU, Memory, HTTP queue, custom |
+| Scale-to-zero | Yes (serverless) | No (always-on) |
+
+---
+
+## VNet Integration (Standard Only)
+
+Standard Logic Apps can integrate with Azure Virtual Networks for secure connectivity.
+
+**Microsoft Docs:** [Secure traffic with VNet](https://learn.microsoft.com/azure/logic-apps/secure-single-tenant-workflow-virtual-network-private-endpoint)
+
+### VNet Integration Options
+
+| Feature | Description |
+|---------|-------------|
+| **VNet Integration** | Outbound traffic through VNet subnet |
+| **Private Endpoints** | Inbound traffic via private IP |
+| **Hybrid Connections** | Connect to on-premises without VPN |
+
+### VNet Integration Setup
+
+1. Create a subnet dedicated to Logic App (minimum /27)
+2. Configure VNet integration in Logic App networking settings
+3. Update `WEBSITE_VNET_ROUTE_ALL=1` to route all traffic through VNet
+
+### Private Endpoint Setup
+
+```json
+// ARM template snippet
+{
+  "type": "Microsoft.Network/privateEndpoints",
+  "properties": {
+    "subnet": {
+      "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), 'private-endpoints')]" 
+    },
+    "privateLinkServiceConnections": [{
+      "properties": {
+        "privateLinkServiceId": "[resourceId('Microsoft.Web/sites', parameters('logicAppName'))]",
+        "groupIds": ["sites"]
+      }
+    }]
+  }
+}
+```
+
+### Consumption VNet Limitations
+
+**Consumption Logic Apps cannot use VNet integration.** For private connectivity with Consumption, you previously needed **ISE (Integration Service Environment)** which is now deprecated.
+
+**Migration path:** If you have ISE workloads, migrate to Standard with VNet integration.
 
 ---
 

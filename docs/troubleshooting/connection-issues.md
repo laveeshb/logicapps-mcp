@@ -7,6 +7,11 @@ lastUpdated: 2025-12-26
 
 Troubleshooting API connections, authentication, and authorization problems.
 
+**Microsoft Docs:**
+- [Managed connectors overview](https://learn.microsoft.com/azure/connectors/managed)
+- [Authenticate with Managed Identity](https://learn.microsoft.com/azure/logic-apps/create-managed-service-identity)
+- [Built-in connectors (Standard)](https://learn.microsoft.com/azure/connectors/built-in)
+
 ## Quick Diagnosis
 
 ```

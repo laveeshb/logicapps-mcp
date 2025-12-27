@@ -54,6 +54,7 @@ Works with both **Consumption** and **Standard** SKUs.
 | Check connections | `get_connections`, `test_connection` |
 | Discover connectors | `get_connector_swagger`, `invoke_connector_operation` |
 | Control workflows | `enable_workflow`, `disable_workflow`, `run_trigger`, `cancel_run` |
+| Get guidance | `get_authoring_guide`, `get_troubleshooting_guide`, `get_reference` |
 
 ---
 
@@ -73,16 +74,24 @@ Works with both **Consumption** and **Standard** SKUs.
 - [Deployment Guide](authoring/deployment.md) - ARM, Terraform, CI/CD
 
 ### Reference
-- [Tool Catalog](reference/tool-catalog.md) - All 33 tools with examples
+- [Tool Catalog](reference/tool-catalog.md) - All 36 tools with examples
 - [SKU Differences](reference/sku-differences.md) - Consumption vs Standard
+- [Quick Reference](reference/quick-reference.md) - Security, monitoring, testing, pricing, limits
 
-### External Azure Docs
-| Topic | URL |
-|-------|-----|
-| Workflow definition language | https://learn.microsoft.com/azure/logic-apps/logic-apps-workflow-definition-language |
-| Expression functions | https://learn.microsoft.com/azure/logic-apps/workflow-definition-language-functions-reference |
-| Triggers and actions | https://learn.microsoft.com/azure/logic-apps/logic-apps-workflow-actions-triggers |
-| Error handling | https://learn.microsoft.com/azure/logic-apps/logic-apps-exception-handling |
+### Microsoft Docs (External)
+
+| Topic | Link |
+|-------|------|
+| Workflow definition language | [Docs](https://learn.microsoft.com/azure/logic-apps/logic-apps-workflow-definition-language) |
+| Expression functions | [Docs](https://learn.microsoft.com/azure/logic-apps/workflow-definition-language-functions-reference) |
+| Triggers and actions | [Docs](https://learn.microsoft.com/azure/logic-apps/logic-apps-workflow-actions-triggers) |
+| Error handling | [Docs](https://learn.microsoft.com/azure/logic-apps/logic-apps-exception-handling) |
+| Limits and configuration | [Docs](https://learn.microsoft.com/azure/logic-apps/logic-apps-limits-and-config) |
+| Secure access and data | [Docs](https://learn.microsoft.com/azure/logic-apps/logic-apps-securing-a-logic-app) |
+| Monitor workflows | [Docs](https://learn.microsoft.com/azure/logic-apps/monitor-logic-apps) |
+| Diagnose failures | [Docs](https://learn.microsoft.com/azure/logic-apps/logic-apps-diagnosing-failures) |
+| VNet integration (Standard) | [Docs](https://learn.microsoft.com/azure/logic-apps/secure-single-tenant-workflow-virtual-network-private-endpoint) |
+| Agent workflows (Preview) | [Docs](https://learn.microsoft.com/azure/logic-apps/agent-workflows-concepts) |
 
 ---
 
@@ -90,14 +99,14 @@ Works with both **Consumption** and **Standard** SKUs.
 
 | Error | Cause | Fix |
 |-------|-------|-----|
-| 401 Unauthorized | Token expired | Re-authorize connection |
-| "The browser is closed" | OAuth popup closed | Re-auth in portal |
-| InvalidTemplate | Expression syntax error | Check expression syntax |
-| ActionFailed | Upstream action failed | Check runAfter dependencies |
-| Integration account required | JavaScript action | Attach integration account |
-| Null reference | Missing property | Use `?` operator: `@body('x')?['field']` |
-
-See [Troubleshooting Guide](troubleshooting/README.md) for more.
+| 401 Unauthorized | Token expired | Re-authorize connection → [Connection issues](troubleshooting/connection-issues.md) |
+| "The browser is closed" | OAuth popup closed | Re-auth in portal → [OAuth errors](troubleshooting/connection-issues.md#oauth-errors) |
+| InvalidTemplate | Expression syntax error | Check expression syntax → [Expression errors](troubleshooting/expression-errors.md) |
+| ActionFailed | Upstream action failed | Check runAfter dependencies → [Run failures](troubleshooting/run-failures.md) |
+| Integration account required | JavaScript action | Attach integration account → [Limitations](troubleshooting/known-limitations.md) |
+| Null reference | Missing property | Use `?` operator → [Null handling](troubleshooting/expression-errors.md#null-reference-errors) |
+| Cannot reach host runtime | Storage account issue (Standard) | Check app settings → [Storage issues](troubleshooting/known-limitations.md#storage-account-issues) |
+| CPU high (Standard) | Scale or optimize workflows | Configure auto-scale → [Scaling](reference/sku-differences.md#scaling-standard-only) |
 
 ---
 
