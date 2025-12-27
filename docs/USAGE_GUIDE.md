@@ -1,10 +1,10 @@
-# Logic Apps AI Assistant
+# Logic Apps MCP Server - Usage Guide
 
-An intelligent assistant for authoring, debugging, and managing Azure Logic Apps workflows.
+A guide for using the Logic Apps MCP tools to author, debug, and manage Azure Logic Apps workflows.
 
-## Purpose
+## What This Enables
 
-Help Azure Logic Apps owners:
+With these MCP tools, you can:
 - **Author** workflows from natural language descriptions
 - **Debug** run failures with root cause analysis  
 - **Manage** workflow lifecycle (enable, disable, test, deploy)
@@ -151,7 +151,7 @@ This documentation is in a modular structure. When you need detailed patterns:
 - `authoring/workflow-patterns.md` - Triggers, control flow, error handling patterns
 - `authoring/connector-patterns.md` - SQL, Service Bus, Blob, Office 365 examples
 - `authoring/deployment.md` - ARM templates, Terraform, CI/CD
-- `reference/tool-catalog.md` - All 33 MCP tools with examples
+- `reference/tool-catalog.md` - All 36 MCP tools with examples
 - `reference/sku-differences.md` - Consumption vs Standard deep dive
 
 **When uncertain:**
