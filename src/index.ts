@@ -2,10 +2,15 @@
 
 /**
  * MCP Server entry point.
- * - Loads configuration
- * - Initializes authentication
- * - Registers all tools
- * - Handles graceful shutdown
+ *
+ * Supports two modes:
+ * - stdio (default): For local MCP clients (Claude Desktop, VS Code Copilot)
+ * - http: For cloud deployment (Azure Functions, standalone server)
+ *
+ * Usage:
+ *   npx @laveeshb/logicapps-mcp          # stdio mode (default)
+ *   npx @laveeshb/logicapps-mcp --http   # HTTP server mode
+ *   npx @laveeshb/logicapps-mcp --http --port 8080
  */
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
@@ -14,17 +19,16 @@ import { loadSettings } from "./config/index.js";
 import { setSettings, initializeAuth } from "./auth/index.js";
 import { registerTools } from "./server.js";
 
-async function main(): Promise<void> {
-  // Load configuration first
+/**
+ * Run MCP server in stdio mode (for local MCP clients).
+ */
+async function runStdioMode(): Promise<void> {
   const settings = await loadSettings();
   setSettings(settings);
-
-  // Initialize authentication at startup
-  // This verifies Azure CLI is available and user is logged in
   await initializeAuth();
 
   const server = new Server(
-    { name: "flowie", version: "0.1.0" },
+    { name: "logicapps-mcp", version: "0.2.0" },
     { capabilities: { tools: {}, prompts: {} } }
   );
 
@@ -33,7 +37,6 @@ async function main(): Promise<void> {
   const transport = new StdioServerTransport();
   await server.connect(transport);
 
-  // Handle shutdown
   process.on("SIGINT", async () => {
     await server.close();
     process.exit(0);
@@ -43,6 +46,49 @@ async function main(): Promise<void> {
     await server.close();
     process.exit(0);
   });
+}
+
+/**
+ * Run MCP server in HTTP mode (for cloud deployment).
+ */
+async function runHttpMode(port: number): Promise<void> {
+  // Dynamic import to avoid loading Express in stdio mode
+  const { startHttpServer } = await import("./http/index.js");
+  await startHttpServer(port);
+}
+
+/**
+ * Parse command line arguments.
+ */
+function parseArgs(): { mode: "stdio" | "http"; port: number } {
+  const args = process.argv.slice(2);
+  const isHttp = args.includes("--http");
+
+  let port = 3000;
+  const portIndex = args.indexOf("--port");
+  if (portIndex !== -1 && args[portIndex + 1]) {
+    port = parseInt(args[portIndex + 1], 10);
+  }
+
+  // Also check MCP_PORT env var (for Azure Functions)
+  if (process.env.MCP_PORT) {
+    port = parseInt(process.env.MCP_PORT, 10);
+  }
+
+  return {
+    mode: isHttp ? "http" : "stdio",
+    port,
+  };
+}
+
+async function main(): Promise<void> {
+  const { mode, port } = parseArgs();
+
+  if (mode === "http") {
+    await runHttpMode(port);
+  } else {
+    await runStdioMode();
+  }
 }
 
 main().catch((error) => {

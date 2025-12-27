@@ -14,6 +14,7 @@ An MCP (Model Context Protocol) server that enables AI assistants to interact wi
 - [Configuration](#configuration)
 - [Usage with Claude Desktop](#usage-with-claude-desktop)
 - [Usage with GitHub Copilot in VS Code](#usage-with-github-copilot-in-vs-code)
+- [Cloud Deployment](#cloud-deployment)
 - [Authentication](#authentication)
 - [Available Tools](#available-tools)
 - [Available Prompts](#available-prompts)
@@ -260,6 +261,61 @@ Or if installed globally:
    - "What workflows failed in the last 24 hours?"
 
 > **Tip:** Ensure you've run `az login` before starting VS Code.
+
+## Cloud Deployment
+
+Deploy the MCP server as a cloud-hosted service for use with Logic Apps Agent Loop or other AI orchestrators.
+
+### Architecture
+
+```
+┌─ User-Assigned Managed Identity ──────────────────────────────────────────┐
+│  Roles: Logic App Contributor, Reader                                      │
+└────────────────────────────────────────────────────────────────────────────┘
+                    │
+    ┌───────────────┴───────────────┐
+    ▼                               ▼
+┌─ Function App (EP1) ──────┐  ┌─ Logic App Standard (WS1) ──────────────────┐
+│  MCP Server               │  │  Agent Loop Workflow                        │
+│  - 36 MCP tools           │  │  - Uses Function App as MCP Server         │
+│  - HTTP transport         │  │  - Calls Azure AI Foundry for LLM          │
+│  - Easy Auth (MI only)    │  │  - Exposes chat endpoint                   │
+└───────────────────────────┘  └─────────────────────────────────────────────┘
+```
+
+### Features
+
+- **Zero secrets**: All authentication via Managed Identity
+- **Secure by default**: Easy Auth restricts access to the managed identity
+- **HTTP transport**: Uses `StreamableHTTPServerTransport` for cloud compatibility
+- **Agent Loop**: Pre-built Logic Apps workflow for conversational AI
+
+### Quick Deploy
+
+```bash
+# Create resource group
+az group create --name logicapps-assistant-rg --location westus2
+
+# Deploy infrastructure
+az deployment group create \
+  --resource-group logicapps-assistant-rg \
+  --template-file deploy/bicep/main.bicep \
+  --parameters baseName=logicapps-assistant
+```
+
+See [deploy/README.md](deploy/README.md) for full deployment instructions, cost estimates, and troubleshooting.
+
+### HTTP Mode
+
+The server supports HTTP transport for cloud deployment:
+
+```bash
+# Run with HTTP transport
+npx github:laveeshb/logicapps-mcp --http --port 3000
+
+# Or via environment variable
+MCP_PORT=3000 npx github:laveeshb/logicapps-mcp
+```
 
 ## Authentication
 

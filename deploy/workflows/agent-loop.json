@@ -1,0 +1,387 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "mcpServerUrl": {
+        "type": "string",
+        "defaultValue": "",
+        "metadata": {
+          "description": "URL of the MCP Server endpoint (e.g., https://<function-app>.azurewebsites.net/api/mcp)"
+        }
+      },
+      "aiModelEndpoint": {
+        "type": "string",
+        "defaultValue": "",
+        "metadata": {
+          "description": "Azure AI Foundry model endpoint"
+        }
+      },
+      "aiModelDeployment": {
+        "type": "string",
+        "defaultValue": "gpt-4o",
+        "metadata": {
+          "description": "Azure AI Foundry deployment name"
+        }
+      }
+    },
+    "triggers": {
+      "When_a_chat_request_is_received": {
+        "type": "Request",
+        "kind": "Http",
+        "inputs": {
+          "method": "POST",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "messages": {
+                "type": "array",
+                "description": "Chat messages array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "type": "string",
+                      "enum": ["system", "user", "assistant"]
+                    },
+                    "content": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["role", "content"]
+                }
+              },
+              "max_iterations": {
+                "type": "integer",
+                "description": "Maximum agent loop iterations",
+                "default": 10
+              }
+            },
+            "required": ["messages"]
+          }
+        },
+        "operationOptions": "EnableSchemaValidation"
+      }
+    },
+    "actions": {
+      "Initialize_conversation": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "messages",
+              "type": "array",
+              "value": "@triggerBody()?['messages']"
+            }
+          ]
+        },
+        "runAfter": {}
+      },
+      "Initialize_iteration_count": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "iteration",
+              "type": "integer",
+              "value": 0
+            }
+          ]
+        },
+        "runAfter": {
+          "Initialize_conversation": ["Succeeded"]
+        }
+      },
+      "Initialize_max_iterations": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "maxIterations",
+              "type": "integer",
+              "value": "@coalesce(triggerBody()?['max_iterations'], 10)"
+            }
+          ]
+        },
+        "runAfter": {
+          "Initialize_iteration_count": ["Succeeded"]
+        }
+      },
+      "Initialize_MCP_Server": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "@parameters('mcpServerUrl')",
+          "headers": {
+            "Content-Type": "application/json",
+            "Accept": "application/json, text/event-stream"
+          },
+          "body": {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "initialize",
+            "params": {
+              "protocolVersion": "2024-11-05",
+              "capabilities": {},
+              "clientInfo": {
+                "name": "logicapps-agent-loop",
+                "version": "1.0.0"
+              }
+            }
+          },
+          "authentication": {
+            "type": "ManagedServiceIdentity",
+            "audience": "api://logicapps-assistant-mcp"
+          }
+        },
+        "runAfter": {
+          "Initialize_max_iterations": ["Succeeded"]
+        }
+      },
+      "Get_available_tools": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "@parameters('mcpServerUrl')",
+          "headers": {
+            "Content-Type": "application/json",
+            "Accept": "application/json, text/event-stream"
+          },
+          "body": {
+            "jsonrpc": "2.0",
+            "id": 2,
+            "method": "tools/list",
+            "params": {}
+          },
+          "authentication": {
+            "type": "ManagedServiceIdentity",
+            "audience": "api://logicapps-assistant-mcp"
+          }
+        },
+        "runAfter": {
+          "Initialize_MCP_Server": ["Succeeded"]
+        }
+      },
+      "Transform_tools_to_OpenAI_format": {
+        "type": "Select",
+        "inputs": {
+          "from": "@body('Get_available_tools')?['result']?['tools']",
+          "select": {
+            "type": "function",
+            "function": {
+              "name": "@item()?['name']",
+              "description": "@item()?['description']",
+              "parameters": "@item()?['inputSchema']"
+            }
+          }
+        },
+        "runAfter": {
+          "Get_available_tools": ["Succeeded"]
+        }
+      },
+      "Agent_Loop": {
+        "type": "Until",
+        "expression": "@or(greater(variables('iteration'), variables('maxIterations')), not(equals(variables('needsToolCall'), true)))",
+        "limit": {
+          "count": 20,
+          "timeout": "PT10M"
+        },
+        "actions": {
+          "Increment_iteration": {
+            "type": "IncrementVariable",
+            "inputs": {
+              "name": "iteration",
+              "value": 1
+            },
+            "runAfter": {}
+          },
+          "Call_AI_Model": {
+            "type": "Http",
+            "inputs": {
+              "method": "POST",
+              "uri": "@{parameters('aiModelEndpoint')}/openai/deployments/@{parameters('aiModelDeployment')}/chat/completions?api-version=2024-02-15-preview",
+              "headers": {
+                "Content-Type": "application/json"
+              },
+              "body": {
+                "messages": "@variables('messages')",
+                "tools": "@body('Transform_tools_to_OpenAI_format')",
+                "tool_choice": "auto",
+                "max_tokens": 4096
+              },
+              "authentication": {
+                "type": "ManagedServiceIdentity",
+                "audience": "https://cognitiveservices.azure.com"
+              }
+            },
+            "runAfter": {
+              "Increment_iteration": ["Succeeded"]
+            }
+          },
+          "Check_for_tool_calls": {
+            "type": "Condition",
+            "expression": {
+              "and": [
+                {
+                  "not": {
+                    "equals": [
+                      "@body('Call_AI_Model')?['choices']?[0]?['message']?['tool_calls']",
+                      null
+                    ]
+                  }
+                }
+              ]
+            },
+            "actions": {
+              "Append_assistant_message": {
+                "type": "AppendToArrayVariable",
+                "inputs": {
+                  "name": "messages",
+                  "value": "@body('Call_AI_Model')?['choices']?[0]?['message']"
+                },
+                "runAfter": {}
+              },
+              "Process_each_tool_call": {
+                "type": "Foreach",
+                "foreach": "@body('Call_AI_Model')?['choices']?[0]?['message']?['tool_calls']",
+                "actions": {
+                  "Execute_MCP_tool": {
+                    "type": "Http",
+                    "inputs": {
+                      "method": "POST",
+                      "uri": "@parameters('mcpServerUrl')",
+                      "headers": {
+                        "Content-Type": "application/json",
+                        "Accept": "application/json, text/event-stream"
+                      },
+                      "body": {
+                        "jsonrpc": "2.0",
+                        "id": "@guid()",
+                        "method": "tools/call",
+                        "params": {
+                          "name": "@items('Process_each_tool_call')?['function']?['name']",
+                          "arguments": "@json(items('Process_each_tool_call')?['function']?['arguments'])"
+                        }
+                      },
+                      "authentication": {
+                        "type": "ManagedServiceIdentity",
+                        "audience": "api://logicapps-assistant-mcp"
+                      }
+                    },
+                    "runAfter": {}
+                  },
+                  "Append_tool_result": {
+                    "type": "AppendToArrayVariable",
+                    "inputs": {
+                      "name": "messages",
+                      "value": {
+                        "role": "tool",
+                        "tool_call_id": "@items('Process_each_tool_call')?['id']",
+                        "content": "@string(body('Execute_MCP_tool')?['result']?['content'])"
+                      }
+                    },
+                    "runAfter": {
+                      "Execute_MCP_tool": ["Succeeded"]
+                    }
+                  }
+                },
+                "runAfter": {
+                  "Append_assistant_message": ["Succeeded"]
+                },
+                "operationOptions": "Sequential"
+              },
+              "Set_needs_tool_call_true": {
+                "type": "SetVariable",
+                "inputs": {
+                  "name": "needsToolCall",
+                  "value": true
+                },
+                "runAfter": {
+                  "Process_each_tool_call": ["Succeeded"]
+                }
+              }
+            },
+            "else": {
+              "actions": {
+                "Set_needs_tool_call_false": {
+                  "type": "SetVariable",
+                  "inputs": {
+                    "name": "needsToolCall",
+                    "value": false
+                  },
+                  "runAfter": {}
+                },
+                "Store_final_response": {
+                  "type": "SetVariable",
+                  "inputs": {
+                    "name": "finalResponse",
+                    "value": "@body('Call_AI_Model')?['choices']?[0]?['message']?['content']"
+                  },
+                  "runAfter": {
+                    "Set_needs_tool_call_false": ["Succeeded"]
+                  }
+                }
+              }
+            },
+            "runAfter": {
+              "Call_AI_Model": ["Succeeded"]
+            }
+          }
+        },
+        "runAfter": {
+          "Initialize_needsToolCall": ["Succeeded"]
+        }
+      },
+      "Initialize_needsToolCall": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "needsToolCall",
+              "type": "boolean",
+              "value": true
+            }
+          ]
+        },
+        "runAfter": {
+          "Transform_tools_to_OpenAI_format": ["Succeeded"]
+        }
+      },
+      "Initialize_finalResponse": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "finalResponse",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "runAfter": {
+          "Initialize_needsToolCall": ["Succeeded"]
+        }
+      },
+      "Return_response": {
+        "type": "Response",
+        "kind": "Http",
+        "inputs": {
+          "statusCode": 200,
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "body": {
+            "response": "@variables('finalResponse')",
+            "iterations": "@variables('iteration')",
+            "messages": "@variables('messages')"
+          }
+        },
+        "runAfter": {
+          "Agent_Loop": ["Succeeded"]
+        }
+      }
+    },
+    "outputs": {}
+  },
+  "kind": "Stateful"
+}
