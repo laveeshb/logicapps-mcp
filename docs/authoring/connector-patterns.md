@@ -1,3 +1,8 @@
+---
+version: 0.3.0
+lastUpdated: 2025-12-26
+---
+
 # Connector Patterns
 
 Examples for common connectors. Use `get_connector_swagger` for full operation details.

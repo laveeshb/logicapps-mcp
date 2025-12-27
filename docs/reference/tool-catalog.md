@@ -1,6 +1,11 @@
+---
+version: 0.3.0
+lastUpdated: 2025-12-26
+---
+
 # Tool Catalog
 
-Complete reference for all 33 MCP tools available in `@laveeshb/logicapps-mcp`.
+Complete reference for all 36 MCP tools available in `@laveeshb/logicapps-mcp`.
 
 ---
 

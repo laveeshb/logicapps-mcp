@@ -1,3 +1,8 @@
+---
+version: 0.3.0
+lastUpdated: 2025-12-26
+---
+
 # Deployment Guide
 
 Deploying Logic Apps via ARM templates, Terraform, and CI/CD pipelines.

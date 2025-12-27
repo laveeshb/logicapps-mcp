@@ -1,3 +1,8 @@
+---
+version: 0.3.0
+lastUpdated: 2025-12-26
+---
+
 # SKU Differences
 
 Detailed comparison of Consumption and Standard Logic Apps.

@@ -1,3 +1,8 @@
+---
+version: 0.3.0
+lastUpdated: 2025-12-26
+---
+
 # Run Failures
 
 Debugging failed workflow runs, stuck executions, and trigger issues.
