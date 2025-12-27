@@ -55,25 +55,82 @@ az deployment group create \
 cd ../..
 npm run build
 
-# Create deployment package
-# (Function App deployment steps - see Azure Functions docs)
+# Deploy to Function App (using ZIP deploy)
+func azure functionapp publish logicapps-assistant-mcp
 ```
 
-### 3. Configure Agent Loop
+### 3. Deploy Agent Loop Workflow
 
-After deployment:
+Logic App Standard workflows are file-based. Deploy using the Azure CLI:
 
+```bash
+# Get deployment credentials
+DEPLOY_USER=$(az webapp deployment list-publishing-profiles \
+  --name logicapps-assistant-agent \
+  --resource-group logicapps-assistant-rg \
+  --query "[?publishMethod=='MSDeploy'].userName" -o tsv)
+
+DEPLOY_PASS=$(az webapp deployment list-publishing-profiles \
+  --name logicapps-assistant-agent \
+  --resource-group logicapps-assistant-rg \
+  --query "[?publishMethod=='MSDeploy'].userPWD" -o tsv)
+
+# Create workflow folder structure
+mkdir -p agent-loop-deploy/agent-loop
+
+# Copy workflow definition
+cp workflows/agent-loop.json agent-loop-deploy/agent-loop/workflow.json
+
+# Create host.json
+cat > agent-loop-deploy/host.json << 'EOF'
+{
+  "version": "2.0",
+  "extensionBundle": {
+    "id": "Microsoft.Azure.Functions.ExtensionBundle.Workflows",
+    "version": "[1.*, 2.0.0)"
+  }
+}
+EOF
+
+# ZIP and deploy
+cd agent-loop-deploy
+zip -r ../workflow-deploy.zip .
+cd ..
+
+az webapp deployment source config-zip \
+  --name logicapps-assistant-agent \
+  --resource-group logicapps-assistant-rg \
+  --src workflow-deploy.zip
+
+# Cleanup
+rm -rf agent-loop-deploy workflow-deploy.zip
+```
+
+Alternatively, use the Azure Portal:
 1. Open the Logic App in Azure Portal
-2. Create a new workflow with Agent Loop action
-3. Configure MCP Server:
-   - Type: "Bring Your Own MCP"
-   - URL: `https://<function-app>.azurewebsites.net/api/mcp`
-   - Auth: Managed Identity
-   - Audience: `api://logicapps-assistant-mcp`
+2. Go to "Workflows" > "Create"
+3. Import from `workflows/agent-loop.json`
 
-4. Configure AI Model:
-   - Connect to Azure AI Foundry
-   - Select GPT-4o deployment
+### 4. Configure Workflow Parameters
+
+After deploying the workflow, configure the parameters in the Logic App:
+
+1. Open the Logic App in Azure Portal → "Configuration"
+2. Update the workflow parameters:
+   - `mcpServerUrl`: `https://logicapps-assistant-mcp.azurewebsites.net/api/mcp`
+   - `aiModelEndpoint`: Your Azure AI Foundry endpoint
+   - `aiModelDeployment`: `gpt-4o` (or your deployment name)
+
+Or update via Azure CLI:
+
+```bash
+az logicapp config appsettings set \
+  --name logicapps-assistant-agent \
+  --resource-group logicapps-assistant-rg \
+  --settings \
+    "Workflows.agent-loop.Parameters.mcpServerUrl=https://logicapps-assistant-mcp.azurewebsites.net/api/mcp" \
+    "Workflows.agent-loop.Parameters.aiModelEndpoint=https://your-ai-foundry.openai.azure.com"
+```
 
 ## Estimated Costs
 
@@ -94,8 +151,8 @@ After deployment:
 
 ## Files
 
-- `main.bicep` - Main deployment template
-- `agent-workflow/` - Agent Loop workflow definition (TODO)
+- `bicep/main.bicep` - Infrastructure as Code template
+- `workflows/agent-loop.json` - Agent Loop workflow definition
 
 ## Troubleshooting
 
