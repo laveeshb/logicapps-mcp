@@ -2,7 +2,6 @@
 
 /**
  * MCP Server entry point.
- * - Handles CLI commands (setup)
  * - Loads configuration
  * - Initializes authentication
  * - Registers all tools
@@ -14,13 +13,6 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { loadSettings } from "./config/index.js";
 import { setSettings, initializeAuth } from "./auth/index.js";
 import { registerTools } from "./server.js";
-import { runSetupCLI } from "./cli/setup.js";
-
-// Handle CLI commands first (before starting MCP server)
-if (process.argv.includes("setup")) {
-  runSetupCLI(process.argv);
-  // runSetupCLI calls process.exit(), so we won't reach here
-}
 
 async function main(): Promise<void> {
   // Load configuration first
