@@ -3,7 +3,7 @@
   "version": "0.2.0",
   "description": "MCP server for Azure Logic Apps",
   "type": "module",
-  "main": "dist/index.js",
+  "main": "dist/functions/index.js",
   "bin": {
     "logicapps-mcp": "dist/index.js"
   },
@@ -21,6 +21,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
+    "start:func": "func start",
     "dev": "tsc --watch",
     "clean": "rimraf dist",
     "test": "vitest run",

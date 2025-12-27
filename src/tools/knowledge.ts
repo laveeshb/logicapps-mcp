@@ -41,6 +41,16 @@ export type ReferenceTopic =
   | "sku-differences";
 
 /**
+ * Valid workflow instruction topics
+ */
+export type WorkflowInstructionTopic =
+  | "diagnose-failures"
+  | "explain-workflow"
+  | "monitor-workflows"
+  | "create-workflow"
+  | "fix-workflow";
+
+/**
  * Read a documentation file from the bundled docs folder.
  */
 function readDocFile(relativePath: string): string {
@@ -121,6 +131,33 @@ export function getReference(topic: ReferenceTopic): { topic: string; content: s
   }
   
   const content = readDocFile(join("reference", `${topic}.md`));
+  
+  return {
+    topic,
+    content,
+  };
+}
+
+/**
+ * Get step-by-step workflow instructions for common user tasks.
+ * 
+ * @param topic - The workflow instruction topic to retrieve
+ * @returns The markdown content with detailed steps
+ */
+export function getWorkflowInstructions(topic: WorkflowInstructionTopic): { topic: string; content: string } {
+  const validTopics: WorkflowInstructionTopic[] = [
+    "diagnose-failures",
+    "explain-workflow",
+    "monitor-workflows",
+    "create-workflow",
+    "fix-workflow",
+  ];
+  
+  if (!validTopics.includes(topic)) {
+    throw new Error(`Invalid workflow instruction topic: ${topic}. Valid topics: ${validTopics.join(", ")}`);
+  }
+  
+  const content = readDocFile(join("workflows", `${topic}.md`));
   
   return {
     topic,

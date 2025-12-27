@@ -26,7 +26,7 @@ import { getExpressionTraces } from "./expressions.js";
 import { getWorkflowSwagger } from "./swagger.js";
 import { getConnections, getConnectionDetails, testConnection, getConnectorSwagger, invokeConnectorOperation, createConnection } from "./connections.js";
 import { getHostStatus } from "./host.js";
-import { getTroubleshootingGuide, getAuthoringGuide, getReference } from "./knowledge.js";
+import { getTroubleshootingGuide, getAuthoringGuide, getReference, getWorkflowInstructions } from "./knowledge.js";
 import { McpError, formatError } from "../utils/errors.js";
 
 export async function handleToolCall(
@@ -345,6 +345,11 @@ export async function handleToolCall(
       case "get_reference":
         result = getReference(
           args.topic as "tool-catalog" | "sku-differences"
+        );
+        break;
+      case "get_workflow_instructions":
+        result = getWorkflowInstructions(
+          args.topic as "diagnose-failures" | "explain-workflow" | "monitor-workflows" | "create-workflow" | "fix-workflow"
         );
         break;
       default:

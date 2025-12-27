@@ -44,7 +44,7 @@ az login
 ## Features
 
 - **Dual SKU Support**: Works with both Consumption (`Microsoft.Logic/workflows`) and Standard (`Microsoft.Web/sites`) Logic Apps
-- **36 Tools**: 33 Logic Apps operations + 3 knowledge tools for troubleshooting, authoring, and reference
+- **37 Tools**: 33 Logic Apps operations + 4 knowledge tools for troubleshooting, authoring, reference, and workflow instructions
 - **Write Operations**: Create, update, delete, enable/disable workflows; run triggers; cancel runs
 - **Connector Support**: Discover connectors, invoke dynamic operations, create connections
 - **Knowledge Tools**: Built-in documentation for debugging patterns, workflow authoring, and SKU differences

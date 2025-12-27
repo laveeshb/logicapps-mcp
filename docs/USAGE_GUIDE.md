@@ -74,7 +74,7 @@ Works with both **Consumption** and **Standard** SKUs.
 - [Deployment Guide](authoring/deployment.md) - ARM, Terraform, CI/CD
 
 ### Reference
-- [Tool Catalog](reference/tool-catalog.md) - All 36 tools with examples
+- [Tool Catalog](reference/tool-catalog.md) - All 37 tools with examples
 - [SKU Differences](reference/sku-differences.md) - Consumption vs Standard
 - [Quick Reference](reference/quick-reference.md) - Security, monitoring, testing, pricing, limits
 

@@ -26,7 +26,7 @@ This document describes the design for a Logic Apps AI Assistant that helps user
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                        SHARED COMPONENTS                                    │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │  • 36 Tools (33 Logic Apps operations + 3 knowledge tools)          │   │
+│  │  • 37 Tools (33 Logic Apps operations + 4 knowledge tools)          │   │
 │  │  • Bundled documentation (~3,600 lines)                             │   │
 │  │  • Same TypeScript codebase                                         │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
@@ -68,7 +68,7 @@ This document describes the design for a Logic Apps AI Assistant that helps user
 
 ## Shared Tool Catalog
 
-Both solutions implement the same 36 tools:
+Both solutions implement the same 37 tools:
 
 ### Logic Apps Operations (33 tools)
 

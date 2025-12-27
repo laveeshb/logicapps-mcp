@@ -1125,4 +1125,20 @@ export const TOOL_DEFINITIONS: Tool[] = [
       required: ["topic"],
     },
   },
+  {
+    name: "get_workflow_instructions",
+    description:
+      "Get step-by-step instructions for handling common user requests. CALL THIS FIRST when a user asks high-level questions like 'why is my workflow failing?', 'what does this workflow do?', or 'create a workflow'. Returns detailed sequences of tool calls to complete the task.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        topic: {
+          type: "string",
+          enum: ["diagnose-failures", "explain-workflow", "monitor-workflows", "create-workflow", "fix-workflow"],
+          description: "The instruction topic: 'diagnose-failures' when user asks about failures or errors; 'explain-workflow' to understand what a workflow does; 'monitor-workflows' to check status and health; 'create-workflow' to build new workflows; 'fix-workflow' to modify and repair existing workflows",
+        },
+      },
+      required: ["topic"],
+    },
+  },
 ];
