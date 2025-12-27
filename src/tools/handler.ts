@@ -77,7 +77,8 @@ export async function handleToolCall(
           args.logicAppName as string,
           args.workflowName as string | undefined,
           args.top as number | undefined,
-          args.filter as string | undefined
+          args.filter as string | undefined,
+          args.skipToken as string | undefined
         );
         break;
       case "get_run_details":
@@ -222,7 +223,8 @@ export async function handleToolCall(
           args.startTime as string | undefined,
           args.endTime as string | undefined,
           args.clientTrackingId as string | undefined,
-          args.top as number | undefined
+          args.top as number | undefined,
+          args.skipToken as string | undefined
         );
         break;
       case "get_workflow_version":

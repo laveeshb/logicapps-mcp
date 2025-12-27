@@ -120,7 +120,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   },
   {
     name: "list_run_history",
-    description: "Get the run history for a workflow with optional filtering. For Standard SKU, workflowName is required. Use search_runs for easier filtering by status/date. After finding a run, use get_run_details and get_run_actions to debug.",
+    description: "Get the run history for a workflow with optional filtering. For Standard SKU, workflowName is required. Use search_runs for easier filtering by status/date. After finding a run, use get_run_details and get_run_actions to debug. Returns a nextLink if more pages are available - use skipToken to fetch the next page.",
     inputSchema: {
       type: "object",
       properties: {
@@ -142,11 +142,15 @@ export const TOOL_DEFINITIONS: Tool[] = [
         },
         top: {
           type: "number",
-          description: "Number of runs to return (default: 25, max: 100)",
+          description: "Number of runs to return per page (default: 25, max: 100)",
         },
         filter: {
           type: "string",
           description: "OData filter (e.g., \"status eq 'Failed'\")",
+        },
+        skipToken: {
+          type: "string",
+          description: "Pagination token from a previous response's nextLink to fetch the next page of results",
         },
       },
       required: ["subscriptionId", "resourceGroupName", "logicAppName"],
@@ -692,7 +696,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "search_runs",
     description:
-      "Search run history with friendly parameters (status, startTime, endTime, clientTrackingId) instead of raw OData filter syntax. For Standard SKU, workflowName is required. Use this instead of list_run_history when filtering by specific criteria.",
+      "Search run history with friendly parameters (status, startTime, endTime, clientTrackingId) instead of raw OData filter syntax. For Standard SKU, workflowName is required. Use this instead of list_run_history when filtering by specific criteria. Returns a nextLink if more pages are available - use skipToken to fetch the next page.",
     inputSchema: {
       type: "object",
       properties: {
@@ -731,7 +735,11 @@ export const TOOL_DEFINITIONS: Tool[] = [
         },
         top: {
           type: "number",
-          description: "Number of runs to return (default: 25, max: 100)",
+          description: "Number of runs to return per page (default: 25, max: 100)",
+        },
+        skipToken: {
+          type: "string",
+          description: "Pagination token from a previous response's nextLink to fetch the next page of results",
         },
       },
       required: ["subscriptionId", "resourceGroupName", "logicAppName"],
