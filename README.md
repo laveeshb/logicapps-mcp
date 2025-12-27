@@ -43,10 +43,10 @@ az login
 ## Features
 
 - **Dual SKU Support**: Works with both Consumption (`Microsoft.Logic/workflows`) and Standard (`Microsoft.Web/sites`) Logic Apps
-- **33 Tools**: Comprehensive toolset for reading and writing workflows, triggers, runs, connections, and more
+- **36 Tools**: 33 Logic Apps operations + 3 knowledge tools for troubleshooting, authoring, and reference
 - **Write Operations**: Create, update, delete, enable/disable workflows; run triggers; cancel runs
 - **Connector Support**: Discover connectors, invoke dynamic operations, create connections
-- **MCP Prompts**: Built-in guidance for AI assistants on tool selection and common workflows
+- **Knowledge Tools**: Built-in documentation for debugging patterns, workflow authoring, and SKU differences
 - **Multi-Cloud**: Supports Azure Public, Government, and China clouds
 - **Secure Authentication**: Uses Azure CLI tokens with automatic refresh
 - **No Azure SDK**: Pure REST API implementation with minimal dependencies
