@@ -9,6 +9,8 @@ import {
   ListToolsRequestSchema,
   ListPromptsRequestSchema,
   GetPromptRequestSchema,
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { TOOL_DEFINITIONS } from "./tools/definitions.js";
 import { handleToolCall } from "./tools/handler.js";

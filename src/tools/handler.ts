@@ -26,6 +26,7 @@ import { getExpressionTraces } from "./expressions.js";
 import { getWorkflowSwagger } from "./swagger.js";
 import { getConnections, getConnectionDetails, testConnection, getConnectorSwagger, invokeConnectorOperation, createConnection } from "./connections.js";
 import { getHostStatus } from "./host.js";
+import { getTroubleshootingGuide, getAuthoringGuide, getReference } from "./knowledge.js";
 import { McpError, formatError } from "../utils/errors.js";
 
 export async function handleToolCall(
@@ -326,6 +327,22 @@ export async function handleToolCall(
           args.resourceGroupName as string,
           args.logicAppName as string,
           args.workflowName as string | undefined
+        );
+        break;
+      // Knowledge tools
+      case "get_troubleshooting_guide":
+        result = getTroubleshootingGuide(
+          args.topic as "expression-errors" | "connection-issues" | "run-failures" | "known-limitations"
+        );
+        break;
+      case "get_authoring_guide":
+        result = getAuthoringGuide(
+          args.topic as "workflow-patterns" | "connector-patterns" | "deployment"
+        );
+        break;
+      case "get_reference":
+        result = getReference(
+          args.topic as "tool-catalog" | "sku-differences"
         );
         break;
       default:
