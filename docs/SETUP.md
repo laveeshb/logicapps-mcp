@@ -1,6 +1,6 @@
 # Setup Guide
 
-How to configure the Logic Apps MCP server with different AI assistants.
+How to configure the Logic Apps MCP server with different AI clients.
 
 ---
 
@@ -20,8 +20,6 @@ How to configure the Logic Apps MCP server with different AI assistants.
 ---
 
 ## GitHub Copilot (VS Code)
-
-### Configure MCP Server
 
 Create or edit `.vscode/mcp.json` in your workspace:
 
@@ -50,26 +48,11 @@ Or if running from local source:
 }
 ```
 
-### Add Agent Instructions
-
-Copy `docs/logic-apps-assistant.md` to `.github/copilot-instructions.md`:
-```bash
-cp docs/logic-apps-assistant.md .github/copilot-instructions.md
-```
-
-Copilot automatically reads this file for context.
-
-### Verify Setup
-
-1. Open Copilot Chat
-2. Ask: "List my Logic Apps"
-3. Copilot should use the `list_logic_apps` tool
+Restart VS Code and the tools will be available in Copilot Chat.
 
 ---
 
 ## Claude Desktop
-
-### Configure MCP Server
 
 Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or 
 `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
@@ -85,17 +68,11 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) o
 }
 ```
 
-### Add Agent Instructions
-
-In Claude Desktop, create a Project and add custom instructions by pasting the content of `docs/logic-apps-assistant.md`.
-
-Or configure a file system server to give Claude access to the docs folder.
+Restart Claude Desktop and the tools will be available.
 
 ---
 
 ## Cursor
-
-### Configure MCP Server
 
 Edit `.cursor/mcp.json` in your project:
 
@@ -110,10 +87,6 @@ Edit `.cursor/mcp.json` in your project:
 }
 ```
 
-### Add Agent Instructions
-
-Create `.cursor/rules` and paste the content of `docs/logic-apps-assistant.md`.
-
 ---
 
 ## Verification
@@ -124,7 +97,7 @@ After setup, test with these prompts:
 2. **Debugging:** "Why did my workflow fail?"
 3. **Authoring:** "Create a Logic App that sends an email when a blob is uploaded"
 
-The assistant should invoke MCP tools like `list_logic_apps`, `search_runs`, etc.
+The client should invoke MCP tools like `list_logic_apps`, `search_runs`, etc.
 
 ---
 
@@ -134,7 +107,7 @@ The assistant should invoke MCP tools like `list_logic_apps`, `search_runs`, etc
 
 1. Check MCP server is installed: `npx @laveeshb/logicapps-mcp --version`
 2. Verify config file path is correct
-3. Restart the AI assistant/VS Code
+3. Restart the AI client/VS Code
 
 ### "Unauthorized" errors
 
@@ -142,18 +115,16 @@ The assistant should invoke MCP tools like `list_logic_apps`, `search_runs`, etc
 2. Re-authenticate: `az login`
 3. Verify RBAC permissions on Logic Apps
 
-### Tools work but agent doesn't use them well
-
-1. Ensure agent instructions are loaded (`.github/copilot-instructions.md` for Copilot)
-2. Be explicit: "Use the search_runs tool to find failed runs"
-3. Check for doc file in correct location
-
 ---
 
-## File Locations Summary
+## Knowledge Tools
 
-| Assistant | MCP Config | Agent Instructions |
-|-----------|-----------|-------------------|
-| VS Code Copilot | `.vscode/mcp.json` | `.github/copilot-instructions.md` |
-| Claude Desktop | `~/...Claude/claude_desktop_config.json` | Project custom instructions |
-| Cursor | `.cursor/mcp.json` | `.cursor/rules` |
+The MCP server includes 3 knowledge tools that provide guidance on demand:
+
+| Tool | Purpose |
+|------|---------|
+| `get_troubleshooting_guide` | Debugging patterns for expression errors, connection issues, run failures |
+| `get_authoring_guide` | Workflow patterns, connector examples, deployment guides |
+| `get_reference` | Tool catalog, SKU differences |
+
+These tools return bundled documentation, so no additional setup is required for the AI to understand Logic Apps concepts.
