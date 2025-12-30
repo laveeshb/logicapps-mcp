@@ -50,10 +50,6 @@ param aiFoundryEndpoint string = ''
 @description('Azure AI Foundry deployment name (e.g., gpt-4o)')
 param aiFoundryDeployment string = 'gpt-4o'
 
-@description('Azure AI Foundry API key (optional - configure later if not available)')
-@secure()
-param aiFoundryApiKey string = ''
-
 @description('Enable Easy Auth to restrict access (requires deployerObjectId)')
 param enableEasyAuth bool = true
 
@@ -426,10 +422,6 @@ resource logicApp 'Microsoft.Web/sites@2022-09-01' = {
         {
           name: 'AI_FOUNDRY_DEPLOYMENT'
           value: aiFoundryDeployment
-        }
-        {
-          name: 'AI_FOUNDRY_API_KEY'
-          value: aiFoundryApiKey
         }
         // Telemetry
         {

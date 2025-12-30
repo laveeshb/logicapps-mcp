@@ -3,16 +3,15 @@
  *
  * This function implements an agent loop that:
  * 1. Receives a user message
- * 2. Calls Azure AI Foundry (supports GPT-4o, Claude, etc.) with the available MCP tools
+ * 2. Calls Azure OpenAI with the available MCP tools
  * 3. Executes any tool calls and feeds results back to the model
  * 4. Returns the final response
  *
- * Configuration (via environment variables or request body):
- * - AI_FOUNDRY_ENDPOINT: Azure AI Foundry endpoint URL (required)
+ * Configuration (via environment variables):
+ * - AI_FOUNDRY_ENDPOINT: Azure OpenAI endpoint URL (required)
  * - AI_FOUNDRY_DEPLOYMENT: Model deployment name (default: gpt-4o)
- * - AI_FOUNDRY_API_KEY: API key (optional, uses managed identity if not set)
  *
- * The model can also be overridden per-request via the request body.
+ * Authentication uses managed identity (DefaultAzureCredential).
  */
 
 import {
@@ -57,36 +56,24 @@ async function ensureMcpInitialized(): Promise<void> {
 }
 
 /**
- * Create an Azure OpenAI client with the given configuration.
+ * Create an Azure OpenAI client using managed identity.
  */
 function createOpenAIClient(
   endpoint: string,
-  deployment: string,
-  apiKey?: string
+  deployment: string
 ): AzureOpenAI {
-  if (apiKey) {
-    // Use API key authentication
-    return new AzureOpenAI({
-      apiKey,
-      endpoint,
-      deployment,
-      apiVersion: "2024-08-01-preview",
-    });
-  } else {
-    // Use managed identity authentication
-    const credential = new DefaultAzureCredential();
-    const tokenProvider = getBearerTokenProvider(
-      credential,
-      "https://cognitiveservices.azure.com/.default"
-    );
+  const credential = new DefaultAzureCredential();
+  const tokenProvider = getBearerTokenProvider(
+    credential,
+    "https://cognitiveservices.azure.com/.default"
+  );
 
-    return new AzureOpenAI({
-      azureADTokenProvider: tokenProvider,
-      endpoint,
-      deployment,
-      apiVersion: "2024-08-01-preview",
-    });
-  }
+  return new AzureOpenAI({
+    azureADTokenProvider: tokenProvider,
+    endpoint,
+    deployment,
+    apiVersion: "2024-08-01-preview",
+  });
 }
 
 /**
@@ -167,8 +154,6 @@ interface AgentRequest {
   endpoint?: string;
   /** Optional: Override the model deployment (defaults to AI_FOUNDRY_DEPLOYMENT env var) */
   model?: string;
-  /** Optional: API key (defaults to AI_FOUNDRY_API_KEY env var or managed identity) */
-  apiKey?: string;
   /** Optional: Custom system prompt */
   systemPrompt?: string;
   /** Optional: Maximum iterations (defaults to 15) */
@@ -214,7 +199,6 @@ async function agentHandler(
     // Get configuration from request or environment
     const endpoint = body.endpoint || process.env.AI_FOUNDRY_ENDPOINT;
     const deployment = body.model || process.env.AI_FOUNDRY_DEPLOYMENT || "gpt-4o";
-    const apiKey = body.apiKey || process.env.AI_FOUNDRY_API_KEY;
     const systemPrompt = body.systemPrompt || DEFAULT_SYSTEM_PROMPT;
     const maxIterations = body.maxIterations || MAX_ITERATIONS;
 
@@ -230,8 +214,8 @@ async function agentHandler(
     context.log(`Agent starting with model: ${deployment} at ${endpoint}`);
     context.log(`User message: ${body.message.substring(0, 100)}...`);
 
-    // Create OpenAI client
-    const openaiClient = createOpenAIClient(endpoint, deployment, apiKey);
+    // Create OpenAI client (uses managed identity)
+    const openaiClient = createOpenAIClient(endpoint, deployment);
 
     // Initialize conversation with system prompt and user message
     const messages: ChatCompletionMessageParam[] = body.conversationHistory || [
