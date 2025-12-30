@@ -298,40 +298,50 @@ Deploy an AI-powered agent to Azure that can investigate and manage Logic Apps o
 - Azure CLI (`az login`)
 - Azure Functions Core Tools (`func`)
 - Node.js and npm
-- An Azure OpenAI resource with a gpt-4o deployment
+- An Azure OpenAI resource with a gpt-4o deployment (or let the script create one)
 
 ### Deploy
 
 ```powershell
-# PowerShell
+# PowerShell - Use existing Azure OpenAI
 ./deploy/deploy.ps1 -ResourceGroup my-rg -AiFoundryEndpoint https://my-openai.openai.azure.com -CreateResourceGroup
 
-# Bash
+# PowerShell - Create new Azure OpenAI resource
+./deploy/deploy.ps1 -ResourceGroup my-rg -CreateAiResource -CreateResourceGroup
+
+# Bash - Use existing Azure OpenAI
 ./deploy/deploy.sh -g my-rg --ai-endpoint https://my-openai.openai.azure.com --create-rg
+
+# Bash - Create new Azure OpenAI resource
+./deploy/deploy.sh -g my-rg --create-ai-resource --create-rg
 ```
 
 The script will:
 1. Create infrastructure (Function App, Storage, App Insights, Managed Identity)
-2. Configure Easy Auth (only you can access the API)
-3. Build and deploy the function code
-4. Output the managed identity principal ID for RBAC setup
+2. Create Azure OpenAI resource and gpt-4o deployment (if `--create-ai-resource` is used)
+3. Configure Easy Auth (only you can access the API)
+4. Build and deploy the function code
+5. Grant Azure OpenAI RBAC access (if `--create-ai-resource` is used)
 
 ### Grant RBAC Access
 
-After deployment, grant the managed identity access to Azure OpenAI and your Logic Apps:
+After deployment, grant the managed identity access to your Logic Apps:
 
 ```bash
-# 1. Grant access to Azure OpenAI
-az role assignment create \
-  --assignee <managed-identity-principal-id> \
-  --role "Cognitive Services OpenAI User" \
-  --scope /subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.CognitiveServices/accounts/<openai-resource>
-
-# 2. Grant access to Logic Apps (Reader for read-only, Logic App Contributor for write)
+# Grant access to Logic Apps (Reader for read-only, Logic App Contributor for write)
 az role assignment create \
   --assignee <managed-identity-principal-id> \
   --role "Reader" \
   --scope /subscriptions/<subscription-id>
+```
+
+If you used an existing Azure OpenAI resource (not `--create-ai-resource`), also grant access to it:
+
+```bash
+az role assignment create \
+  --assignee <managed-identity-principal-id> \
+  --role "Cognitive Services OpenAI User" \
+  --scope /subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.CognitiveServices/accounts/<openai-resource>
 ```
 
 ### Call the Agent

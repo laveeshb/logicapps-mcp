@@ -2,23 +2,27 @@
 #
 # This script deploys the Logic Apps AI Assistant to Azure:
 # 1. Creates infrastructure (Function App, Storage, App Insights, Managed Identity)
-# 2. Configures Easy Auth to restrict access to the deployer
-# 3. Builds and deploys the function code
+# 2. Optionally creates Azure OpenAI resource and model deployment
+# 3. Configures Easy Auth to restrict access to the deployer
+# 4. Builds and deploys the function code
+# 5. Grants RBAC for Azure OpenAI access
 #
 # After deployment, grant the managed identity RBAC access to your Logic Apps.
 #
 # Usage:
 #   ./deploy.ps1 -ResourceGroup <rg-name> -AiFoundryEndpoint <endpoint>
+#   ./deploy.ps1 -ResourceGroup <rg-name> -CreateAiResource
 #
 # Examples:
+#   # Use existing Azure OpenAI
 #   ./deploy.ps1 -ResourceGroup lamcp-rg -Prefix lamcp -AiFoundryEndpoint https://my-openai.openai.azure.com
+#
+#   # Create new Azure OpenAI resource
+#   ./deploy.ps1 -ResourceGroup lamcp-rg -Prefix lamcp -CreateAiResource -CreateResourceGroup
 
 param(
     [Parameter(Mandatory=$true)]
     [string]$ResourceGroup,
-
-    [Parameter(Mandatory=$true)]
-    [string]$AiFoundryEndpoint,
 
     [Parameter(Mandatory=$false)]
     [string]$Prefix = "",
@@ -27,7 +31,13 @@ param(
     [string]$Location = "eastus",
 
     [Parameter(Mandatory=$false)]
+    [string]$AiFoundryEndpoint = "",
+
+    [Parameter(Mandatory=$false)]
     [string]$AiFoundryDeployment = "gpt-4o",
+
+    [Parameter(Mandatory=$false)]
+    [switch]$CreateAiResource,
 
     [Parameter(Mandatory=$false)]
     [switch]$CreateResourceGroup,
@@ -42,6 +52,19 @@ Write-Host "============================================" -ForegroundColor Cyan
 Write-Host "Logic Apps MCP Server - Deployment" -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host ""
+
+# Validate parameters
+if (-not $AiFoundryEndpoint -and -not $CreateAiResource) {
+    Write-Host "Error: Either -AiFoundryEndpoint or -CreateAiResource is required." -ForegroundColor Red
+    Write-Host ""
+    Write-Host "Usage:" -ForegroundColor Yellow
+    Write-Host "  # Use existing Azure OpenAI:" -ForegroundColor Gray
+    Write-Host "  ./deploy.ps1 -ResourceGroup <rg> -AiFoundryEndpoint https://my-openai.openai.azure.com" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "  # Create new Azure OpenAI resource:" -ForegroundColor Gray
+    Write-Host "  ./deploy.ps1 -ResourceGroup <rg> -CreateAiResource" -ForegroundColor Gray
+    exit 1
+}
 
 # Check prerequisites
 Write-Host "Checking prerequisites..." -ForegroundColor Yellow
@@ -77,8 +100,22 @@ if (-not $SkipCodeDeploy) {
 
 Write-Host ""
 Write-Host "Subscription: $($account.name)" -ForegroundColor Cyan
-Write-Host "AI Endpoint:  $AiFoundryEndpoint" -ForegroundColor Cyan
+Write-Host "Sub ID:       $($account.id)" -ForegroundColor Cyan
+if ($AiFoundryEndpoint) {
+    Write-Host "AI Endpoint:  $AiFoundryEndpoint (existing)" -ForegroundColor Cyan
+} else {
+    Write-Host "AI Endpoint:  Will be created" -ForegroundColor Cyan
+}
 Write-Host "AI Model:     $AiFoundryDeployment" -ForegroundColor Cyan
+Write-Host ""
+
+# Ask for consent before creating resources
+Write-Host "This will create resources in the subscription above." -ForegroundColor Yellow
+$consent = Read-Host "Do you want to continue? (y/N)"
+if ($consent -ne "y" -and $consent -ne "Y") {
+    Write-Host "Deployment cancelled." -ForegroundColor Red
+    exit 0
+}
 Write-Host ""
 
 # Get deployer's object ID for Easy Auth (required)
@@ -100,7 +137,80 @@ if ($CreateResourceGroup) {
     Write-Host ""
 }
 
-# Build parameters
+$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+$repoRoot = Split-Path -Parent $scriptPath
+
+# Generate effective prefix for naming
+$effectivePrefix = if ($Prefix) { $Prefix.ToLower() } else {
+    $hash = [System.BitConverter]::ToString([System.Security.Cryptography.SHA256]::Create().ComputeHash([System.Text.Encoding]::UTF8.GetBytes($ResourceGroup))).Replace("-", "").Substring(0, 8).ToLower()
+    $hash
+}
+
+# Create Azure OpenAI resource if requested
+$openAiResourceName = ""
+if ($CreateAiResource) {
+    $openAiResourceName = "oai-$effectivePrefix"
+    Write-Host "Creating Azure OpenAI resource '$openAiResourceName'..." -ForegroundColor Yellow
+
+    # Check if resource already exists
+    $existingResource = az cognitiveservices account show --name $openAiResourceName --resource-group $ResourceGroup 2>$null | ConvertFrom-Json
+    if ($existingResource) {
+        Write-Host "  Azure OpenAI resource already exists, reusing." -ForegroundColor Yellow
+        $AiFoundryEndpoint = $existingResource.properties.endpoint
+    } else {
+        # Create the resource
+        $openAiResult = az cognitiveservices account create `
+            --name $openAiResourceName `
+            --resource-group $ResourceGroup `
+            --location $Location `
+            --kind OpenAI `
+            --sku S0 `
+            --custom-domain $openAiResourceName `
+            2>&1
+
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "Error creating Azure OpenAI resource: $openAiResult" -ForegroundColor Red
+            Write-Host ""
+            Write-Host "Note: Azure OpenAI may not be available in all regions." -ForegroundColor Yellow
+            Write-Host "Try a different location with -Location (e.g., eastus, westus, swedencentral)" -ForegroundColor Yellow
+            exit 1
+        }
+
+        $openAiResource = az cognitiveservices account show --name $openAiResourceName --resource-group $ResourceGroup | ConvertFrom-Json
+        $AiFoundryEndpoint = $openAiResource.properties.endpoint
+        Write-Host "  Created: $AiFoundryEndpoint" -ForegroundColor Green
+    }
+
+    # Create model deployment
+    Write-Host "Creating model deployment '$AiFoundryDeployment'..." -ForegroundColor Yellow
+    $existingDeployment = az cognitiveservices account deployment show `
+        --name $openAiResourceName `
+        --resource-group $ResourceGroup `
+        --deployment-name $AiFoundryDeployment 2>$null
+
+    if ($existingDeployment) {
+        Write-Host "  Model deployment already exists, reusing." -ForegroundColor Yellow
+    } else {
+        az cognitiveservices account deployment create `
+            --name $openAiResourceName `
+            --resource-group $ResourceGroup `
+            --deployment-name $AiFoundryDeployment `
+            --model-name "gpt-4o" `
+            --model-version "2024-08-06" `
+            --model-format OpenAI `
+            --sku-name Standard `
+            --sku-capacity 10 | Out-Null
+
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "Error creating model deployment. The model may not be available in this region." -ForegroundColor Red
+            exit 1
+        }
+        Write-Host "  Model deployment created." -ForegroundColor Green
+    }
+    Write-Host ""
+}
+
+# Build parameters for Bicep
 $params = @(
     "location=$Location",
     "aiFoundryEndpoint=$AiFoundryEndpoint",
@@ -117,8 +227,6 @@ if ($Prefix) {
 Write-Host "Deploying infrastructure..." -ForegroundColor Yellow
 Write-Host "  Resource Group: $ResourceGroup" -ForegroundColor Gray
 
-$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
-$repoRoot = Split-Path -Parent $scriptPath
 $templatePath = Join-Path $scriptPath "bicep\main.bicep"
 
 $deploymentResult = az deployment group create `
@@ -134,8 +242,33 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 $functionAppName = $deploymentResult.functionAppName.value
+$managedIdentityPrincipalId = $deploymentResult.managedIdentityPrincipalId.value
 Write-Host "Infrastructure deployed." -ForegroundColor Green
 Write-Host ""
+
+# Grant RBAC for Azure OpenAI if we created it
+if ($CreateAiResource -and $openAiResourceName) {
+    Write-Host "Granting managed identity access to Azure OpenAI..." -ForegroundColor Yellow
+    $openAiResourceId = "/subscriptions/$($account.id)/resourceGroups/$ResourceGroup/providers/Microsoft.CognitiveServices/accounts/$openAiResourceName"
+
+    # Check if role assignment already exists
+    $existingAssignment = az role assignment list `
+        --assignee $managedIdentityPrincipalId `
+        --scope $openAiResourceId `
+        --role "Cognitive Services OpenAI User" 2>$null | ConvertFrom-Json
+
+    if ($existingAssignment -and $existingAssignment.Count -gt 0) {
+        Write-Host "  Role assignment already exists." -ForegroundColor Yellow
+    } else {
+        az role assignment create `
+            --assignee-object-id $managedIdentityPrincipalId `
+            --assignee-principal-type ServicePrincipal `
+            --role "Cognitive Services OpenAI User" `
+            --scope $openAiResourceId | Out-Null
+        Write-Host "  Granted Cognitive Services OpenAI User role." -ForegroundColor Green
+    }
+    Write-Host ""
+}
 
 # Build and deploy function code
 if (-not $SkipCodeDeploy) {
@@ -174,7 +307,8 @@ Write-Host "Deployment Complete!" -ForegroundColor Green
 Write-Host "============================================" -ForegroundColor Green
 Write-Host ""
 Write-Host "Function App:     $functionAppName" -ForegroundColor White
-Write-Host "Managed Identity: $($deploymentResult.managedIdentityPrincipalId.value)" -ForegroundColor White
+Write-Host "Managed Identity: $managedIdentityPrincipalId" -ForegroundColor White
+Write-Host "AI Endpoint:      $AiFoundryEndpoint" -ForegroundColor White
 Write-Host ""
 Write-Host "Endpoints:" -ForegroundColor Cyan
 Write-Host "  Health: $($deploymentResult.healthEndpoint.value)" -ForegroundColor White
@@ -185,23 +319,35 @@ Write-Host "Easy Auth: ENABLED (only you can access)" -ForegroundColor Green
 Write-Host ""
 Write-Host "To call the API:" -ForegroundColor Cyan
 Write-Host '  $token = az account get-access-token --resource https://management.azure.com --query accessToken -o tsv' -ForegroundColor Gray
-Write-Host '  curl -H "Authorization: Bearer $token" ' + "$($deploymentResult.healthEndpoint.value)" -ForegroundColor Gray
+Write-Host "  curl -H `"Authorization: Bearer `$token`" $($deploymentResult.healthEndpoint.value)" -ForegroundColor Gray
 Write-Host ""
-Write-Host "============================================" -ForegroundColor Yellow
-Write-Host "NEXT STEP: Grant RBAC access" -ForegroundColor Yellow
-Write-Host "============================================" -ForegroundColor Yellow
-Write-Host ""
-Write-Host "The managed identity needs access to your Logic Apps and Azure OpenAI." -ForegroundColor White
-Write-Host ""
-Write-Host "1. Grant access to Azure OpenAI:" -ForegroundColor Cyan
-Write-Host "   az role assignment create ``" -ForegroundColor Gray
-Write-Host "     --assignee $($deploymentResult.managedIdentityPrincipalId.value) ``" -ForegroundColor Gray
-Write-Host "     --role 'Cognitive Services OpenAI User' ``" -ForegroundColor Gray
-Write-Host "     --scope /subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.CognitiveServices/accounts/<openai-resource>" -ForegroundColor Gray
-Write-Host ""
-Write-Host "2. Grant access to Logic Apps (repeat for each subscription):" -ForegroundColor Cyan
-Write-Host "   az role assignment create ``" -ForegroundColor Gray
-Write-Host "     --assignee $($deploymentResult.managedIdentityPrincipalId.value) ``" -ForegroundColor Gray
-Write-Host "     --role 'Reader' ``" -ForegroundColor Gray
-Write-Host "     --scope /subscriptions/<subscription-id>" -ForegroundColor Gray
+
+if ($CreateAiResource) {
+    Write-Host "============================================" -ForegroundColor Yellow
+    Write-Host "NEXT STEP: Grant Logic Apps access" -ForegroundColor Yellow
+    Write-Host "============================================" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Grant the managed identity Reader access to subscriptions with Logic Apps:" -ForegroundColor White
+    Write-Host ""
+    Write-Host "az role assignment create ``" -ForegroundColor Gray
+    Write-Host "  --assignee $managedIdentityPrincipalId ``" -ForegroundColor Gray
+    Write-Host "  --role 'Reader' ``" -ForegroundColor Gray
+    Write-Host "  --scope /subscriptions/<subscription-id>" -ForegroundColor Gray
+} else {
+    Write-Host "============================================" -ForegroundColor Yellow
+    Write-Host "NEXT STEPS: Grant RBAC access" -ForegroundColor Yellow
+    Write-Host "============================================" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "1. Grant access to Azure OpenAI:" -ForegroundColor Cyan
+    Write-Host "   az role assignment create ``" -ForegroundColor Gray
+    Write-Host "     --assignee $managedIdentityPrincipalId ``" -ForegroundColor Gray
+    Write-Host "     --role 'Cognitive Services OpenAI User' ``" -ForegroundColor Gray
+    Write-Host "     --scope <your-openai-resource-id>" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "2. Grant access to Logic Apps:" -ForegroundColor Cyan
+    Write-Host "   az role assignment create ``" -ForegroundColor Gray
+    Write-Host "     --assignee $managedIdentityPrincipalId ``" -ForegroundColor Gray
+    Write-Host "     --role 'Reader' ``" -ForegroundColor Gray
+    Write-Host "     --scope /subscriptions/<subscription-id>" -ForegroundColor Gray
+}
 Write-Host ""

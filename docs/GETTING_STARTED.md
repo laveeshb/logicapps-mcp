@@ -69,8 +69,11 @@ Best for scenarios where:
 **How it works:** You deploy a Function App to Azure with a managed identity. The managed identity has RBAC access to the Logic Apps you want to investigate. Users call the agent via REST API with Azure AD authentication.
 
 ```bash
-# Deploy
-./deploy/deploy.ps1 -ResourceGroup my-rg -Prefix myagent -CreateResourceGroup
+# Deploy (creates Azure OpenAI resource for you)
+./deploy/deploy.ps1 -ResourceGroup my-rg -CreateAiResource -CreateResourceGroup
+
+# Or use an existing Azure OpenAI resource
+./deploy/deploy.ps1 -ResourceGroup my-rg -AiFoundryEndpoint https://my-openai.openai.azure.com
 
 # Call the agent
 TOKEN=$(az account get-access-token --resource https://management.azure.com --query accessToken -o tsv)
