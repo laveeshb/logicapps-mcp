@@ -451,16 +451,7 @@ npm run test:watch
 
 ## Architecture
 
-```
-src/
- index.ts           # MCP server entry point
- server.ts          # Tool registration
- auth/              # Azure CLI token management
- config/            # Azure cloud endpoints & settings
- tools/             # MCP tool implementations (30 tools)
- types/             # TypeScript type definitions
- utils/             # HTTP client & error handling
-```
+See [design/README.md](design/README.md) for implementation details.
 
 ## License
 
