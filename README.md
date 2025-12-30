@@ -28,39 +28,49 @@ An MCP (Model Context Protocol) server that enables AI assistants to interact wi
 This project offers two ways to use AI with Azure Logic Apps:
 
 ```
-                    ┌─────────────────────────────────────┐
-                    │  Do you have a local AI assistant?  │
-                    │  (GitHub Copilot, Claude Desktop)   │
-                    └──────────────┬──────────────────────┘
-                                   │
-                    ┌──────────────┴──────────────┐
-                    │                             │
-                   YES                            NO
-                    │                             │
-                    ▼                             ▼
-    ┌───────────────────────────────┐  ┌───────────────────────────────┐
-    │  Do you have Azure CLI access │  │     Use Cloud Agent           │
-    │  to the Logic Apps you want   │  │                               │
-    │  to investigate?              │  │  Deploy the hosted agent to   │
-    │                               │  │  Azure and call it via REST   │
-    └───────────────┬───────────────┘  │  API with Azure AD auth.      │
-                    │                  │                               │
-         ┌──────────┴──────────┐       │  → See "Cloud Agent" section  │
-         │                     │       └───────────────────────────────┘
-        YES                    NO
-         │                     │
-         ▼                     ▼
-┌─────────────────────┐  ┌───────────────────────────────┐
-│  Use Local MCP      │  │     Use Cloud Agent           │
-│  Server             │  │                               │
-│                     │  │  Deploy with managed identity │
-│  Install the MCP    │  │  that has access to your      │
-│  server and connect │  │  Logic Apps.                  │
-│  it to your AI.     │  │                               │
-│                     │  │  → See "Cloud Agent" section  │
-│  → See "Quick Start"│  └───────────────────────────────┘
-└─────────────────────┘
+                         ┌────────────────────────────────────┐
+                         │  Can you directly access the       │
+                         │  Logic Apps you want to manage?    │
+                         │  (via az login / Azure CLI)        │
+                         └─────────────────┬──────────────────┘
+                                           │
+                         ┌─────────────────┴─────────────────┐
+                         │                                   │
+                        YES                                  NO
+                         │                                   │
+                         ▼                                   ▼
+          ┌──────────────────────────────┐    ┌──────────────────────────────┐
+          │  Do you have a local AI?     │    │     Use Cloud Agent          │
+          │  (GitHub Copilot, Claude)    │    │                              │
+          └──────────────┬───────────────┘    │  Deploy with managed identity│
+                         │                    │  that has access to the      │
+              ┌──────────┴──────────┐         │  target Logic Apps.          │
+              │                     │         │                              │
+             YES                    NO        │  Common scenarios:           │
+              │                     │         │  • Prod access restricted    │
+              ▼                     ▼         │  • Cross-team investigation  │
+   ┌────────────────────┐  ┌────────────────┐ │  • Audit/compliance needs    │
+   │  Use Local MCP     │  │ Use Cloud Agent│ │  • No local AI available     │
+   │  Server            │  │                │ │                              │
+   │                    │  │ (You have CLI  │ │  → See "Cloud Agent" section │
+   │  → See "Quick      │  │  access but no │ └──────────────────────────────┘
+   │    Start" section  │  │  local AI)     │
+   └────────────────────┘  └────────────────┘
 ```
+
+### When to Use Each
+
+**Local MCP Server** — Best for developers who:
+- Have GitHub Copilot, Claude Desktop, or another MCP-compatible AI
+- Can authenticate via `az login` to access target Logic Apps
+- Want zero additional infrastructure cost
+
+**Cloud Agent** — Best for scenarios where:
+- **Enterprise policies** restrict individual access to production resources
+- Teams need **shared, audited access** through a controlled identity
+- You want to **investigate Logic Apps across subscriptions** you don't personally have access to
+- No local AI assistant is available
+- You need a **REST API** for automation or integration
 
 ### Comparison
 
@@ -69,9 +79,10 @@ This project offers two ways to use AI with Azure Logic Apps:
 | **Setup** | `npm install` + AI config | Deploy to Azure (Bicep) |
 | **AI Model** | Your local AI (Copilot, Claude) | Azure OpenAI (gpt-4o) |
 | **Auth** | Your Azure CLI credentials | Managed Identity |
-| **Access Scope** | What you can access via `az login` | What the MI can access |
+| **Access Scope** | What *you* can access | What the *managed identity* can access |
 | **Cost** | Free (uses your AI subscription) | Azure Function + OpenAI usage |
-| **Best For** | Developers with local AI tools | Teams, shared access, automation |
+| **Audit Trail** | Local only | Azure Monitor / App Insights |
+| **Best For** | Individual developers | Teams, enterprise, automation |
 
 ## Quick Start
 
