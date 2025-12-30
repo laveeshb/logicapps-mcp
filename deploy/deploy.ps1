@@ -28,7 +28,10 @@ param(
     [string]$Prefix = "",
 
     [Parameter(Mandatory=$false)]
-    [string]$Location = "eastus",
+    [string]$AppLocation = "westus2",
+
+    [Parameter(Mandatory=$false)]
+    [string]$AiLocation = "eastus",
 
     [Parameter(Mandatory=$false)]
     [string]$AiFoundryEndpoint = "",
@@ -136,8 +139,8 @@ Write-Host ""
 
 # Create resource group if requested
 if ($CreateResourceGroup) {
-    Write-Host "Creating resource group '$ResourceGroup' in '$Location'..." -ForegroundColor Yellow
-    az group create --name $ResourceGroup --location $Location | Out-Null
+    Write-Host "Creating resource group '$ResourceGroup' in '$AppLocation'..." -ForegroundColor Yellow
+    az group create --name $ResourceGroup --location $AppLocation | Out-Null
     Write-Host "Resource group created." -ForegroundColor Green
     Write-Host ""
 }
@@ -169,11 +172,11 @@ if ($CreateAiResource) {
         Write-Host "  Azure OpenAI resource already exists, reusing." -ForegroundColor Yellow
         $AiFoundryEndpoint = $existingResource.properties.endpoint
     } else {
-        # Create the resource
+        # Create the resource (in AiLocation, which may differ from Function App location)
         $openAiResult = az cognitiveservices account create `
             --name $openAiResourceName `
             --resource-group $ResourceGroup `
-            --location $Location `
+            --location $AiLocation `
             --kind OpenAI `
             --sku S0 `
             --custom-domain $openAiResourceName `
@@ -225,7 +228,7 @@ if ($CreateAiResource) {
 
 # Build parameters for Bicep
 $params = @(
-    "location=$Location",
+    "location=$AppLocation",
     "aiFoundryEndpoint=$AiFoundryEndpoint",
     "aiFoundryDeployment=$AiFoundryDeployment",
     "enableEasyAuth=true",

@@ -26,7 +26,8 @@ set -e
 # Default values
 RESOURCE_GROUP=""
 PREFIX=""
-LOCATION="eastus"
+APP_LOCATION="westus2"
+AI_LOCATION="eastus"
 AI_FOUNDRY_ENDPOINT=""
 AI_FOUNDRY_DEPLOYMENT="gpt-4o"
 CREATE_AI_RESOURCE=false
@@ -45,8 +46,12 @@ while [[ $# -gt 0 ]]; do
             PREFIX="$2"
             shift 2
             ;;
-        -l|--location)
-            LOCATION="$2"
+        -l|--app-location)
+            APP_LOCATION="$2"
+            shift 2
+            ;;
+        --ai-location)
+            AI_LOCATION="$2"
             shift 2
             ;;
         --ai-endpoint)
@@ -84,7 +89,8 @@ while [[ $# -gt 0 ]]; do
             echo ""
             echo "Optional:"
             echo "  -p, --prefix            Resource name prefix"
-            echo "  -l, --location          Azure region (default: eastus)"
+            echo "  -l, --app-location      Function App region (default: westus2)"
+            echo "  --ai-location           Azure OpenAI region (default: eastus)"
             echo "  --ai-deployment         AI deployment name (default: gpt-4o)"
             echo "  --create-rg             Create resource group if it doesn't exist"
             echo "  --skip-code-deploy      Skip building and deploying function code"
@@ -196,8 +202,8 @@ echo ""
 
 # Create resource group if requested
 if [ "$CREATE_RG" = true ]; then
-    echo "Creating resource group '$RESOURCE_GROUP' in '$LOCATION'..."
-    az group create --name "$RESOURCE_GROUP" --location "$LOCATION" > /dev/null
+    echo "Creating resource group '$RESOURCE_GROUP' in '$APP_LOCATION'..."
+    az group create --name "$RESOURCE_GROUP" --location "$APP_LOCATION" > /dev/null
     echo "Resource group created."
     echo ""
 fi
@@ -225,10 +231,11 @@ if [ "$CREATE_AI_RESOURCE" = true ]; then
         AI_FOUNDRY_ENDPOINT=$(echo "$EXISTING_RESOURCE" | jq -r '.properties.endpoint')
     else
         # Create the resource
+        # Create in AI_LOCATION (may differ from Function App location)
         if ! az cognitiveservices account create \
             --name "$OPENAI_RESOURCE_NAME" \
             --resource-group "$RESOURCE_GROUP" \
-            --location "$LOCATION" \
+            --location "$AI_LOCATION" \
             --kind OpenAI \
             --sku S0 \
             --custom-domain "$OPENAI_RESOURCE_NAME" 2>&1; then
@@ -274,7 +281,7 @@ if [ "$CREATE_AI_RESOURCE" = true ]; then
 fi
 
 # Build parameters
-PARAMS="location=$LOCATION aiFoundryEndpoint=$AI_FOUNDRY_ENDPOINT aiFoundryDeployment=$AI_FOUNDRY_DEPLOYMENT enableEasyAuth=true deployerObjectId=$DEPLOYER_OBJECT_ID"
+PARAMS="location=$APP_LOCATION aiFoundryEndpoint=$AI_FOUNDRY_ENDPOINT aiFoundryDeployment=$AI_FOUNDRY_DEPLOYMENT enableEasyAuth=true deployerObjectId=$DEPLOYER_OBJECT_ID"
 
 if [ -n "$PREFIX" ]; then
     PARAMS="$PARAMS prefix=$PREFIX"

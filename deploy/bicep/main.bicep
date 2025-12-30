@@ -182,7 +182,7 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
 // ============================================================================
 
 resource functionAppPlan 'Microsoft.Web/serverfarms@2022-09-01' = {
-  name: '${baseName}-mcp-plan'
+  name: '${baseName}-agent-plan'
   location: location
   sku: {
     tier: 'ElasticPremium'
@@ -199,7 +199,7 @@ resource functionAppPlan 'Microsoft.Web/serverfarms@2022-09-01' = {
 // ============================================================================
 
 resource functionApp 'Microsoft.Web/sites@2022-09-01' = {
-  name: '${baseName}-mcp'
+  name: '${baseName}-agent'
   location: location
   kind: 'functionapp'
   identity: {
@@ -238,7 +238,7 @@ resource functionApp 'Microsoft.Web/sites@2022-09-01' = {
         }
         {
           name: 'WEBSITE_CONTENTSHARE'
-          value: '${baseName}-mcp-content'
+          value: '${baseName}-agent-content'
         }
         // Runtime settings
         {
@@ -262,6 +262,15 @@ resource functionApp 'Microsoft.Web/sites@2022-09-01' = {
         {
           name: 'AZURE_CLIENT_ID'
           value: managedIdentity.properties.clientId
+        }
+        // AI configuration for agent endpoint
+        {
+          name: 'AI_FOUNDRY_ENDPOINT'
+          value: aiFoundryEndpoint
+        }
+        {
+          name: 'AI_FOUNDRY_DEPLOYMENT'
+          value: aiFoundryDeployment
         }
         // Security: Run from package
         {
@@ -299,14 +308,14 @@ resource functionAppAuthSettings 'Microsoft.Web/sites/config@2022-09-01' = if (c
       azureActiveDirectory: {
         enabled: true
         registration: {
-          // Use ARM management endpoint as the audience
+          // Use ARM management endpoint as the audience (dynamically from environment)
           openIdIssuer: '${environment().authentication.loginEndpoint}${subscription().tenantId}/v2.0'
-          clientId: 'https://management.azure.com'
+          clientId: environment().resourceManager
         }
         validation: {
           allowedAudiences: [
-            'https://management.azure.com'
-            'https://management.core.windows.net'
+            environment().resourceManager
+            environment().authentication.audiences[0]
           ]
           defaultAuthorizationPolicy: {
             allowedPrincipals: {
@@ -331,137 +340,8 @@ resource functionAppAuthSettings 'Microsoft.Web/sites/config@2022-09-01' = if (c
 }
 
 // ============================================================================
-// Logic App Standard (Agent Loop Host) - Security Hardened
-// ============================================================================
-
-resource logicAppPlan 'Microsoft.Web/serverfarms@2022-09-01' = {
-  name: '${baseName}-agent-plan'
-  location: location
-  sku: {
-    tier: 'WorkflowStandard'
-    name: 'WS1'
-  }
-  kind: 'elastic'
-  properties: {
-    maximumElasticWorkerCount: 20
-  }
-}
-
-resource logicApp 'Microsoft.Web/sites@2022-09-01' = {
-  name: '${baseName}-agent'
-  location: location
-  kind: 'functionapp,workflowapp'
-  identity: {
-    type: 'UserAssigned'
-    userAssignedIdentities: {
-      '${managedIdentity.id}': {}
-    }
-  }
-  properties: {
-    serverFarmId: logicAppPlan.id
-    httpsOnly: true
-    siteConfig: {
-      minTlsVersion: '1.2'
-      ftpsState: 'Disabled'
-      http20Enabled: true
-      appSettings: [
-        // Logic Apps Standard requires connection string for AzureWebJobsStorage
-        // (identity-based storage is not fully supported for Logic Apps Standard)
-        {
-          name: 'AzureWebJobsStorage'
-          value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}'
-        }
-        // Content share for deployment
-        {
-          name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING'
-          value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}'
-        }
-        {
-          name: 'WEBSITE_CONTENTSHARE'
-          value: '${baseName}-agent-content'
-        }
-        {
-          name: 'FUNCTIONS_EXTENSION_VERSION'
-          value: '~4'
-        }
-        {
-          name: 'FUNCTIONS_WORKER_RUNTIME'
-          value: 'node'
-        }
-        {
-          name: 'APP_KIND'
-          value: 'workflowapp'
-        }
-        {
-          name: 'AzureFunctionsJobHost__extensionBundle__id'
-          value: 'Microsoft.Azure.Functions.ExtensionBundle.Workflows'
-        }
-        {
-          name: 'AzureFunctionsJobHost__extensionBundle__version'
-          value: '[1.*, 2.0.0)'
-        }
-        // MCP Server configuration
-        {
-          name: 'MCP_SERVER_URL'
-          value: 'https://${functionApp.properties.defaultHostName}'
-        }
-        {
-          name: 'MCP_SERVER_AUDIENCE'
-          value: 'api://${baseName}-mcp'
-        }
-        // Managed Identity for calling MCP server
-        {
-          name: 'AZURE_CLIENT_ID'
-          value: managedIdentity.properties.clientId
-        }
-        // AI Foundry configuration (optional)
-        {
-          name: 'AI_FOUNDRY_ENDPOINT'
-          value: aiFoundryEndpoint
-        }
-        {
-          name: 'AI_FOUNDRY_DEPLOYMENT'
-          value: aiFoundryDeployment
-        }
-        // Telemetry
-        {
-          name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-          value: appInsights.properties.ConnectionString
-        }
-      ]
-    }
-  }
-}
-
-// Logic App web config for additional security
-resource logicAppWebConfig 'Microsoft.Web/sites/config@2022-09-01' = {
-  parent: logicApp
-  name: 'web'
-  properties: {
-    minTlsVersion: '1.2'
-    ftpsState: 'Disabled'
-    http20Enabled: true
-    remoteDebuggingEnabled: false
-    scmMinTlsVersion: '1.2'
-  }
-}
-
-// ============================================================================
 // Role Assignments for Managed Identity
 // ============================================================================
-
-// Logic App Contributor role at subscription level (to manage Logic Apps)
-var logicAppContributorRoleId = '87a39d53-fc1b-424a-814c-f7e04687dc9e'
-
-resource roleAssignmentLogicApps 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(subscription().id, managedIdentity.id, logicAppContributorRoleId)
-  scope: resourceGroup()
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', logicAppContributorRoleId)
-    principalId: managedIdentity.properties.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
 
 // Reader role for listing resources
 var readerRoleId = 'acdd72a7-3385-48ef-bd42-f606fba81ae7'
@@ -491,13 +371,9 @@ output functionAppName string = functionApp.name
 output functionAppUrl string = 'https://${functionApp.properties.defaultHostName}'
 output functionAppResourceId string = functionApp.id
 
-output logicAppName string = logicApp.name
-output logicAppUrl string = 'https://${logicApp.properties.defaultHostName}'
-output logicAppResourceId string = logicApp.id
-
 output mcpServerEndpoint string = 'https://${functionApp.properties.defaultHostName}/api/mcp'
 output healthEndpoint string = 'https://${functionApp.properties.defaultHostName}/api/health'
-output mcpServerAudience string = 'api://${baseName}-mcp'
+output mcpServerAudience string = 'api://${baseName}-agent'
 
 output appInsightsName string = appInsights.name
 output appInsightsPortalUrl string = 'https://portal.azure.com/#@/resource${appInsights.id}/overview'
@@ -507,5 +383,5 @@ output deployCommand string = 'func azure functionapp publish ${functionApp.name
 
 output easyAuthEnabled bool = canEnableEasyAuth
 output deployerObjectId string = canEnableEasyAuth ? deployerObjectId : 'N/A (Easy Auth disabled)'
-output authAudience string = 'https://management.azure.com'
-output authTokenCommand string = 'az account get-access-token --resource https://management.azure.com --query accessToken -o tsv'
+output authAudience string = environment().resourceManager
+output authTokenCommand string = 'az account get-access-token --resource ${environment().resourceManager} --query accessToken -o tsv'
