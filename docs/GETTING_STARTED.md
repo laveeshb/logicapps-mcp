@@ -74,8 +74,20 @@ Best for scenarios where:
 
 # Or use an existing Azure OpenAI resource
 ./deploy/deploy.ps1 -ResourceGroup my-rg -AiFoundryEndpoint https://my-openai.openai.azure.com
+```
 
-# Call the agent
+The script handles everything: infrastructure, Azure OpenAI setup, code build/deploy, and Easy Auth configuration. After deployment, grant the managed identity access to your Logic Apps:
+
+```bash
+az role assignment create \
+  --assignee <managed-identity-principal-id> \
+  --role "Reader" \
+  --scope /subscriptions/<subscription-id>
+```
+
+Then call the agent:
+
+```bash
 TOKEN=$(az account get-access-token --resource https://management.azure.com --query accessToken -o tsv)
 curl -X POST "https://<app>.azurewebsites.net/api/agent" \
   -H "Authorization: Bearer $TOKEN" \

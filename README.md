@@ -317,32 +317,27 @@ Deploy an AI-powered agent to Azure that can investigate and manage Logic Apps o
 ```
 
 The script will:
-1. Create infrastructure (Function App, Storage, App Insights, Managed Identity)
-2. Create Azure OpenAI resource and gpt-4o deployment (if `--create-ai-resource` is used)
-3. Configure Easy Auth (only you can access the API)
-4. Build and deploy the function code
-5. Grant Azure OpenAI RBAC access (if `--create-ai-resource` is used)
+1. Show your subscription and ask for confirmation before creating resources
+2. Create infrastructure (Function App, Storage, App Insights, Managed Identity)
+3. Create Azure OpenAI resource and gpt-4o deployment (if `--create-ai-resource` is used)
+4. Configure Easy Auth (only you can access the API)
+5. Build and deploy the function code
+6. Grant Azure OpenAI RBAC access automatically (if `--create-ai-resource` is used)
 
-### Grant RBAC Access
+### After Deployment
 
-After deployment, grant the managed identity access to your Logic Apps:
+**One manual step:** Grant the managed identity access to your Logic Apps:
 
 ```bash
-# Grant access to Logic Apps (Reader for read-only, Logic App Contributor for write)
 az role assignment create \
   --assignee <managed-identity-principal-id> \
   --role "Reader" \
   --scope /subscriptions/<subscription-id>
 ```
 
-If you used an existing Azure OpenAI resource (not `--create-ai-resource`), also grant access to it:
+The script outputs the `managed-identity-principal-id` when it completes.
 
-```bash
-az role assignment create \
-  --assignee <managed-identity-principal-id> \
-  --role "Cognitive Services OpenAI User" \
-  --scope /subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.CognitiveServices/accounts/<openai-resource>
-```
+> **Note:** If you used `--ai-endpoint` with an existing Azure OpenAI resource, also grant it "Cognitive Services OpenAI User" access to that resource.
 
 ### Call the Agent
 
