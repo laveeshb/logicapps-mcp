@@ -123,9 +123,20 @@ curl -X POST "https://<app>.azurewebsites.net/api/agent" \
 
 | Endpoint | Description |
 |----------|-------------|
-| `/api/health` | Health check |
+| `/api/chat` | Web-based chat UI |
+| `/api/agent` | AI-powered agent (natural language REST API) |
 | `/api/mcp` | Raw MCP protocol (JSON-RPC) |
-| `/api/agent` | AI-powered agent (natural language) |
+| `/api/health` | Health check |
+
+## Chat UI
+
+Access the chat interface at `https://<app>.azurewebsites.net/api/chat` after deployment.
+
+The chat UI provides:
+- Conversational interface for Logic Apps queries
+- Message history within the session
+- Quick suggestion buttons for common queries
+- Automatic authentication via Easy Auth
 
 ## Architecture
 

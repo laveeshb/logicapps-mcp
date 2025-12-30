@@ -20,6 +20,9 @@ import {
   HttpResponseInit,
   InvocationContext,
 } from "@azure/functions";
+import { readFileSync } from "fs";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { registerTools } from "../server.js";
@@ -204,4 +207,54 @@ app.http("health", {
     status: 200,
     jsonBody: { status: "ok", version: "0.2.0" },
   }),
+});
+
+// Chat UI endpoint
+let chatHtml: string | null = null;
+
+function getChatHtml(): string {
+  if (!chatHtml) {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = dirname(__filename);
+    // Try dist/ui first (deployed), then src/ui (local dev)
+    const paths = [
+      join(__dirname, "..", "ui", "chat.html"),      // dist/ui/chat.html
+      join(__dirname, "..", "..", "src", "ui", "chat.html"), // src/ui/chat.html from dist
+    ];
+    for (const htmlPath of paths) {
+      try {
+        chatHtml = readFileSync(htmlPath, "utf-8");
+        break;
+      } catch {
+        continue;
+      }
+    }
+    if (!chatHtml) {
+      throw new Error("Chat UI HTML not found");
+    }
+  }
+  return chatHtml;
+}
+
+// Serve chat UI
+app.http("chat", {
+  methods: ["GET"],
+  authLevel: "anonymous",
+  route: "chat",
+  handler: async () => {
+    try {
+      return {
+        status: 200,
+        headers: {
+          "Content-Type": "text/html; charset=utf-8",
+        },
+        body: getChatHtml(),
+      };
+    } catch (error) {
+      return {
+        status: 500,
+        body: "Chat UI not available",
+      };
+    }
+  },
 });

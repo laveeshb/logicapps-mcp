@@ -19,7 +19,8 @@
     "registry": "https://npm.pkg.github.com"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && npm run copy-ui",
+    "copy-ui": "node -e \"const fs=require('fs');const p=require('path');fs.mkdirSync('dist/ui',{recursive:true});fs.copyFileSync('src/ui/chat.html','dist/ui/chat.html');\"",
     "start": "node dist/index.js",
     "start:func": "func start",
     "dev": "tsc --watch",

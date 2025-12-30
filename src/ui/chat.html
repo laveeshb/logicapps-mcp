@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Logic Apps Assistant</title>
+  <style>
+    :root {
+      --primary: #0078d4;
+      --primary-dark: #106ebe;
+      --bg: #f5f5f5;
+      --card-bg: #ffffff;
+      --text: #323130;
+      --text-secondary: #605e5c;
+      --border: #edebe9;
+      --user-bubble: #e1dfdd;
+      --assistant-bubble: #ffffff;
+      --error: #d13438;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: var(--primary);
+      color: white;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    header svg {
+      width: 28px;
+      height: 28px;
+    }
+
+    header h1 {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .chat-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .message {
+      max-width: 80%;
+      padding: 12px 16px;
+      border-radius: 8px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .message.user {
+      align-self: flex-end;
+      background: var(--user-bubble);
+      border-bottom-right-radius: 2px;
+    }
+
+    .message.assistant {
+      align-self: flex-start;
+      background: var(--assistant-bubble);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 2px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+
+    .message.error {
+      background: #fde7e9;
+      border-color: var(--error);
+      color: var(--error);
+    }
+
+    .message.assistant a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    .message.assistant a:hover {
+      text-decoration: underline;
+    }
+
+    .message-time {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    .typing-indicator {
+      display: flex;
+      gap: 4px;
+      padding: 16px;
+      align-self: flex-start;
+    }
+
+    .typing-indicator span {
+      width: 8px;
+      height: 8px;
+      background: var(--primary);
+      border-radius: 50%;
+      animation: bounce 1.4s ease-in-out infinite;
+    }
+
+    .typing-indicator span:nth-child(1) { animation-delay: 0s; }
+    .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes bounce {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-8px); }
+    }
+
+    .input-container {
+      padding: 16px 24px;
+      background: var(--card-bg);
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 12px;
+    }
+
+    .input-wrapper {
+      flex: 1;
+      display: flex;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+
+    .input-wrapper:focus-within {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 1px var(--primary);
+    }
+
+    #message-input {
+      flex: 1;
+      border: none;
+      padding: 12px 16px;
+      font-size: 14px;
+      font-family: inherit;
+      resize: none;
+      outline: none;
+      min-height: 44px;
+      max-height: 120px;
+    }
+
+    #send-btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #send-btn:hover:not(:disabled) {
+      background: var(--primary-dark);
+    }
+
+    #send-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    #send-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .welcome {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--text-secondary);
+    }
+
+    .welcome h2 {
+      color: var(--text);
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .welcome p {
+      margin-bottom: 24px;
+    }
+
+    .suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .suggestion {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .suggestion:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 600px) {
+      .message {
+        max-width: 90%;
+      }
+
+      header {
+        padding: 12px 16px;
+      }
+
+      .chat-container {
+        padding: 16px;
+      }
+
+      .input-container {
+        padding: 12px 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+    </svg>
+    <h1>Logic Apps Assistant</h1>
+  </header>
+
+  <div class="chat-container" id="chat-container">
+    <div class="welcome" id="welcome">
+      <h2>Welcome to Logic Apps Assistant</h2>
+      <p>Ask questions about your Azure Logic Apps workflows</p>
+      <div class="suggestions">
+        <button class="suggestion" data-query="List my Azure subscriptions">List subscriptions</button>
+        <button class="suggestion" data-query="List Logic Apps in my subscription">List Logic Apps</button>
+        <button class="suggestion" data-query="Show failed runs in the last 24 hours">Failed runs today</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="typing-indicator hidden" id="typing">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+
+  <div class="input-container">
+    <div class="input-wrapper">
+      <textarea
+        id="message-input"
+        placeholder="Ask about your Logic Apps..."
+        rows="1"
+        autofocus
+      ></textarea>
+    </div>
+    <button id="send-btn">
+      <span>Send</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="22" y1="2" x2="11" y2="13"></line>
+        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+      </svg>
+    </button>
+  </div>
+
+  <script>
+    const chatContainer = document.getElementById('chat-container');
+    const messageInput = document.getElementById('message-input');
+    const sendBtn = document.getElementById('send-btn');
+    const typingIndicator = document.getElementById('typing');
+    const welcome = document.getElementById('welcome');
+
+    let isLoading = false;
+    const conversationHistory = [];
+
+    // Auto-resize textarea
+    messageInput.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+    });
+
+    // Handle Enter key (Shift+Enter for new line)
+    messageInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    // Send button click
+    sendBtn.addEventListener('click', sendMessage);
+
+    // Suggestion clicks
+    document.querySelectorAll('.suggestion').forEach(btn => {
+      btn.addEventListener('click', function() {
+        messageInput.value = this.dataset.query;
+        sendMessage();
+      });
+    });
+
+    function formatTime(date) {
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function formatMessage(text) {
+      // Convert URLs to links
+      const urlRegex = /(https?:\/\/[^\s]+)/g;
+      let formatted = escapeHtml(text).replace(urlRegex, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+
+      // Convert markdown-style links [text](url)
+      formatted = formatted.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+
+      return formatted;
+    }
+
+    function addMessage(content, isUser, isError = false) {
+      welcome.classList.add('hidden');
+
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `message ${isUser ? 'user' : 'assistant'}${isError ? ' error' : ''}`;
+
+      const textDiv = document.createElement('div');
+      textDiv.innerHTML = isUser ? escapeHtml(content) : formatMessage(content);
+      messageDiv.appendChild(textDiv);
+
+      const timeDiv = document.createElement('div');
+      timeDiv.className = 'message-time';
+      timeDiv.textContent = formatTime(new Date());
+      messageDiv.appendChild(timeDiv);
+
+      chatContainer.appendChild(messageDiv);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+
+      return messageDiv;
+    }
+
+    function setLoading(loading) {
+      isLoading = loading;
+      sendBtn.disabled = loading;
+      messageInput.disabled = loading;
+      typingIndicator.classList.toggle('hidden', !loading);
+
+      if (loading) {
+        chatContainer.appendChild(typingIndicator);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }
+    }
+
+    async function sendMessage() {
+      const message = messageInput.value.trim();
+      if (!message || isLoading) return;
+
+      messageInput.value = '';
+      messageInput.style.height = 'auto';
+
+      addMessage(message, true);
+      conversationHistory.push({ role: 'user', content: message });
+
+      setLoading(true);
+
+      try {
+        const response = await fetch('/api/agent', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: message,
+            conversationHistory: conversationHistory.slice(-10) // Last 10 messages for context
+          }),
+          credentials: 'include' // Include cookies for Easy Auth
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `Request failed: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const assistantMessage = data.response || data.message || 'No response received';
+
+        addMessage(assistantMessage, false);
+        conversationHistory.push({ role: 'assistant', content: assistantMessage });
+
+      } catch (error) {
+        console.error('Error:', error);
+        addMessage(`Error: ${error.message}`, false, true);
+      } finally {
+        setLoading(false);
+        messageInput.focus();
+      }
+    }
+  </script>
+</body>
+</html>
