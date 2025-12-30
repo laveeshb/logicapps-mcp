@@ -32,6 +32,7 @@ AI_FOUNDRY_DEPLOYMENT="gpt-4o"
 CREATE_AI_RESOURCE=false
 CREATE_RG=false
 SKIP_CODE_DEPLOY=false
+YES=false
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -68,6 +69,10 @@ while [[ $# -gt 0 ]]; do
             SKIP_CODE_DEPLOY=true
             shift
             ;;
+        -y|--yes)
+            YES=true
+            shift
+            ;;
         -h|--help)
             echo "Usage: $0 -g <resource-group> [--ai-endpoint <endpoint> | --create-ai-resource]"
             echo ""
@@ -83,6 +88,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --ai-deployment         AI deployment name (default: gpt-4o)"
             echo "  --create-rg             Create resource group if it doesn't exist"
             echo "  --skip-code-deploy      Skip building and deploying function code"
+            echo "  -y, --yes               Skip confirmation prompt"
             echo ""
             echo "Examples:"
             echo "  # Use existing Azure OpenAI:"
@@ -166,14 +172,16 @@ fi
 echo "AI Model:     $AI_FOUNDRY_DEPLOYMENT"
 echo ""
 
-# Ask for consent before creating resources
-echo "This will create resources in the subscription above."
-read -p "Do you want to continue? (y/N) " consent
-if [ "$consent" != "y" ] && [ "$consent" != "Y" ]; then
-    echo "Deployment cancelled."
-    exit 0
+# Ask for consent before creating resources (skip if --yes flag)
+if [ "$YES" = false ]; then
+    echo "This will create resources in the subscription above."
+    read -p "Do you want to continue? (y/N) " consent
+    if [ "$consent" != "y" ] && [ "$consent" != "Y" ]; then
+        echo "Deployment cancelled."
+        exit 0
+    fi
+    echo ""
 fi
-echo ""
 
 # Get deployer's object ID for Easy Auth (required)
 echo "Fetching your Azure AD object ID for Easy Auth..."

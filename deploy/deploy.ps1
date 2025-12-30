@@ -43,7 +43,10 @@ param(
     [switch]$CreateResourceGroup,
 
     [Parameter(Mandatory=$false)]
-    [switch]$SkipCodeDeploy
+    [switch]$SkipCodeDeploy,
+
+    [Parameter(Mandatory=$false)]
+    [switch]$Yes
 )
 
 $ErrorActionPreference = "Stop"
@@ -109,14 +112,16 @@ if ($AiFoundryEndpoint) {
 Write-Host "AI Model:     $AiFoundryDeployment" -ForegroundColor Cyan
 Write-Host ""
 
-# Ask for consent before creating resources
-Write-Host "This will create resources in the subscription above." -ForegroundColor Yellow
-$consent = Read-Host "Do you want to continue? (y/N)"
-if ($consent -ne "y" -and $consent -ne "Y") {
-    Write-Host "Deployment cancelled." -ForegroundColor Red
-    exit 0
+# Ask for consent before creating resources (skip if -Yes flag)
+if (-not $Yes) {
+    Write-Host "This will create resources in the subscription above." -ForegroundColor Yellow
+    $consent = Read-Host "Do you want to continue? (y/N)"
+    if ($consent -ne "y" -and $consent -ne "Y") {
+        Write-Host "Deployment cancelled." -ForegroundColor Red
+        exit 0
+    }
+    Write-Host ""
 }
-Write-Host ""
 
 # Get deployer's object ID for Easy Auth (required)
 Write-Host "Fetching your Azure AD object ID for Easy Auth..." -ForegroundColor Yellow
@@ -152,8 +157,14 @@ if ($CreateAiResource) {
     $openAiResourceName = "oai-$effectivePrefix"
     Write-Host "Creating Azure OpenAI resource '$openAiResourceName'..." -ForegroundColor Yellow
 
-    # Check if resource already exists
-    $existingResource = az cognitiveservices account show --name $openAiResourceName --resource-group $ResourceGroup 2>$null | ConvertFrom-Json
+    # Check if resource already exists (suppress error output)
+    $ErrorActionPreference = "SilentlyContinue"
+    $existingResourceJson = az cognitiveservices account show --name $openAiResourceName --resource-group $ResourceGroup 2>&1
+    $ErrorActionPreference = "Stop"
+    $existingResource = $null
+    if ($LASTEXITCODE -eq 0) {
+        $existingResource = $existingResourceJson | ConvertFrom-Json
+    }
     if ($existingResource) {
         Write-Host "  Azure OpenAI resource already exists, reusing." -ForegroundColor Yellow
         $AiFoundryEndpoint = $existingResource.properties.endpoint
@@ -183,12 +194,14 @@ if ($CreateAiResource) {
 
     # Create model deployment
     Write-Host "Creating model deployment '$AiFoundryDeployment'..." -ForegroundColor Yellow
+    $ErrorActionPreference = "SilentlyContinue"
     $existingDeployment = az cognitiveservices account deployment show `
         --name $openAiResourceName `
         --resource-group $ResourceGroup `
-        --deployment-name $AiFoundryDeployment 2>$null
+        --deployment-name $AiFoundryDeployment 2>&1
+    $ErrorActionPreference = "Stop"
 
-    if ($existingDeployment) {
+    if ($LASTEXITCODE -eq 0 -and $existingDeployment) {
         Write-Host "  Model deployment already exists, reusing." -ForegroundColor Yellow
     } else {
         az cognitiveservices account deployment create `
