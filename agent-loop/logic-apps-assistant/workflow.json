@@ -1,0 +1,57 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_a_HTTP_request_is_received": {
+        "type": "Request",
+        "kind": "Http",
+        "inputs": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "actions": {
+      "Call_MCP_Server": {
+        "type": "Http",
+        "inputs": {
+          "method": "POST",
+          "uri": "https://la-lamcp-mcp.azurewebsites.net/api/mcp",
+          "headers": {
+            "Content-Type": "application/json",
+            "Accept": "application/json, text/event-stream"
+          },
+          "body": {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/list",
+            "params": {}
+          }
+        },
+        "runAfter": {}
+      },
+      "Response": {
+        "type": "Response",
+        "kind": "Http",
+        "inputs": {
+          "statusCode": 200,
+          "body": {
+            "message": "Received: @{triggerBody()?['message']}",
+            "tools": "@body('Call_MCP_Server')"
+          }
+        },
+        "runAfter": {
+          "Call_MCP_Server": ["Succeeded"]
+        }
+      }
+    }
+  },
+  "kind": "Stateful"
+}

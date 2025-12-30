@@ -299,20 +299,13 @@ resource logicApp 'Microsoft.Web/sites@2022-09-01' = {
       ftpsState: 'Disabled'
       http20Enabled: true
       appSettings: [
-        // Identity-based storage connection for runtime (no keys for blob/queue/table)
+        // Logic Apps Standard requires connection string for AzureWebJobsStorage
+        // (identity-based storage is not supported for Logic Apps Standard)
         {
-          name: 'AzureWebJobsStorage__accountName'
-          value: storageAccount.name
+          name: 'AzureWebJobsStorage'
+          value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}'
         }
-        {
-          name: 'AzureWebJobsStorage__credential'
-          value: 'managedidentity'
-        }
-        {
-          name: 'AzureWebJobsStorage__clientId'
-          value: managedIdentity.properties.clientId
-        }
-        // Content share for deployment (Azure Files requires connection string on WS plans)
+        // Content share for deployment
         {
           name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING'
           value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}'
