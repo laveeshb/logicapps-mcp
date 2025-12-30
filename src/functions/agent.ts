@@ -307,6 +307,18 @@ async function agentHandler(
       context.error(errorStack);
     }
 
+    // Check for rate limit errors from OpenAI
+    const isRateLimitError = errorMessage.includes("429") ||
+                             errorMessage.includes("rate limit") ||
+                             errorMessage.includes("exceeded");
+
+    if (isRateLimitError) {
+      return {
+        status: 429,
+        jsonBody: { error: errorMessage },
+      };
+    }
+
     return {
       status: 500,
       jsonBody: { error: errorMessage },

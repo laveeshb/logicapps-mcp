@@ -269,7 +269,7 @@ if [ "$CREATE_AI_RESOURCE" = true ]; then
             --model-version "2024-08-06" \
             --model-format OpenAI \
             --sku-name Standard \
-            --sku-capacity 10 > /dev/null
+            --sku-capacity 80 > /dev/null
 
         if [ $? -ne 0 ]; then
             echo "Error creating model deployment. The model may not be available in this region."
@@ -307,6 +307,8 @@ fi
 
 FUNCTION_APP_NAME=$(echo "$RESULT" | jq -r '.functionAppName.value')
 MANAGED_IDENTITY_PRINCIPAL_ID=$(echo "$RESULT" | jq -r '.managedIdentityPrincipalId.value')
+MANAGED_IDENTITY_CLIENT_ID=$(echo "$RESULT" | jq -r '.managedIdentityClientId.value')
+MANAGED_IDENTITY_RESOURCE_ID=$(echo "$RESULT" | jq -r '.managedIdentityId.value')
 echo "Infrastructure deployed."
 echo ""
 
@@ -370,9 +372,11 @@ echo "Function App: $FUNCTION_APP_NAME"
 echo "AI Endpoint:  $AI_FOUNDRY_ENDPOINT"
 echo ""
 echo "--------------------------------------------"
-echo "IMPORTANT: Save this ID for granting RBAC:"
+echo "IMPORTANT: Save these for granting RBAC:"
 echo ""
-echo "  Managed Identity: $MANAGED_IDENTITY_PRINCIPAL_ID"
+echo "  Principal ID (for az role assignment): $MANAGED_IDENTITY_PRINCIPAL_ID"
+echo "  Resource ID (for Azure Portal):        $MANAGED_IDENTITY_RESOURCE_ID"
+echo "  Client ID:                             $MANAGED_IDENTITY_CLIENT_ID"
 echo ""
 echo "--------------------------------------------"
 echo ""

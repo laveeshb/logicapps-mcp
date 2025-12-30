@@ -215,7 +215,7 @@ if ($CreateAiResource) {
             --model-version "2024-08-06" `
             --model-format OpenAI `
             --sku-name Standard `
-            --sku-capacity 10 | Out-Null
+            --sku-capacity 80 | Out-Null
 
         if ($LASTEXITCODE -ne 0) {
             Write-Host "Error creating model deployment. The model may not be available in this region." -ForegroundColor Red
@@ -259,6 +259,8 @@ if ($LASTEXITCODE -ne 0) {
 
 $functionAppName = $deploymentResult.functionAppName.value
 $managedIdentityPrincipalId = $deploymentResult.managedIdentityPrincipalId.value
+$managedIdentityClientId = $deploymentResult.managedIdentityClientId.value
+$managedIdentityResourceId = $deploymentResult.managedIdentityId.value
 Write-Host "Infrastructure deployed." -ForegroundColor Green
 Write-Host ""
 
@@ -326,9 +328,11 @@ Write-Host "Function App: $functionAppName" -ForegroundColor White
 Write-Host "AI Endpoint:  $AiFoundryEndpoint" -ForegroundColor White
 Write-Host ""
 Write-Host "--------------------------------------------" -ForegroundColor Yellow
-Write-Host "IMPORTANT: Save this ID for granting RBAC:" -ForegroundColor Yellow
+Write-Host "IMPORTANT: Save these for granting RBAC:" -ForegroundColor Yellow
 Write-Host ""
-Write-Host "  Managed Identity: $managedIdentityPrincipalId" -ForegroundColor Cyan
+Write-Host "  Principal ID (for az role assignment): $managedIdentityPrincipalId" -ForegroundColor Cyan
+Write-Host "  Resource ID (for Azure Portal):        $managedIdentityResourceId" -ForegroundColor Cyan
+Write-Host "  Client ID:                             $managedIdentityClientId" -ForegroundColor Gray
 Write-Host ""
 Write-Host "--------------------------------------------" -ForegroundColor Yellow
 Write-Host ""
