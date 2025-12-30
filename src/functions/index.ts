@@ -11,7 +11,7 @@
  * 1. Deploy this function app to Azure
  * 2. Configure Managed Identity
  * 3. Set up Easy Auth to restrict access
- * 4. Connect from Logic Apps Agent Loop
+ * 4. Call the /api/agent endpoint for AI-powered assistance
  */
 
 import {
@@ -25,6 +25,9 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { registerTools } from "../server.js";
 import { loadSettings } from "../config/index.js";
 import { setSettings, initializeAuth } from "../auth/index.js";
+
+// Import agent function to register it
+import "./agent.js";
 
 let initialized = false;
 

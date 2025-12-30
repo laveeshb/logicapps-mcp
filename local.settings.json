@@ -2,6 +2,8 @@
   "IsEncrypted": false,
   "Values": {
     "AzureWebJobsStorage": "",
-    "FUNCTIONS_WORKER_RUNTIME": "node"
+    "FUNCTIONS_WORKER_RUNTIME": "node",
+    "AI_FOUNDRY_ENDPOINT": "https://rarayudu-openai.cognitiveservices.azure.com",
+    "AI_FOUNDRY_DEPLOYMENT": "gpt-4o"
   }
 }

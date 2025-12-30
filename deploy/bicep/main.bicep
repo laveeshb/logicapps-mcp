@@ -5,6 +5,7 @@
 // - Storage: No public blob access, TLS 1.2 minimum
 // - Function App: HTTPS only, TLS 1.2, FTPS disabled
 // - Identity-based AzureWebJobsStorage (no connection string for runtime storage)
+// - Easy Auth: Restricts API access to the deployer (always enabled)
 //
 // Note: Azure Files (WEBSITE_CONTENTAZUREFILECONNECTIONSTRING) still requires
 // shared key access on Elastic Premium plans. This is an Azure platform limitation.
@@ -15,11 +16,23 @@
 // - Storage Queue Data Contributor  
 // - Storage Table Data Contributor
 //
-// Usage:
+// Usage (recommended - uses deploy scripts that auto-fetch your identity):
+//   # PowerShell:
+//   ./deploy.ps1 -ResourceGroup <rg-name> -Prefix <prefix>
+//
+//   # Bash:
+//   ./deploy.sh -g <rg-name> -p <prefix>
+//
+// Manual usage (requires you to pass your object ID):
 //   az deployment group create \
 //     --resource-group <rg-name> \
 //     --template-file main.bicep \
-//     --parameters prefix=myprefix
+//     --parameters prefix=myprefix \
+//     --parameters deployerObjectId=$(az ad signed-in-user show --query id -o tsv)
+//
+// To call the protected API:
+//   TOKEN=$(az account get-access-token --resource https://management.azure.com --query accessToken -o tsv)
+//   curl -H "Authorization: Bearer $TOKEN" https://<function-app>.azurewebsites.net/api/health
 
 targetScope = 'resourceGroup'
 
@@ -41,9 +54,18 @@ param aiFoundryDeployment string = 'gpt-4o'
 @secure()
 param aiFoundryApiKey string = ''
 
+@description('Enable Easy Auth to restrict access (requires deployerObjectId)')
+param enableEasyAuth bool = true
+
+@description('Object ID of the deployer for Easy Auth. Auto-populated by deploy.ps1/deploy.sh scripts.')
+param deployerObjectId string = ''
+
 // Generate a unique prefix if not provided (uses first 8 chars of unique string)
 var effectivePrefix = empty(prefix) ? toLower(take(uniqueString(resourceGroup().id), 8)) : toLower(prefix)
 var baseName = 'la-${effectivePrefix}'
+
+// Determine if Easy Auth can be enabled (needs both flag and deployer ID)
+var canEnableEasyAuth = enableEasyAuth && !empty(deployerObjectId)
 
 // ============================================================================
 // User-Assigned Managed Identity
@@ -268,6 +290,50 @@ resource functionAppWebConfig 'Microsoft.Web/sites/config@2022-09-01' = {
   }
 }
 
+// Easy Auth configuration for Function App (AAD authentication)
+resource functionAppAuthSettings 'Microsoft.Web/sites/config@2022-09-01' = if (canEnableEasyAuth) {
+  parent: functionApp
+  name: 'authsettingsV2'
+  properties: {
+    globalValidation: {
+      requireAuthentication: true
+      unauthenticatedClientAction: 'Return401'
+    }
+    identityProviders: {
+      azureActiveDirectory: {
+        enabled: true
+        registration: {
+          // Use ARM management endpoint as the audience
+          openIdIssuer: '${environment().authentication.loginEndpoint}${subscription().tenantId}/v2.0'
+          clientId: 'https://management.azure.com'
+        }
+        validation: {
+          allowedAudiences: [
+            'https://management.azure.com'
+            'https://management.core.windows.net'
+          ]
+          defaultAuthorizationPolicy: {
+            allowedPrincipals: {
+              identities: [
+                deployerObjectId
+              ]
+            }
+          }
+        }
+      }
+    }
+    login: {
+      tokenStore: {
+        enabled: true
+      }
+    }
+    platform: {
+      enabled: true
+      runtimeVersion: '~2'
+    }
+  }
+}
+
 // ============================================================================
 // Logic App Standard (Agent Loop Host) - Security Hardened
 // ============================================================================
@@ -304,7 +370,7 @@ resource logicApp 'Microsoft.Web/sites@2022-09-01' = {
       http20Enabled: true
       appSettings: [
         // Logic Apps Standard requires connection string for AzureWebJobsStorage
-        // (identity-based storage is not supported for Logic Apps Standard)
+        // (identity-based storage is not fully supported for Logic Apps Standard)
         {
           name: 'AzureWebJobsStorage'
           value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}'
@@ -446,3 +512,8 @@ output appInsightsPortalUrl string = 'https://portal.azure.com/#@/resource${appI
 output logAnalyticsWorkspaceName string = logAnalyticsWorkspace.name
 
 output deployCommand string = 'func azure functionapp publish ${functionApp.name}'
+
+output easyAuthEnabled bool = canEnableEasyAuth
+output deployerObjectId string = canEnableEasyAuth ? deployerObjectId : 'N/A (Easy Auth disabled)'
+output authAudience string = 'https://management.azure.com'
+output authTokenCommand string = 'az account get-access-token --resource https://management.azure.com --query accessToken -o tsv'
