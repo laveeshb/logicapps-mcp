@@ -2,13 +2,18 @@
 // 
 // Security features:
 // - User-Assigned Managed Identity for all Azure access
-// - Storage: No public blob access, TLS 1.2 minimum, HTTPS only
+// - Storage: No public blob access, TLS 1.2 minimum
 // - Function App: HTTPS only, TLS 1.2, FTPS disabled
-// - All secrets via Managed Identity where possible
+// - Identity-based AzureWebJobsStorage (no connection string for runtime storage)
 //
-// Note: Azure Functions still requires storage connection strings for 
-// AzureWebJobsStorage. Using MI-based storage access requires additional
-// configuration and is not yet fully supported for all scenarios.
+// Note: Azure Files (WEBSITE_CONTENTAZUREFILECONNECTIONSTRING) still requires
+// shared key access on Elastic Premium plans. This is an Azure platform limitation.
+// The content share is used for deployment artifacts only.
+//
+// Required RBAC roles for Managed Identity on Storage:
+// - Storage Blob Data Owner
+// - Storage Queue Data Contributor  
+// - Storage Table Data Contributor
 //
 // Usage:
 //   az deployment group create \
@@ -60,7 +65,7 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
     supportsHttpsTrafficOnly: true
     minimumTlsVersion: 'TLS1_2'
     allowBlobPublicAccess: false
-    allowSharedKeyAccess: true  // Required for Azure Functions AzureWebJobsStorage
+    allowSharedKeyAccess: true  // Required for Azure Files content share on Elastic Premium
     publicNetworkAccess: 'Enabled'  // Required for Functions to access storage
     networkAcls: {
       defaultAction: 'Allow'  // Functions need access; use VNet integration for stricter control
@@ -86,14 +91,36 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   }
 }
 
-// Storage Blob Data Owner role for Managed Identity (for future MI-based access)
+// Storage roles for Managed Identity (required for identity-based AzureWebJobsStorage)
 var storageBlobDataOwnerRoleId = 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b'
+var storageQueueDataContributorRoleId = '974c5e8b-45b9-4653-ba55-5f855dd0fb88'
+var storageTableDataContributorRoleId = '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'
 
-resource storageRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource storageBlobRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(storageAccount.id, managedIdentity.id, storageBlobDataOwnerRoleId)
   scope: storageAccount
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageBlobDataOwnerRoleId)
+    principalId: managedIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource storageQueueRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(storageAccount.id, managedIdentity.id, storageQueueDataContributorRoleId)
+  scope: storageAccount
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageQueueDataContributorRoleId)
+    principalId: managedIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource storageTableRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(storageAccount.id, managedIdentity.id, storageTableDataContributorRoleId)
+  scope: storageAccount
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageTableDataContributorRoleId)
     principalId: managedIdentity.properties.principalId
     principalType: 'ServicePrincipal'
   }
@@ -169,11 +196,20 @@ resource functionApp 'Microsoft.Web/sites@2022-09-01' = {
       ftpsState: 'Disabled'
       http20Enabled: true
       appSettings: [
-        // Storage connection (still requires key for AzureWebJobsStorage)
+        // Identity-based storage connection for runtime (no keys for blob/queue/table)
         {
-          name: 'AzureWebJobsStorage'
-          value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}'
+          name: 'AzureWebJobsStorage__accountName'
+          value: storageAccount.name
         }
+        {
+          name: 'AzureWebJobsStorage__credential'
+          value: 'managedidentity'
+        }
+        {
+          name: 'AzureWebJobsStorage__clientId'
+          value: managedIdentity.properties.clientId
+        }
+        // Content share for deployment (Azure Files requires connection string on EP plans)
         {
           name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING'
           value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}'
@@ -263,10 +299,20 @@ resource logicApp 'Microsoft.Web/sites@2022-09-01' = {
       ftpsState: 'Disabled'
       http20Enabled: true
       appSettings: [
+        // Identity-based storage connection for runtime (no keys for blob/queue/table)
         {
-          name: 'AzureWebJobsStorage'
-          value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}'
+          name: 'AzureWebJobsStorage__accountName'
+          value: storageAccount.name
         }
+        {
+          name: 'AzureWebJobsStorage__credential'
+          value: 'managedidentity'
+        }
+        {
+          name: 'AzureWebJobsStorage__clientId'
+          value: managedIdentity.properties.clientId
+        }
+        // Content share for deployment (Azure Files requires connection string on WS plans)
         {
           name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING'
           value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}'
