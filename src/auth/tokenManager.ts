@@ -1,16 +1,13 @@
 /**
- * Manages token lifecycle using Azure CLI.
- * Requires user to have run `az login` beforehand.
+ * Manages token lifecycle using Azure Identity SDK.
+ * Works both locally (Azure CLI) and in Azure (Managed Identity).
  */
 
 import { FlowieSettings } from "../config/settings.js";
-import { getAzureCliToken, checkAzureCliAuth, AzureCliToken } from "./azureCli.js";
+import { getToken, checkAuth, clearCache } from "./azureIdentity.js";
 import { McpError } from "../utils/errors.js";
 
-const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000; // Refresh 5 minutes before expiry
-
 let cachedSettings: FlowieSettings | null = null;
-let cachedToken: AzureCliToken | null = null;
 
 export function setSettings(settings: FlowieSettings): void {
   cachedSettings = settings;
@@ -18,7 +15,7 @@ export function setSettings(settings: FlowieSettings): void {
 
 /**
  * Initializes authentication at server startup.
- * Verifies Azure CLI is available and user is logged in.
+ * Verifies Azure credentials are available.
  * Throws if authentication fails.
  */
 export async function initializeAuth(): Promise<void> {
@@ -26,23 +23,16 @@ export async function initializeAuth(): Promise<void> {
     throw new McpError("AuthenticationError", "Settings not initialized");
   }
 
-  const authStatus = await checkAzureCliAuth();
+  const authStatus = await checkAuth();
 
-  if (!authStatus.loggedIn) {
+  if (!authStatus.authenticated) {
     throw new McpError(
       "AuthenticationError",
-      `Azure CLI authentication required. ${authStatus.error ?? "Please run: az login"}`
+      `Azure authentication required. ${authStatus.error ?? "Please run: az login (locally) or configure Managed Identity (in Azure)"}`
     );
   }
 
-  // Cache the token
-  cachedToken = await getAzureCliToken(
-    cachedSettings.cloud.authentication.tokenAudience
-  );
-
-  console.error(
-    `Authenticated with Azure CLI (subscription: ${cachedToken.subscription})`
-  );
+  console.error("Authenticated with Azure (using DefaultAzureCredential)");
 }
 
 /**
@@ -54,29 +44,17 @@ export async function getAccessToken(): Promise<string> {
     throw new McpError("AuthenticationError", "Settings not initialized");
   }
 
-  // Check if we have a valid cached token
-  if (cachedToken) {
-    const now = Date.now();
-    const expiresAt = cachedToken.expiresOn.getTime();
+  // Convert resource URL to scope format (.default suffix)
+  const audience = cachedSettings.cloud.authentication.tokenAudience;
+  const scope = audience.endsWith("/.default") ? audience : `${audience}/.default`;
 
-    // Token still valid (with buffer)
-    if (expiresAt > now + TOKEN_REFRESH_BUFFER_MS) {
-      return cachedToken.accessToken;
-    }
-  }
-
-  // Get fresh token from Azure CLI
-  cachedToken = await getAzureCliToken(
-    cachedSettings.cloud.authentication.tokenAudience
-  );
-
-  return cachedToken.accessToken;
+  return getToken(scope);
 }
 
 /**
  * Clears cached tokens.
  */
 export async function logout(): Promise<void> {
-  cachedToken = null;
-  console.error("Cleared cached tokens. Run 'az logout' to sign out of Azure CLI.");
+  clearCache();
+  console.error("Cleared cached tokens.");
 }

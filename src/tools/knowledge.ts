@@ -11,10 +11,10 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Docs are bundled relative to the dist folder
-// In development: src/tools -> docs (../../docs)
-// In production: dist/tools -> docs (../../docs)
-const DOCS_ROOT = join(__dirname, "..", "..", "docs");
+// Knowledge docs are bundled relative to the dist folder
+// In development: src/tools -> knowledge (../../knowledge)
+// In production: dist/tools -> knowledge (../../knowledge)
+const KNOWLEDGE_ROOT = join(__dirname, "..", "..", "knowledge");
 
 /**
  * Valid topics for troubleshooting guides
@@ -41,10 +41,20 @@ export type ReferenceTopic =
   | "sku-differences";
 
 /**
+ * Valid workflow instruction topics
+ */
+export type WorkflowInstructionTopic =
+  | "diagnose-failures"
+  | "explain-workflow"
+  | "monitor-workflows"
+  | "create-workflow"
+  | "fix-workflow";
+
+/**
  * Read a documentation file from the bundled docs folder.
  */
-function readDocFile(relativePath: string): string {
-  const fullPath = join(DOCS_ROOT, relativePath);
+function readKnowledgeFile(relativePath: string): string {
+  const fullPath = join(KNOWLEDGE_ROOT, relativePath);
   
   if (!existsSync(fullPath)) {
     throw new Error(`Documentation file not found: ${relativePath}. Looking in: ${fullPath}`);
@@ -71,7 +81,7 @@ export function getTroubleshootingGuide(topic: TroubleshootingTopic): { topic: s
     throw new Error(`Invalid troubleshooting topic: ${topic}. Valid topics: ${validTopics.join(", ")}`);
   }
   
-  const content = readDocFile(join("troubleshooting", `${topic}.md`));
+  const content = readKnowledgeFile(join("troubleshooting", `${topic}.md`));
   
   return {
     topic,
@@ -96,7 +106,7 @@ export function getAuthoringGuide(topic: AuthoringTopic): { topic: string; conte
     throw new Error(`Invalid authoring topic: ${topic}. Valid topics: ${validTopics.join(", ")}`);
   }
   
-  const content = readDocFile(join("authoring", `${topic}.md`));
+  const content = readKnowledgeFile(join("authoring", `${topic}.md`));
   
   return {
     topic,
@@ -120,7 +130,34 @@ export function getReference(topic: ReferenceTopic): { topic: string; content: s
     throw new Error(`Invalid reference topic: ${topic}. Valid topics: ${validTopics.join(", ")}`);
   }
   
-  const content = readDocFile(join("reference", `${topic}.md`));
+  const content = readKnowledgeFile(join("reference", `${topic}.md`));
+  
+  return {
+    topic,
+    content,
+  };
+}
+
+/**
+ * Get step-by-step workflow instructions for common user tasks.
+ * 
+ * @param topic - The workflow instruction topic to retrieve
+ * @returns The markdown content with detailed steps
+ */
+export function getWorkflowInstructions(topic: WorkflowInstructionTopic): { topic: string; content: string } {
+  const validTopics: WorkflowInstructionTopic[] = [
+    "diagnose-failures",
+    "explain-workflow",
+    "monitor-workflows",
+    "create-workflow",
+    "fix-workflow",
+  ];
+  
+  if (!validTopics.includes(topic)) {
+    throw new Error(`Invalid workflow instruction topic: ${topic}. Valid topics: ${validTopics.join(", ")}`);
+  }
+  
+  const content = readKnowledgeFile(join("workflows", `${topic}.md`));
   
   return {
     topic,

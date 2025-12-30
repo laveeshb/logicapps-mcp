@@ -28,3 +28,7 @@ coverage/
 
 # Config folder (contains tokens)
 .logicapps-mcp/
+
+# Deployment artifacts
+*.zip
+**/logicapp-logs/
