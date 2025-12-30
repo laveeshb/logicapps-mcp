@@ -52,6 +52,29 @@ az login
 
 ### Step 3: Configure Your AI Assistant
 
+#### GitHub Copilot in VS Code
+
+1. Install [GitHub Copilot](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot) and GitHub Copilot Chat extensions
+
+2. Create/edit `.vscode/mcp.json` in your workspace:
+
+```json
+{
+  "servers": {
+    "logicapps": {
+      "type": "stdio",
+      "command": "logicapps-mcp"
+    }
+  }
+}
+```
+
+3. Reload VS Code (`Ctrl+Shift+P` → "Developer: Reload Window")
+
+4. Open Copilot Chat and start asking questions
+
+> **Tip:** Ensure you've run `az login` before starting VS Code.
+
 #### Claude Desktop
 
 Add to your Claude Desktop configuration:
@@ -82,29 +105,6 @@ Or if installed globally:
 ```
 
 Restart Claude Desktop after saving.
-
-#### GitHub Copilot in VS Code
-
-1. Install [GitHub Copilot](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot) and GitHub Copilot Chat extensions
-
-2. Create/edit `.vscode/mcp.json` in your workspace:
-
-```json
-{
-  "servers": {
-    "logicapps": {
-      "type": "stdio",
-      "command": "logicapps-mcp"
-    }
-  }
-}
-```
-
-3. Reload VS Code (`Ctrl+Shift+P` → "Developer: Reload Window")
-
-4. Open Copilot Chat and start asking questions
-
-> **Tip:** Ensure you've run `az login` before starting VS Code.
 
 ### Step 4: Test It
 
