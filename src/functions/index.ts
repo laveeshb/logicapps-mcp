@@ -4,6 +4,9 @@
  * This module provides HTTP triggers for the MCP protocol endpoints,
  * allowing the MCP server to run as an Azure Function.
  *
+ * Uses WebStandardStreamableHTTPServerTransport which works directly with
+ * Web Standard Request/Response objects that Azure Functions v4 supports.
+ *
  * Deployment:
  * 1. Deploy this function app to Azure
  * 2. Configure Managed Identity
@@ -18,9 +21,7 @@ import {
   InvocationContext,
 } from "@azure/functions";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { IncomingMessage, ServerResponse, OutgoingHttpHeaders } from "http";
-import { Socket } from "net";
+import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { registerTools } from "../server.js";
 import { loadSettings } from "../config/index.js";
 import { setSettings, initializeAuth } from "../auth/index.js";
@@ -52,140 +53,82 @@ function createMcpServer(): Server {
 }
 
 /**
- * Create a mock IncomingMessage from Azure Functions HttpRequest.
+ * Convert Web Standard Response to Azure Functions HttpResponseInit.
  */
-function createMockIncomingMessage(
-  request: HttpRequest,
-  bodyBuffer: Buffer
-): IncomingMessage {
-  const socket = new Socket();
-  const incoming = new IncomingMessage(socket);
-
-  // Set method and URL
-  incoming.method = request.method;
-  incoming.url = new URL(request.url).pathname;
-
-  // Copy headers
+async function convertResponse(
+  response: Response
+): Promise<HttpResponseInit> {
   const headers: Record<string, string> = {};
-  request.headers.forEach((value, key) => {
-    headers[key.toLowerCase()] = value;
+  response.headers.forEach((value, key) => {
+    headers[key] = value;
   });
-  incoming.headers = headers;
 
-  // Push body data and end the stream
-  incoming.push(bodyBuffer);
-  incoming.push(null);
+  // Handle streaming responses (SSE)
+  if (response.body && headers["content-type"]?.includes("text/event-stream")) {
+    // For SSE, we need to read the entire stream and return it
+    // Azure Functions doesn't support true streaming, so we buffer the response
+    const reader = response.body.getReader();
+    const chunks: Uint8Array[] = [];
 
-  return incoming;
+    // Read with a timeout to avoid hanging on long-lived SSE streams
+    const readWithTimeout = async (): Promise<void> => {
+      const decoder = new TextDecoder();
+      let totalRead = 0;
+      const maxBytes = 1024 * 1024; // 1MB limit
+
+      while (totalRead < maxBytes) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value) {
+          chunks.push(value);
+          totalRead += value.length;
+          // Check if we've received a complete JSON-RPC response
+          const text = decoder.decode(Buffer.concat(chunks.map((c) => Buffer.from(c))));
+          if (text.includes('"jsonrpc"') && text.includes('\n\n')) {
+            break;
+          }
+        }
+      }
+    };
+
+    await readWithTimeout();
+
+    const body = Buffer.concat(chunks.map((c) => Buffer.from(c))).toString(
+      "utf-8"
+    );
+
+    return {
+      status: response.status,
+      headers,
+      body,
+    };
+  }
+
+  // For non-streaming responses, read the body as text
+  const body = await response.text();
+  return {
+    status: response.status,
+    headers,
+    body,
+  };
 }
 
 /**
- * Create a mock ServerResponse that captures the response.
+ * Convert Azure Functions HttpRequest to Web Standard Request.
  */
-class MockServerResponse extends ServerResponse {
-  private chunks: Buffer[] = [];
-  private _statusCode = 200;
-  private _headers: Record<string, string> = {};
-  private resolvePromise?: () => void;
-  private responsePromise: Promise<void>;
+async function convertRequest(request: HttpRequest): Promise<Request> {
+  const headers = new Headers();
+  request.headers.forEach((value, key) => {
+    headers.set(key, value);
+  });
 
-  constructor(req: IncomingMessage) {
-    super(req);
-    this.responsePromise = new Promise((resolve) => {
-      this.resolvePromise = resolve;
-    });
-  }
+  const body = await request.text();
 
-  // @ts-expect-error - Simplified override for our mock response
-  override writeHead(
-    statusCode: number,
-    statusMessage?: string | OutgoingHttpHeaders,
-    headers?: OutgoingHttpHeaders
-  ): this {
-    this._statusCode = statusCode;
-    const headerObj =
-      typeof statusMessage === "object" ? statusMessage : headers;
-    if (headerObj) {
-      for (const [key, value] of Object.entries(headerObj)) {
-        if (value !== undefined) {
-          this._headers[key.toLowerCase()] =
-            Array.isArray(value) ? value.join(", ") : String(value);
-        }
-      }
-    }
-    return this;
-  }
-
-  override setHeader(name: string, value: string | number | string[]): this {
-    this._headers[name.toLowerCase()] =
-      Array.isArray(value) ? value.join(", ") : String(value);
-    return this;
-  }
-
-  override write(
-    chunk: Buffer | string,
-    encodingOrCallback?: BufferEncoding | ((error?: Error | null) => void),
-    callback?: (error?: Error | null) => void
-  ): boolean {
-    const buffer =
-      typeof chunk === "string"
-        ? Buffer.from(
-            chunk,
-            typeof encodingOrCallback === "string" ? encodingOrCallback : "utf8"
-          )
-        : chunk;
-    this.chunks.push(buffer);
-    const cb =
-      typeof encodingOrCallback === "function" ? encodingOrCallback : callback;
-    if (cb) cb();
-    return true;
-  }
-
-  override end(
-    chunk?: Buffer | string | (() => void),
-    encodingOrCallback?: BufferEncoding | (() => void),
-    callback?: () => void
-  ): this {
-    if (chunk && typeof chunk !== "function") {
-      const buffer =
-        typeof chunk === "string"
-          ? Buffer.from(
-              chunk,
-              typeof encodingOrCallback === "string"
-                ? encodingOrCallback
-                : "utf8"
-            )
-          : chunk;
-      this.chunks.push(buffer);
-    }
-    if (this.resolvePromise) {
-      this.resolvePromise();
-    }
-    const cb =
-      typeof chunk === "function"
-        ? chunk
-        : typeof encodingOrCallback === "function"
-          ? encodingOrCallback
-          : callback;
-    if (cb) cb();
-    return this;
-  }
-
-  getStatusCode(): number {
-    return this._statusCode;
-  }
-
-  getResponseHeaders(): Record<string, string> {
-    return this._headers;
-  }
-
-  getBody(): string {
-    return Buffer.concat(this.chunks).toString("utf8");
-  }
-
-  waitForEnd(): Promise<void> {
-    return this.responsePromise;
-  }
+  return new Request(request.url, {
+    method: request.method,
+    headers,
+    body: request.method !== "GET" && request.method !== "HEAD" ? body : undefined,
+  });
 }
 
 /**
@@ -197,62 +140,33 @@ async function mcpHandler(
 ): Promise<HttpResponseInit> {
   context.log(`MCP ${request.method} request received`);
 
-  // Only POST is supported in stateless mode
-  if (request.method !== "POST") {
-    return {
-      status: 405,
-      jsonBody: {
-        jsonrpc: "2.0",
-        error: {
-          code: -32000,
-          message:
-            "Method not allowed. This server only supports POST requests.",
-        },
-        id: null,
-      },
-    };
-  }
-
   try {
     await ensureInitialized();
 
-    // Get request body as buffer
-    const bodyText = await request.text();
-    const bodyBuffer = Buffer.from(bodyText, "utf8");
-    const bodyJson = JSON.parse(bodyText);
-
-    // Create mock HTTP objects
-    const mockReq = createMockIncomingMessage(request, bodyBuffer);
-    const mockRes = new MockServerResponse(mockReq);
+    // Convert Azure Functions request to Web Standard Request
+    const webRequest = await convertRequest(request);
 
     // Create MCP server and transport
     const server = createMcpServer();
-    const transport = new StreamableHTTPServerTransport({
+    const transport = new WebStandardStreamableHTTPServerTransport({
       sessionIdGenerator: undefined, // Stateless mode
+      enableJsonResponse: true, // Return JSON instead of SSE where possible
     });
 
     await server.connect(transport);
 
-    // Handle the request - pass the parsed body
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await transport.handleRequest(mockReq, mockRes as any, bodyJson);
-
-    // Wait for response to complete
-    await mockRes.waitForEnd();
+    // Handle the request
+    const response = await transport.handleRequest(webRequest);
 
     // Clean up
     await transport.close();
     await server.close();
 
-    // Return response
-    const responseBody = mockRes.getBody();
-    context.log(`MCP response: ${responseBody.substring(0, 200)}...`);
+    // Convert Web Standard Response to Azure Functions response
+    const azResponse = await convertResponse(response);
+    context.log(`MCP response status: ${azResponse.status}`);
 
-    return {
-      status: mockRes.getStatusCode(),
-      headers: mockRes.getResponseHeaders(),
-      body: responseBody,
-    };
+    return azResponse;
   } catch (error) {
     context.error("Error handling MCP request:", error);
     return {

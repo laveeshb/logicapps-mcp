@@ -29,11 +29,11 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
+    "@azure/functions": "^4.10.0",
     "@modelcontextprotocol/sdk": "^1.0.0",
     "express": "^5.2.1"
   },
   "devDependencies": {
-    "@azure/functions": "^4.10.0",
     "@types/express": "^5.0.6",
     "@types/node": "^20.0.0",
     "rimraf": "^5.0.0",
