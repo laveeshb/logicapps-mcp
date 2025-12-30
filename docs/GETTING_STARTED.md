@@ -30,6 +30,14 @@ This guide helps you choose the right setup and get started with AI-powered Logi
 └─────────────────┘    └─────────────────┘
 ```
 
+| Aspect | Local MCP Server | Cloud Agent |
+|--------|------------------|-------------|
+| **Setup** | `npm install` + AI config | Deploy to Azure |
+| **AI Model** | Your local AI (Copilot, Claude) | Azure OpenAI |
+| **Auth** | Your Azure CLI credentials | Managed Identity |
+| **Access Scope** | What *you* can access | What the *managed identity* can access |
+| **Best For** | Individual developers | Teams, enterprise, automation |
+
 ## Local MCP Server Setup
 
 ### Prerequisites
@@ -129,42 +137,13 @@ az role assignment create \
   --role "Reader" \
   --scope /subscriptions/<subscription-id>
 
-# Call the agent
+# Call the agent (be specific - open-ended queries may time out)
 TOKEN=$(az account get-access-token --resource https://management.azure.com --query accessToken -o tsv)
 curl -X POST "https://<app>.azurewebsites.net/api/agent" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"message": "List failed runs in the last 24 hours"}'
+  -d '{"message": "Get error details for run 08585373430220335253625502230CU00 of workflow order-processing in Logic App contoso-app"}'
 ```
-
-## When to Use Each
-
-### Local MCP Server
-
-Best for developers who:
-- Have GitHub Copilot, Claude Desktop, or another MCP-compatible AI
-- Can authenticate via `az login` to access target Logic Apps
-- Want quick, interactive debugging sessions
-
-### Cloud Agent
-
-Best for scenarios where:
-- **Enterprise policies** restrict individual access to production resources
-- Teams need **shared, audited access** through a controlled identity
-- You want to **investigate Logic Apps across subscriptions** you don't personally have access to
-- No local AI assistant is available
-- You need a **REST API** for automation or integration
-
-## Comparison
-
-| Aspect | Local MCP Server | Cloud Agent |
-|--------|------------------|-------------|
-| **Setup** | `npm install` + AI config | Deploy to Azure |
-| **AI Model** | Your local AI (Copilot, Claude) | Azure OpenAI (gpt-4o) |
-| **Auth** | Your Azure CLI credentials | Managed Identity |
-| **Access Scope** | What *you* can access | What the *managed identity* can access |
-| **Audit Trail** | Local only | Azure Monitor / App Insights |
-| **Best For** | Individual developers | Teams, enterprise, automation |
 
 ## Next Steps
 

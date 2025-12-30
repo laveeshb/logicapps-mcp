@@ -9,7 +9,7 @@
   },
   "files": [
     "dist",
-    "docs"
+    "knowledge"
   ],
   "repository": {
     "type": "git",

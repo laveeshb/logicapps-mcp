@@ -1,18 +1,27 @@
 # Configuration
 
+Advanced configuration options for the local MCP server. Most users won't need these - the defaults work with `az login`.
+
 ## Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `AZURE_TENANT_ID` | Azure AD tenant ID | `common` |
-| `AZURE_CLIENT_ID` | Azure AD app registration client ID | Azure CLI public client |
-| `AZURE_SUBSCRIPTION_ID` | Default subscription ID | None |
-| `AZURE_CLOUD` | Azure cloud environment | `AzurePublic` |
-| `LOG_LEVEL` | Log level (debug, info, warn, error) | `info` |
+| Variable | Purpose | Default Behavior |
+|----------|---------|------------------|
+| `AZURE_TENANT_ID` | Lock to a specific Azure AD tenant | Uses `common` - auto-detects tenant from your login |
+| `AZURE_CLIENT_ID` | Use a custom app registration | Uses Azure CLI's public client ID |
+| `AZURE_SUBSCRIPTION_ID` | Set a default subscription | None - you'll specify subscription in each request |
+| `AZURE_CLOUD` | Connect to sovereign clouds | `AzurePublic` |
+| `LOG_LEVEL` | Control verbosity (debug, info, warn, error) | `info` |
 
-## Config File (Optional)
+### When to use these
 
-Create `~/.logicapps-mcp/config.json`:
+- **Multi-tenant scenarios**: Set `AZURE_TENANT_ID` to avoid tenant picker prompts
+- **Enterprise policies**: Set `AZURE_CLIENT_ID` if your org requires a specific app registration
+- **Single subscription**: Set `AZURE_SUBSCRIPTION_ID` to skip specifying it in every request
+- **Government/China clouds**: Set `AZURE_CLOUD` to `AzureGovernment` or `AzureChina`
+
+## Config File
+
+Alternative to environment variables. Create `~/.logicapps-mcp/config.json`:
 
 ```json
 {
@@ -22,11 +31,7 @@ Create `~/.logicapps-mcp/config.json`:
 }
 ```
 
-## Azure Cloud Options
-
-- `AzurePublic` (default)
-- `AzureGovernment`
-- `AzureChina`
+Environment variables take precedence over the config file.
 
 ## Authentication
 
@@ -47,48 +52,8 @@ The MCP server will automatically use the Azure CLI's tokens. Tokens are refresh
 
 For read-only access, `Logic App Reader` is sufficient.
 
-## SKU Differences
+## See Also
 
-Logic Apps come in two SKUs with different architectures. This MCP server handles both transparently, but there are some important differences:
-
-| Aspect | Consumption | Standard |
-|--------|-------------|----------|
-| Resource Type | `Microsoft.Logic/workflows` | `Microsoft.Web/sites` + workflows |
-| Workflows per Resource | 1 (Logic App = Workflow) | Multiple workflows per Logic App |
-| Enable/Disable | Direct API call | Uses app settings (`Workflows.<name>.FlowState`) |
-| Connections | V1 API connections | V2 API connections with `connectionRuntimeUrl` |
-| Create/Update | ARM API | VFS API (file-based) |
-
-### API Connections for Standard Logic Apps
-
-Standard Logic Apps use **V2 API connections** which require additional setup:
-
-1. **Create V2 connection** with `kind: "V2"` property
-2. **Authorize via Azure Portal** (OAuth connectors require browser-based consent)
-3. **Create access policy** to grant the Logic App's managed identity access to the connection
-4. **Update connections.json** in the Logic App with the `connectionRuntimeUrl`
-
-> **Note**: The `create_connection` tool creates the connection resource, but for Standard Logic Apps with OAuth connectors (Office 365, SharePoint, etc.), you'll need to authorize the connection in the Azure Portal and manually configure the access policy and `connections.json`.
-
-## Installation
-
-### Via npm (from GitHub)
-
-```bash
-npm install -g github:laveeshb/logicapps-mcp
-```
-
-Or use directly with npx:
-
-```bash
-npx github:laveeshb/logicapps-mcp
-```
-
-### From Source
-
-```bash
-git clone https://github.com/laveeshb/logicapps-mcp.git
-cd logicapps-mcp
-npm install
-npm run build
-```
+- [Getting Started](GETTING_STARTED.md) - Setup guides for local MCP server or cloud agent
+- [Available Tools](TOOLS.md) - All 37 tools
+- [Cloud Agent](CLOUD_AGENT.md) - Deploy to Azure for team/enterprise use

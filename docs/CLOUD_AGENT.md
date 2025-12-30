@@ -104,8 +104,18 @@ TOKEN=$(az account get-access-token --resource https://management.azure.com --qu
 curl -X POST "https://<app>.azurewebsites.net/api/agent" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"message": "List my Azure subscriptions"}'
+  -d '{"message": "Investigate run 08585373430220335253625502230CU00 of workflow order-processing in Logic App contoso-app in resource group prod-rg"}'
 ```
+
+### Tips for Better Results
+
+**Be specific.** Open-ended questions can take longer and may time out. The agent needs to make multiple API calls, so pointed queries work best:
+
+| Instead of... | Try... |
+|---------------|--------|
+| "What's wrong with my Logic Apps?" | "List failed runs in the last 24 hours for Logic App `contoso-app`" |
+| "Investigate failures" | "Get error details for run `08585373430220335253625502230CU00` of workflow `order-processing`" |
+| "Show me everything" | "List workflows in resource group `prod-rg` subscription `abc-123`" |
 
 ## Endpoints
 

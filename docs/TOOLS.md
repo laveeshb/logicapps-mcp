@@ -88,3 +88,9 @@ MCP Prompts provide AI assistants with guidance on tool selection and common wor
 | `logic-apps-guide` | System guidance covering SKU differences, debugging workflows, and tool selection tips |
 
 > **Note**: Prompt availability depends on the MCP client. Claude Desktop supports prompts; GitHub Copilot does not yet.
+
+## See Also
+
+- [Getting Started](GETTING_STARTED.md) - Setup for local MCP server or cloud agent
+- [Configuration](CONFIGURATION.md) - Environment variables, auth, SKU differences
+- [Cloud Agent](CLOUD_AGENT.md) - Deploy to Azure for team/enterprise use
