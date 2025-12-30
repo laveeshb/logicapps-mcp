@@ -43,7 +43,7 @@ Deploy an AI-powered agent to Azure that can investigate and manage Logic Apps o
 
 1. Shows your subscription and asks for confirmation
 2. Creates resource group (if `-CreateResourceGroup`)
-3. Creates Azure OpenAI resource and gpt-4o deployment (if `-CreateAiResource`)
+3. Creates Azure OpenAI resource and model deployment (if `-CreateAiResource`)
 4. Deploys infrastructure (Function App, Storage, App Insights, Managed Identity)
 5. Configures Easy Auth (only you can access the API)
 6. Builds and deploys the function code
@@ -63,13 +63,15 @@ Deploy an AI-powered agent to Azure that can investigate and manage Logic Apps o
 
 ## After Deployment
 
-The script outputs the **Managed Identity ID** - save this for the next step.
+The script outputs the **Managed Identity IDs** - save these for the next step.
 
 ```
 --------------------------------------------
-IMPORTANT: Save this ID for granting RBAC:
+IMPORTANT: Save these for granting RBAC:
 
-  Managed Identity: <guid>
+  Principal ID (for az role assignment): <guid>
+  Resource ID (for Azure Portal):        <resource-id>
+  Client ID:                             <guid>
 
 --------------------------------------------
 ```

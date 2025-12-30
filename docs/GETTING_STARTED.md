@@ -148,5 +148,5 @@ curl -X POST "https://<app>.azurewebsites.net/api/agent" \
 ## Next Steps
 
 - [Available Tools](TOOLS.md) - See all 37 tools
-- [Configuration](CONFIGURATION.md) - Environment variables, auth, SKU differences
+- [Configuration](CONFIGURATION.md) - Environment variables and authentication
 - [Cloud Agent](CLOUD_AGENT.md) - Deployment details
