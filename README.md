@@ -291,51 +291,54 @@ Or if installed globally:
 
 ## Cloud Agent
 
-Deploy an AI-powered agent to Azure that can investigate and manage Logic Apps on your behalf. The agent uses Azure OpenAI and the MCP tools to answer questions about your Logic Apps.
+Deploy an AI-powered agent to Azure that can investigate and manage Logic Apps on your behalf.
 
-### When to Use
+### Prerequisites
 
-- You don't have a local AI assistant (GitHub Copilot, Claude Desktop)
-- You want to give team members access without sharing Azure CLI credentials
-- You need to automate Logic Apps investigation via REST API
-- You want the agent to have its own managed identity with specific RBAC scope
+- Azure CLI (`az login`)
+- Azure Functions Core Tools (`func`)
+- Node.js and npm
+- An Azure OpenAI resource with a gpt-4o deployment
 
-### Quick Deploy
+### Deploy
 
 ```powershell
 # PowerShell
-./deploy/deploy.ps1 -ResourceGroup my-rg -Prefix myagent -CreateResourceGroup
+./deploy/deploy.ps1 -ResourceGroup my-rg -AiFoundryEndpoint https://my-openai.openai.azure.com -CreateResourceGroup
 
 # Bash
-./deploy/deploy.sh -g my-rg -p myagent --create-rg
+./deploy/deploy.sh -g my-rg --ai-endpoint https://my-openai.openai.azure.com --create-rg
 ```
 
-The scripts will:
-1. Create infrastructure (Function App, Storage, App Insights)
-2. Configure Easy Auth with your Azure AD identity
-3. Output the endpoint URLs
+The script will:
+1. Create infrastructure (Function App, Storage, App Insights, Managed Identity)
+2. Configure Easy Auth (only you can access the API)
+3. Build and deploy the function code
+4. Output the managed identity principal ID for RBAC setup
 
-### Configure AI
+### Grant RBAC Access
 
-After deployment, set the Azure OpenAI endpoint:
+After deployment, grant the managed identity access to Azure OpenAI and your Logic Apps:
 
 ```bash
-az functionapp config appsettings set \
-  --name <function-app-name> \
-  --resource-group <rg-name> \
-  --settings AI_FOUNDRY_ENDPOINT=https://<your-openai>.openai.azure.com \
-             AI_FOUNDRY_DEPLOYMENT=gpt-4o
-```
+# 1. Grant access to Azure OpenAI
+az role assignment create \
+  --assignee <managed-identity-principal-id> \
+  --role "Cognitive Services OpenAI User" \
+  --scope /subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.CognitiveServices/accounts/<openai-resource>
 
-Grant the managed identity `Cognitive Services OpenAI User` role on your Azure OpenAI resource.
+# 2. Grant access to Logic Apps (Reader for read-only, Logic App Contributor for write)
+az role assignment create \
+  --assignee <managed-identity-principal-id> \
+  --role "Reader" \
+  --scope /subscriptions/<subscription-id>
+```
 
 ### Call the Agent
 
 ```bash
-# Get Azure AD token
 TOKEN=$(az account get-access-token --resource https://management.azure.com --query accessToken -o tsv)
 
-# Ask a question
 curl -X POST "https://<app>.azurewebsites.net/api/agent" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
@@ -349,26 +352,6 @@ curl -X POST "https://<app>.azurewebsites.net/api/agent" \
 | `/api/health` | Health check |
 | `/api/mcp` | Raw MCP protocol (JSON-RPC) |
 | `/api/agent` | AI-powered agent (natural language) |
-
-### Grant Access to Logic Apps
-
-The managed identity needs RBAC roles to access Logic Apps:
-
-```bash
-# Grant Reader on a subscription
-az role assignment create \
-  --assignee <managed-identity-principal-id> \
-  --role "Reader" \
-  --scope /subscriptions/<subscription-id>
-
-# Grant Logic App Contributor for write operations
-az role assignment create \
-  --assignee <managed-identity-principal-id> \
-  --role "Logic App Contributor" \
-  --scope /subscriptions/<subscription-id>/resourceGroups/<rg-name>
-```
-
-See [deploy/README.md](deploy/README.md) for full deployment instructions.
 
 ## Authentication
 
