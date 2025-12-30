@@ -15,7 +15,7 @@ Deploy an AI-powered agent to Azure that can investigate and manage Logic Apps o
 - Azure CLI (`az login`)
 - Azure Functions Core Tools (`func`)
 - Node.js and npm
-- An Azure OpenAI resource with a gpt-4o deployment (or let the script create one)
+- An Azure OpenAI resource with a model deployment (or let the script create one)
 
 ## Deploy
 
@@ -69,7 +69,7 @@ The script outputs the **Managed Identity ID** - save this for the next step.
 --------------------------------------------
 IMPORTANT: Save this ID for granting RBAC:
 
-  Managed Identity: caad7555-2efd-455f-993c-2e90afcdc1df
+  Managed Identity: <guid>
 
 --------------------------------------------
 ```
@@ -131,8 +131,14 @@ The cloud agent consists of:
 
 - **Azure Function App**: Hosts the MCP server and agent endpoint
 - **User-Assigned Managed Identity**: Authenticates to Azure resources
-- **Azure OpenAI**: Provides the AI model (gpt-4o) for the agent
+- **Azure OpenAI**: Provides the AI model for the agent
 - **App Insights + Log Analytics**: Monitoring and logging
 - **Easy Auth**: Restricts API access to the deployer
 
 All authentication is identity-based (no keys or secrets).
+
+## See Also
+
+- [Getting Started](GETTING_STARTED.md) - Setup guides and comparison with local MCP server
+- [Available Tools](TOOLS.md) - All 37 tools available to the agent
+- [Configuration](CONFIGURATION.md) - Environment variables and authentication

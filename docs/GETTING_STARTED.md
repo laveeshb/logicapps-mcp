@@ -34,8 +34,8 @@ This guide helps you choose the right setup and get started with AI-powered Logi
 |--------|------------------|-------------|
 | **Setup** | `npm install` + AI config | Deploy to Azure |
 | **AI Model** | Your local AI (Copilot, Claude) | Azure OpenAI |
-| **Auth** | Your Azure CLI credentials | Managed Identity |
-| **Access Scope** | What *you* can access | What the *managed identity* can access |
+| **API Auth** | Your Azure CLI credentials | Your identity (via Easy Auth) |
+| **Resource Access** | What *you* can access | What the *managed identity* can access |
 | **Best For** | Individual developers | Teams, enterprise, automation |
 
 ## Local MCP Server Setup
