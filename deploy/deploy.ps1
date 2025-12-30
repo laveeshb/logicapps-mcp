@@ -1,6 +1,6 @@
-# Logic Apps MCP Server - Deployment Script
+# Logic Apps MCP Server and AI Assistant - Deployment Script
 #
-# This script deploys the Logic Apps AI Assistant to Azure:
+# This script deploys the Logic Apps MCP server and AI assistant to Azure:
 # 1. Creates infrastructure (Function App, Storage, App Insights, Managed Identity)
 # 2. Optionally creates Azure OpenAI resource and model deployment
 # 3. Configures Easy Auth to restrict access to the deployer
@@ -55,7 +55,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 Write-Host "============================================" -ForegroundColor Cyan
-Write-Host "Logic Apps MCP Server - Deployment" -ForegroundColor Cyan
+Write-Host "Logic Apps MCP Server & AI Assistant" -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host ""
 

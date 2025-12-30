@@ -1,7 +1,7 @@
 #!/bin/bash
-# Logic Apps MCP Server - Deployment Script
+# Logic Apps MCP Server and AI Assistant - Deployment Script
 #
-# This script deploys the Logic Apps AI Assistant to Azure:
+# This script deploys the Logic Apps MCP server and AI assistant to Azure:
 # 1. Creates infrastructure (Function App, Storage, App Insights, Managed Identity)
 # 2. Optionally creates Azure OpenAI resource and model deployment
 # 3. Configures Easy Auth to restrict access to the deployer
@@ -130,7 +130,7 @@ if [ -z "$AI_FOUNDRY_ENDPOINT" ] && [ "$CREATE_AI_RESOURCE" = false ]; then
 fi
 
 echo "============================================"
-echo "Logic Apps MCP Server - Deployment"
+echo "Logic Apps MCP Server & AI Assistant"
 echo "============================================"
 echo ""
 
