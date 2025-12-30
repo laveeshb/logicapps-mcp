@@ -322,9 +322,15 @@ Write-Host "============================================" -ForegroundColor Green
 Write-Host "Deployment Complete!" -ForegroundColor Green
 Write-Host "============================================" -ForegroundColor Green
 Write-Host ""
-Write-Host "Function App:     $functionAppName" -ForegroundColor White
-Write-Host "Managed Identity: $managedIdentityPrincipalId" -ForegroundColor White
-Write-Host "AI Endpoint:      $AiFoundryEndpoint" -ForegroundColor White
+Write-Host "Function App: $functionAppName" -ForegroundColor White
+Write-Host "AI Endpoint:  $AiFoundryEndpoint" -ForegroundColor White
+Write-Host ""
+Write-Host "--------------------------------------------" -ForegroundColor Yellow
+Write-Host "IMPORTANT: Save this ID for granting RBAC:" -ForegroundColor Yellow
+Write-Host ""
+Write-Host "  Managed Identity: $managedIdentityPrincipalId" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "--------------------------------------------" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "Endpoints:" -ForegroundColor Cyan
 Write-Host "  Health: $($deploymentResult.healthEndpoint.value)" -ForegroundColor White
