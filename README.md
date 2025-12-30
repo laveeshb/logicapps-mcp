@@ -2,7 +2,21 @@
 
 <img src="https://raw.githubusercontent.com/benc-uk/icon-collection/master/azure-icons/Logic-Apps.svg" alt="Azure Logic Apps" width="80" align="right">
 
-An MCP (Model Context Protocol) server that enables AI assistants to interact with Azure Logic Apps. Supports both **Consumption** and **Standard** Logic Apps SKUs with comprehensive read and write operations.
+Manage and debug Azure Logic Apps using natural language. Ask your AI assistant to investigate failed runs, explain workflows, or make changes—no portal clicking required.
+
+```
+You:  Why did my order-processing workflow fail this morning?
+
+AI:   Looking at the run history... Found a failed run at 10:15 AM.
+      The HTTP action "Call-Payment-API" failed with 503 Service Unavailable.
+      The payment service at api.payments.com was down for 3 minutes.
+
+You:  Add retry logic to that action - 3 attempts with exponential backoff.
+
+AI:   Done. Updated the workflow with retry policy. Want me to test it?
+```
+
+Works with **GitHub Copilot**, **Claude Desktop**, or as a **cloud-hosted agent**. Supports both Consumption and Standard Logic Apps.
 
 ## Table of Contents
 
@@ -27,63 +41,13 @@ An MCP (Model Context Protocol) server that enables AI assistants to interact wi
 
 This project offers two ways to use AI with Azure Logic Apps:
 
-```
-        ┌──────────────────────────────────────────┐
-        │  Can you directly access the Logic Apps  │
-        │  you want to manage? (via az login)      │
-        └─────────────────┬────────────────────────┘
-                          │
-           ┌──────────────┴──────────────┐
-           │                             │
-          YES                            NO ─────────────────────┐
-           │                                                     │
-           ▼                                                     │
-        ┌─────────────────────────────────┐                      │
-        │  Do you have a local AI?        │                      │
-        │  (GitHub Copilot, Claude, etc.) │                      │
-        └────────────────┬────────────────┘                      │
-                         │                                       │
-          ┌──────────────┴──────────────┐                        │
-          │                             │                        │
-         YES                            NO ──────────────────────┤
-          │                                                      │
-          ▼                                                      ▼
-┌───────────────────────┐                     ┌────────────────────────────────┐
-│   Local MCP Server    │                     │        Cloud Agent             │
-│                       │                     │                                │
-│ • Install via npm     │                     │ • Deploy to Azure (Bicep)      │
-│ • Connect to your AI  │                     │ • Managed identity for access  │
-│ • Uses your az login  │                     │ • Call via REST API            │
-│                       │                     │                                │
-│ → See "Quick Start"   │                     │ → See "Cloud Agent" section    │
-└───────────────────────┘                     └────────────────────────────────┘
-```
-
-### When to Use Each
-
-**Local MCP Server** — Best for developers who:
-- Have GitHub Copilot, Claude Desktop, or another MCP-compatible AI
-- Can authenticate via `az login` to access target Logic Apps
-- Want zero additional infrastructure cost
-
-**Cloud Agent** — Best for scenarios where:
-- **Enterprise policies** restrict individual access to production resources
-- Teams need **shared, audited access** through a controlled identity
-- You want to **investigate Logic Apps across subscriptions** you don't personally have access to
-- No local AI assistant is available
-- You need a **REST API** for automation or integration
-
-### Comparison
-
-| Aspect | Local MCP Server | Cloud Agent |
-|--------|------------------|-------------|
+| | Local MCP Server | Cloud Agent |
+|--|------------------|-------------|
+| **Use when** | You have a local AI (Copilot, Claude) and can `az login` to access the Logic Apps | You need shared/audited access, or can't access Logic Apps directly |
 | **Setup** | `npm install` + AI config | Deploy to Azure (Bicep) |
-| **AI Model** | Your local AI (Copilot, Claude) | Azure OpenAI (gpt-4o) |
 | **Auth** | Your Azure CLI credentials | Managed Identity |
-| **Access Scope** | What *you* can access | What the *managed identity* can access |
-| **Cost** | Free (uses your AI subscription) | Azure Function + OpenAI usage |
-| **Audit Trail** | Local only | Azure Monitor / App Insights |
-| **Best For** | Individual developers | Teams, enterprise, automation |
+
+**Not sure which to choose?** See the [Getting Started Guide](docs/GETTING_STARTED.md) for a decision flowchart and detailed comparison.
 
 ## Quick Start
 
