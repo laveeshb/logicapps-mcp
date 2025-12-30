@@ -28,34 +28,35 @@ An MCP (Model Context Protocol) server that enables AI assistants to interact wi
 This project offers two ways to use AI with Azure Logic Apps:
 
 ```
-                         ┌────────────────────────────────────┐
-                         │  Can you directly access the       │
-                         │  Logic Apps you want to manage?    │
-                         │  (via az login / Azure CLI)        │
-                         └─────────────────┬──────────────────┘
-                                           │
-                         ┌─────────────────┴─────────────────┐
-                         │                                   │
-                        YES                                  NO
-                         │                                   │
-                         ▼                                   ▼
-          ┌──────────────────────────────┐    ┌──────────────────────────────┐
-          │  Do you have a local AI?     │    │     Use Cloud Agent          │
-          │  (GitHub Copilot, Claude)    │    │                              │
-          └──────────────┬───────────────┘    │  Deploy with managed identity│
-                         │                    │  that has access to the      │
-              ┌──────────┴──────────┐         │  target Logic Apps.          │
-              │                     │         │                              │
-             YES                    NO        │  Common scenarios:           │
-              │                     │         │  • Prod access restricted    │
-              ▼                     ▼         │  • Cross-team investigation  │
-   ┌────────────────────┐  ┌────────────────┐ │  • Audit/compliance needs    │
-   │  Use Local MCP     │  │ Use Cloud Agent│ │  • No local AI available     │
-   │  Server            │  │                │ │                              │
-   │                    │  │ (You have CLI  │ │  → See "Cloud Agent" section │
-   │  → See "Quick      │  │  access but no │ └──────────────────────────────┘
-   │    Start" section  │  │  local AI)     │
-   └────────────────────┘  └────────────────┘
+        ┌──────────────────────────────────────────┐
+        │  Can you directly access the Logic Apps  │
+        │  you want to manage? (via az login)      │
+        └─────────────────┬────────────────────────┘
+                          │
+           ┌──────────────┴──────────────┐
+           │                             │
+          YES                            NO ─────────────────────┐
+           │                                                     │
+           ▼                                                     │
+        ┌─────────────────────────────────┐                      │
+        │  Do you have a local AI?        │                      │
+        │  (GitHub Copilot, Claude, etc.) │                      │
+        └────────────────┬────────────────┘                      │
+                         │                                       │
+          ┌──────────────┴──────────────┐                        │
+          │                             │                        │
+         YES                            NO ──────────────────────┤
+          │                                                      │
+          ▼                                                      ▼
+┌───────────────────────┐                     ┌────────────────────────────────┐
+│   Local MCP Server    │                     │        Cloud Agent             │
+│                       │                     │                                │
+│ • Install via npm     │                     │ • Deploy to Azure (Bicep)      │
+│ • Connect to your AI  │                     │ • Managed identity for access  │
+│ • Uses your az login  │                     │ • Call via REST API            │
+│                       │                     │                                │
+│ → See "Quick Start"   │                     │ → See "Cloud Agent" section    │
+└───────────────────────┘                     └────────────────────────────────┘
 ```
 
 ### When to Use Each
