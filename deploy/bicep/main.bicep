@@ -37,6 +37,10 @@ param aiFoundryEndpoint string = ''
 @description('Azure AI Foundry deployment name (e.g., gpt-4o)')
 param aiFoundryDeployment string = 'gpt-4o'
 
+@description('Azure AI Foundry API key (optional - configure later if not available)')
+@secure()
+param aiFoundryApiKey string = ''
+
 // Generate a unique prefix if not provided (uses first 8 chars of unique string)
 var effectivePrefix = empty(prefix) ? toLower(take(uniqueString(resourceGroup().id), 8)) : toLower(prefix)
 var baseName = 'la-${effectivePrefix}'
@@ -356,6 +360,10 @@ resource logicApp 'Microsoft.Web/sites@2022-09-01' = {
         {
           name: 'AI_FOUNDRY_DEPLOYMENT'
           value: aiFoundryDeployment
+        }
+        {
+          name: 'AI_FOUNDRY_API_KEY'
+          value: aiFoundryApiKey
         }
         // Telemetry
         {

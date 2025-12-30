@@ -49,10 +49,23 @@ This is a Logic App Standard workflow that implements an AI agent loop using the
 
 ### App Settings (for deployed Logic App)
 
-```
-MCP_SERVER_URL=https://la-lamcp-mcp.azurewebsites.net/api/mcp
-AI_FOUNDRY_ENDPOINT=https://<your-ai-foundry>.cognitiveservices.azure.com
-AI_FOUNDRY_DEPLOYMENT=gpt-4o
+| Setting | Description |
+|---------|-------------|
+| `MCP_SERVER_URL` | URL of the MCP server (without /api/mcp path) |
+| `AI_FOUNDRY_ENDPOINT` | Azure OpenAI endpoint URL |
+| `AI_FOUNDRY_DEPLOYMENT` | Model deployment name (e.g., gpt-4o) |
+| `AI_FOUNDRY_API_KEY` | API key for Azure OpenAI |
+
+```bash
+# Set app settings
+az logicapp config appsettings set \
+  --name la-lamcp-agent \
+  --resource-group rg-logicapps-mcp \
+  --settings \
+    "MCP_SERVER_URL=https://la-lamcp-mcp.azurewebsites.net" \
+    "AI_FOUNDRY_ENDPOINT=https://<your-openai>.openai.azure.com" \
+    "AI_FOUNDRY_DEPLOYMENT=gpt-4o" \
+    "AI_FOUNDRY_API_KEY=<your-api-key>"
 ```
 
 ## Deployment
@@ -96,8 +109,14 @@ Content-Type: application/json
 ```json
 {
   "response": "I found the issue! The Parse_JSON action is failing because...",
-  "conversationId": "optional-id-for-multi-turn",
-  "toolsUsed": 36
+  "iterations": 3,
+  "conversationHistory": [
+    { "role": "system", "content": "You are a helpful Azure Logic Apps assistant..." },
+    { "role": "user", "content": "Why is my order-processor Logic App failing?" },
+    { "role": "assistant", "content": null, "tool_calls": [...] },
+    { "role": "tool", "tool_call_id": "call_123", "content": "..." },
+    { "role": "assistant", "content": "I found the issue..." }
+  ]
 }
 ```
 
