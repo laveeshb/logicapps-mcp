@@ -14,12 +14,19 @@
 //   az deployment group create \
 //     --resource-group <rg-name> \
 //     --template-file main.bicep \
-//     --parameters baseName=logicapps-assistant
+//     --parameters prefix=myprefix
+//
+// Or let it auto-generate a prefix:
+//   az deployment group create \
+//     --resource-group <rg-name> \
+//     --template-file main.bicep
 
 targetScope = 'resourceGroup'
 
-@description('Base name for all resources')
-param baseName string = 'logicapps-assistant'
+@description('Prefix for all resource names (3-10 lowercase alphanumeric). If empty, auto-generates one.')
+@minLength(0)
+@maxLength(10)
+param prefix string = ''
 
 @description('Azure region for resources')
 param location string = resourceGroup().location
@@ -29,6 +36,10 @@ param aiFoundryEndpoint string = ''
 
 @description('Azure AI Foundry deployment name (e.g., gpt-4o)')
 param aiFoundryDeployment string = 'gpt-4o'
+
+// Generate a unique prefix if not provided (uses first 8 chars of unique string)
+var effectivePrefix = empty(prefix) ? toLower(take(uniqueString(resourceGroup().id), 8)) : toLower(prefix)
+var baseName = 'la-${effectivePrefix}'
 
 // ============================================================================
 // User-Assigned Managed Identity
@@ -126,38 +137,40 @@ resource functionApp 'Microsoft.Web/sites@2022-09-01' = {
   }
 }
 
-// Easy Auth for Function App - only accept tokens from the Managed Identity
-resource functionAppAuth 'Microsoft.Web/sites/config@2022-09-01' = {
-  parent: functionApp
-  name: 'authsettingsV2'
-  properties: {
-    globalValidation: {
-      requireAuthentication: true
-      unauthenticatedClientAction: 'Return401'
-    }
-    identityProviders: {
-      azureActiveDirectory: {
-        enabled: true
-        registration: {
-          openIdIssuer: 'https://sts.windows.net/${subscription().tenantId}/v2.0'
-          clientId: 'api://${baseName}-mcp'
-        }
-        validation: {
-          allowedAudiences: [
-            'api://${baseName}-mcp'
-          ]
-          defaultAuthorizationPolicy: {
-            allowedPrincipals: {
-              identities: [
-                managedIdentity.properties.principalId
-              ]
-            }
-          }
-        }
-      }
-    }
-  }
-}
+// Easy Auth for Function App - DISABLED FOR TESTING
+// Uncomment the resource below to restrict access to only the Managed Identity
+//
+// resource functionAppAuth 'Microsoft.Web/sites/config@2022-09-01' = {
+//   parent: functionApp
+//   name: 'authsettingsV2'
+//   properties: {
+//     globalValidation: {
+//       requireAuthentication: true
+//       unauthenticatedClientAction: 'Return401'
+//     }
+//     identityProviders: {
+//       azureActiveDirectory: {
+//         enabled: true
+//         registration: {
+//           openIdIssuer: 'https://sts.windows.net/${subscription().tenantId}/v2.0'
+//           clientId: 'api://${baseName}-mcp'
+//         }
+//         validation: {
+//           allowedAudiences: [
+//             'api://${baseName}-mcp'
+//           ]
+//           defaultAuthorizationPolicy: {
+//             allowedPrincipals: {
+//               identities: [
+//                 managedIdentity.properties.principalId
+//               ]
+//             }
+//           }
+//         }
+//       }
+//     }
+//   }
+// }
 
 // ============================================================================
 // Logic App Standard (Agent Loop Host)
@@ -284,6 +297,9 @@ resource roleAssignmentReader 'Microsoft.Authorization/roleAssignments@2022-04-0
 // Outputs
 // ============================================================================
 
+output prefix string = effectivePrefix
+output baseName string = baseName
+
 output managedIdentityId string = managedIdentity.id
 output managedIdentityPrincipalId string = managedIdentity.properties.principalId
 output managedIdentityClientId string = managedIdentity.properties.clientId
@@ -297,4 +313,7 @@ output logicAppUrl string = 'https://${logicApp.properties.defaultHostName}'
 output logicAppResourceId string = logicApp.id
 
 output mcpServerEndpoint string = 'https://${functionApp.properties.defaultHostName}/api/mcp'
+output healthEndpoint string = 'https://${functionApp.properties.defaultHostName}/api/health'
 output mcpServerAudience string = 'api://${baseName}-mcp'
+
+output deployCommand string = 'func azure functionapp publish ${functionApp.name}'

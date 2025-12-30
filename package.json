@@ -30,6 +30,7 @@
   },
   "dependencies": {
     "@azure/functions": "^4.10.0",
+    "@azure/identity": "^4.13.0",
     "@modelcontextprotocol/sdk": "^1.0.0",
     "express": "^5.2.1"
   },
