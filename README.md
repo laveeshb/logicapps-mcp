@@ -6,6 +6,7 @@ An MCP (Model Context Protocol) server that enables AI assistants to interact wi
 
 ## Table of Contents
 
+- [Choose Your Setup](#choose-your-setup)
 - [Quick Start](#quick-start)
 - [Features](#features)
 - [SKU Differences](#sku-differences)
@@ -14,13 +15,63 @@ An MCP (Model Context Protocol) server that enables AI assistants to interact wi
 - [Configuration](#configuration)
 - [Usage with Claude Desktop](#usage-with-claude-desktop)
 - [Usage with GitHub Copilot in VS Code](#usage-with-github-copilot-in-vs-code)
-- [Cloud Deployment](#cloud-deployment)
+- [Cloud Agent](#cloud-agent)
 - [Authentication](#authentication)
 - [Available Tools](#available-tools)
 - [Available Prompts](#available-prompts)
 - [Example Prompts](#example-prompts)
 - [Development](#development)
 - [Architecture](#architecture)
+
+## Choose Your Setup
+
+This project offers two ways to use AI with Azure Logic Apps:
+
+```
+                    ┌─────────────────────────────────────┐
+                    │  Do you have a local AI assistant?  │
+                    │  (GitHub Copilot, Claude Desktop)   │
+                    └──────────────┬──────────────────────┘
+                                   │
+                    ┌──────────────┴──────────────┐
+                    │                             │
+                   YES                            NO
+                    │                             │
+                    ▼                             ▼
+    ┌───────────────────────────────┐  ┌───────────────────────────────┐
+    │  Do you have Azure CLI access │  │     Use Cloud Agent           │
+    │  to the Logic Apps you want   │  │                               │
+    │  to investigate?              │  │  Deploy the hosted agent to   │
+    │                               │  │  Azure and call it via REST   │
+    └───────────────┬───────────────┘  │  API with Azure AD auth.      │
+                    │                  │                               │
+         ┌──────────┴──────────┐       │  → See "Cloud Agent" section  │
+         │                     │       └───────────────────────────────┘
+        YES                    NO
+         │                     │
+         ▼                     ▼
+┌─────────────────────┐  ┌───────────────────────────────┐
+│  Use Local MCP      │  │     Use Cloud Agent           │
+│  Server             │  │                               │
+│                     │  │  Deploy with managed identity │
+│  Install the MCP    │  │  that has access to your      │
+│  server and connect │  │  Logic Apps.                  │
+│  it to your AI.     │  │                               │
+│                     │  │  → See "Cloud Agent" section  │
+│  → See "Quick Start"│  └───────────────────────────────┘
+└─────────────────────┘
+```
+
+### Comparison
+
+| Aspect | Local MCP Server | Cloud Agent |
+|--------|------------------|-------------|
+| **Setup** | `npm install` + AI config | Deploy to Azure (Bicep) |
+| **AI Model** | Your local AI (Copilot, Claude) | Azure OpenAI (gpt-4o) |
+| **Auth** | Your Azure CLI credentials | Managed Identity |
+| **Access Scope** | What you can access via `az login` | What the MI can access |
+| **Cost** | Free (uses your AI subscription) | Azure Function + OpenAI usage |
+| **Best For** | Developers with local AI tools | Teams, shared access, automation |
 
 ## Quick Start
 
@@ -262,60 +313,86 @@ Or if installed globally:
 
 > **Tip:** Ensure you've run `az login` before starting VS Code.
 
-## Cloud Deployment
+## Cloud Agent
 
-Deploy the MCP server as a cloud-hosted service for use with Logic Apps Agent Loop or other AI orchestrators.
+Deploy an AI-powered agent to Azure that can investigate and manage Logic Apps on your behalf. The agent uses Azure OpenAI and the MCP tools to answer questions about your Logic Apps.
 
-### Architecture
+### When to Use
 
-```
-┌─ User-Assigned Managed Identity ──────────────────────────────────────────┐
-│  Roles: Logic App Contributor, Reader                                      │
-└────────────────────────────────────────────────────────────────────────────┘
-                    │
-    ┌───────────────┴───────────────┐
-    ▼                               ▼
-┌─ Function App (EP1) ──────┐  ┌─ Logic App Standard (WS1) ──────────────────┐
-│  MCP Server               │  │  Agent Loop Workflow                        │
-│  - 36 MCP tools           │  │  - Uses Function App as MCP Server         │
-│  - HTTP transport         │  │  - Calls Azure AI Foundry for LLM          │
-│  - Easy Auth (MI only)    │  │  - Exposes chat endpoint                   │
-└───────────────────────────┘  └─────────────────────────────────────────────┘
-```
-
-### Features
-
-- **Zero secrets**: All authentication via Managed Identity
-- **Secure by default**: Easy Auth restricts access to the managed identity
-- **HTTP transport**: Uses `StreamableHTTPServerTransport` for cloud compatibility
-- **Agent Loop**: Pre-built Logic Apps workflow for conversational AI
+- You don't have a local AI assistant (GitHub Copilot, Claude Desktop)
+- You want to give team members access without sharing Azure CLI credentials
+- You need to automate Logic Apps investigation via REST API
+- You want the agent to have its own managed identity with specific RBAC scope
 
 ### Quick Deploy
 
-```bash
-# Create resource group
-az group create --name logicapps-assistant-rg --location westus2
+```powershell
+# PowerShell
+./deploy/deploy.ps1 -ResourceGroup my-rg -Prefix myagent -CreateResourceGroup
 
-# Deploy infrastructure
-az deployment group create \
-  --resource-group logicapps-assistant-rg \
-  --template-file deploy/bicep/main.bicep \
-  --parameters baseName=logicapps-assistant
+# Bash
+./deploy/deploy.sh -g my-rg -p myagent --create-rg
 ```
 
-See [deploy/README.md](deploy/README.md) for full deployment instructions, cost estimates, and troubleshooting.
+The scripts will:
+1. Create infrastructure (Function App, Storage, App Insights)
+2. Configure Easy Auth with your Azure AD identity
+3. Output the endpoint URLs
 
-### HTTP Mode
+### Configure AI
 
-The server supports HTTP transport for cloud deployment:
+After deployment, set the Azure OpenAI endpoint:
 
 ```bash
-# Run with HTTP transport
-npx github:laveeshb/logicapps-mcp --http --port 3000
-
-# Or via environment variable
-MCP_PORT=3000 npx github:laveeshb/logicapps-mcp
+az functionapp config appsettings set \
+  --name <function-app-name> \
+  --resource-group <rg-name> \
+  --settings AI_FOUNDRY_ENDPOINT=https://<your-openai>.openai.azure.com \
+             AI_FOUNDRY_DEPLOYMENT=gpt-4o
 ```
+
+Grant the managed identity `Cognitive Services OpenAI User` role on your Azure OpenAI resource.
+
+### Call the Agent
+
+```bash
+# Get Azure AD token
+TOKEN=$(az account get-access-token --resource https://management.azure.com --query accessToken -o tsv)
+
+# Ask a question
+curl -X POST "https://<app>.azurewebsites.net/api/agent" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"message": "List my Azure subscriptions"}'
+```
+
+### Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `/api/health` | Health check |
+| `/api/mcp` | Raw MCP protocol (JSON-RPC) |
+| `/api/agent` | AI-powered agent (natural language) |
+
+### Grant Access to Logic Apps
+
+The managed identity needs RBAC roles to access Logic Apps:
+
+```bash
+# Grant Reader on a subscription
+az role assignment create \
+  --assignee <managed-identity-principal-id> \
+  --role "Reader" \
+  --scope /subscriptions/<subscription-id>
+
+# Grant Logic App Contributor for write operations
+az role assignment create \
+  --assignee <managed-identity-principal-id> \
+  --role "Logic App Contributor" \
+  --scope /subscriptions/<subscription-id>/resourceGroups/<rg-name>
+```
+
+See [deploy/README.md](deploy/README.md) for full deployment instructions.
 
 ## Authentication
 
