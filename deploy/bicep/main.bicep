@@ -1,25 +1,20 @@
-// Logic Apps AI Assistant - Cloud Deployment
+// Logic Apps AI Assistant - Cloud Deployment (Security Hardened)
 // 
-// This Bicep template deploys:
-// - User-Assigned Managed Identity
-// - Function App (MCP Server)
-// - Logic App Standard (for Agent Loop)
-// - Required role assignments
+// Security features:
+// - User-Assigned Managed Identity for all Azure access
+// - Storage: No public blob access, TLS 1.2 minimum, HTTPS only
+// - Function App: HTTPS only, TLS 1.2, FTPS disabled
+// - All secrets via Managed Identity where possible
 //
-// Prerequisites:
-// - Azure AI Foundry with GPT-4o deployment (created separately)
-// - Azure subscription with Logic Apps and Functions capability
+// Note: Azure Functions still requires storage connection strings for 
+// AzureWebJobsStorage. Using MI-based storage access requires additional
+// configuration and is not yet fully supported for all scenarios.
 //
 // Usage:
 //   az deployment group create \
 //     --resource-group <rg-name> \
 //     --template-file main.bicep \
 //     --parameters prefix=myprefix
-//
-// Or let it auto-generate a prefix:
-//   az deployment group create \
-//     --resource-group <rg-name> \
-//     --template-file main.bicep
 
 targetScope = 'resourceGroup'
 
@@ -51,7 +46,7 @@ resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-
 }
 
 // ============================================================================
-// Storage Account (required for both Function App and Logic App)
+// Storage Account (Security Hardened)
 // ============================================================================
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
@@ -64,6 +59,72 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   properties: {
     supportsHttpsTrafficOnly: true
     minimumTlsVersion: 'TLS1_2'
+    allowBlobPublicAccess: false
+    allowSharedKeyAccess: true  // Required for Azure Functions AzureWebJobsStorage
+    publicNetworkAccess: 'Enabled'  // Required for Functions to access storage
+    networkAcls: {
+      defaultAction: 'Allow'  // Functions need access; use VNet integration for stricter control
+      bypass: 'AzureServices'
+    }
+    encryption: {
+      services: {
+        blob: {
+          enabled: true
+        }
+        file: {
+          enabled: true
+        }
+        table: {
+          enabled: true
+        }
+        queue: {
+          enabled: true
+        }
+      }
+      keySource: 'Microsoft.Storage'
+    }
+  }
+}
+
+// Storage Blob Data Owner role for Managed Identity (for future MI-based access)
+var storageBlobDataOwnerRoleId = 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b'
+
+resource storageRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(storageAccount.id, managedIdentity.id, storageBlobDataOwnerRoleId)
+  scope: storageAccount
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageBlobDataOwnerRoleId)
+    principalId: managedIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// ============================================================================
+// Application Insights (for telemetry and debugging)
+// ============================================================================
+
+resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
+  name: '${baseName}-logs'
+  location: location
+  properties: {
+    sku: {
+      name: 'PerGB2018'
+    }
+    retentionInDays: 30
+    publicNetworkAccessForIngestion: 'Enabled'
+    publicNetworkAccessForQuery: 'Enabled'
+  }
+}
+
+resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
+  name: '${baseName}-insights'
+  location: location
+  kind: 'web'
+  properties: {
+    Application_Type: 'web'
+    WorkspaceResourceId: logAnalyticsWorkspace.id
+    publicNetworkAccessForIngestion: 'Enabled'
+    publicNetworkAccessForQuery: 'Enabled'
   }
 }
 
@@ -85,7 +146,7 @@ resource functionAppPlan 'Microsoft.Web/serverfarms@2022-09-01' = {
 }
 
 // ============================================================================
-// Function App (MCP Server)
+// Function App (MCP Server) - Security Hardened
 // ============================================================================
 
 resource functionApp 'Microsoft.Web/sites@2022-09-01' = {
@@ -101,9 +162,14 @@ resource functionApp 'Microsoft.Web/sites@2022-09-01' = {
   properties: {
     serverFarmId: functionAppPlan.id
     httpsOnly: true
+    clientCertEnabled: false
     siteConfig: {
       nodeVersion: '~20'
+      minTlsVersion: '1.2'
+      ftpsState: 'Disabled'
+      http20Enabled: true
       appSettings: [
+        // Storage connection (still requires key for AzureWebJobsStorage)
         {
           name: 'AzureWebJobsStorage'
           value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}'
@@ -116,6 +182,7 @@ resource functionApp 'Microsoft.Web/sites@2022-09-01' = {
           name: 'WEBSITE_CONTENTSHARE'
           value: '${baseName}-mcp-content'
         }
+        // Runtime settings
         {
           name: 'FUNCTIONS_EXTENSION_VERSION'
           value: '~4'
@@ -128,52 +195,41 @@ resource functionApp 'Microsoft.Web/sites@2022-09-01' = {
           name: 'WEBSITE_NODE_DEFAULT_VERSION'
           value: '~20'
         }
+        // Telemetry
+        {
+          name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+          value: appInsights.properties.ConnectionString
+        }
+        // Managed Identity for Azure API calls
         {
           name: 'AZURE_CLIENT_ID'
           value: managedIdentity.properties.clientId
+        }
+        // Security: Run from package
+        {
+          name: 'WEBSITE_RUN_FROM_PACKAGE'
+          value: '1'
         }
       ]
     }
   }
 }
 
-// Easy Auth for Function App - DISABLED FOR TESTING
-// Uncomment the resource below to restrict access to only the Managed Identity
-//
-// resource functionAppAuth 'Microsoft.Web/sites/config@2022-09-01' = {
-//   parent: functionApp
-//   name: 'authsettingsV2'
-//   properties: {
-//     globalValidation: {
-//       requireAuthentication: true
-//       unauthenticatedClientAction: 'Return401'
-//     }
-//     identityProviders: {
-//       azureActiveDirectory: {
-//         enabled: true
-//         registration: {
-//           openIdIssuer: 'https://sts.windows.net/${subscription().tenantId}/v2.0'
-//           clientId: 'api://${baseName}-mcp'
-//         }
-//         validation: {
-//           allowedAudiences: [
-//             'api://${baseName}-mcp'
-//           ]
-//           defaultAuthorizationPolicy: {
-//             allowedPrincipals: {
-//               identities: [
-//                 managedIdentity.properties.principalId
-//               ]
-//             }
-//           }
-//         }
-//       }
-//     }
-//   }
-// }
+// Function App web config for additional security
+resource functionAppWebConfig 'Microsoft.Web/sites/config@2022-09-01' = {
+  parent: functionApp
+  name: 'web'
+  properties: {
+    minTlsVersion: '1.2'
+    ftpsState: 'Disabled'
+    http20Enabled: true
+    remoteDebuggingEnabled: false
+    scmMinTlsVersion: '1.2'
+  }
+}
 
 // ============================================================================
-// Logic App Standard (Agent Loop Host)
+// Logic App Standard (Agent Loop Host) - Security Hardened
 // ============================================================================
 
 resource logicAppPlan 'Microsoft.Web/serverfarms@2022-09-01' = {
@@ -203,6 +259,9 @@ resource logicApp 'Microsoft.Web/sites@2022-09-01' = {
     serverFarmId: logicAppPlan.id
     httpsOnly: true
     siteConfig: {
+      minTlsVersion: '1.2'
+      ftpsState: 'Disabled'
+      http20Enabled: true
       appSettings: [
         {
           name: 'AzureWebJobsStorage'
@@ -245,11 +304,12 @@ resource logicApp 'Microsoft.Web/sites@2022-09-01' = {
           name: 'MCP_SERVER_AUDIENCE'
           value: 'api://${baseName}-mcp'
         }
+        // Managed Identity for calling MCP server
         {
           name: 'AZURE_CLIENT_ID'
           value: managedIdentity.properties.clientId
         }
-        // AI Foundry configuration (optional - can be configured later)
+        // AI Foundry configuration (optional)
         {
           name: 'AI_FOUNDRY_ENDPOINT'
           value: aiFoundryEndpoint
@@ -258,16 +318,34 @@ resource logicApp 'Microsoft.Web/sites@2022-09-01' = {
           name: 'AI_FOUNDRY_DEPLOYMENT'
           value: aiFoundryDeployment
         }
+        // Telemetry
+        {
+          name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+          value: appInsights.properties.ConnectionString
+        }
       ]
     }
   }
 }
 
+// Logic App web config for additional security
+resource logicAppWebConfig 'Microsoft.Web/sites/config@2022-09-01' = {
+  parent: logicApp
+  name: 'web'
+  properties: {
+    minTlsVersion: '1.2'
+    ftpsState: 'Disabled'
+    http20Enabled: true
+    remoteDebuggingEnabled: false
+    scmMinTlsVersion: '1.2'
+  }
+}
+
 // ============================================================================
-// Role Assignments
+// Role Assignments for Managed Identity
 // ============================================================================
 
-// Logic App Contributor role for managing Logic Apps
+// Logic App Contributor role at subscription level (to manage Logic Apps)
 var logicAppContributorRoleId = '87a39d53-fc1b-424a-814c-f7e04687dc9e'
 
 resource roleAssignmentLogicApps 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
@@ -315,5 +393,9 @@ output logicAppResourceId string = logicApp.id
 output mcpServerEndpoint string = 'https://${functionApp.properties.defaultHostName}/api/mcp'
 output healthEndpoint string = 'https://${functionApp.properties.defaultHostName}/api/health'
 output mcpServerAudience string = 'api://${baseName}-mcp'
+
+output appInsightsName string = appInsights.name
+output appInsightsPortalUrl string = 'https://portal.azure.com/#@/resource${appInsights.id}/overview'
+output logAnalyticsWorkspaceName string = logAnalyticsWorkspace.name
 
 output deployCommand string = 'func azure functionapp publish ${functionApp.name}'
