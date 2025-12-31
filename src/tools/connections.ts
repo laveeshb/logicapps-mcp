@@ -296,17 +296,17 @@ export async function getConnectorSwagger(
     };
   }
 
-  // First, get the swagger definition with export=true
-  const swagger = await armRequest<SwaggerResponse>(
-    `/subscriptions/${subscriptionId}/providers/Microsoft.Web/locations/${location}/managedApis/${connectorName}`,
-    { queryParams: { "api-version": "2018-07-01-preview", export: "true" } }
-  );
+  // Fetch swagger and metadata in parallel for better performance
+  const apiPath = `/subscriptions/${subscriptionId}/providers/Microsoft.Web/locations/${location}/managedApis/${connectorName}`;
 
-  // Then get connector metadata (without export) for display info
-  const metadata = await armRequest<ConnectorMetadataResponse>(
-    `/subscriptions/${subscriptionId}/providers/Microsoft.Web/locations/${location}/managedApis/${connectorName}`,
-    { queryParams: { "api-version": "2018-07-01-preview" } }
-  );
+  const [swagger, metadata] = await Promise.all([
+    armRequest<SwaggerResponse>(apiPath, {
+      queryParams: { "api-version": "2018-07-01-preview", export: "true" },
+    }),
+    armRequest<ConnectorMetadataResponse>(apiPath, {
+      queryParams: { "api-version": "2018-07-01-preview" },
+    }),
+  ]);
 
   const result: GetConnectorSwaggerResult = {
     connectorName: metadata.name,
