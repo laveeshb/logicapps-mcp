@@ -56,4 +56,4 @@ For read-only access, `Logic App Reader` is sufficient.
 
 - [Getting Started](GETTING_STARTED.md) - Setup guides for local MCP server or cloud agent
 - [Available Tools](TOOLS.md) - All 37 tools
-- [Cloud Agent](CLOUD_AGENT.md) - Deploy to Azure for team/enterprise use
+- [Cloud MCP Server](CLOUD_MCP_SERVER.md) - Deploy to Azure for team/enterprise use

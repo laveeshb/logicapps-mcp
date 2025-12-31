@@ -1,22 +1,22 @@
 ---
-version: 0.2.0
-lastUpdated: 2025-12-26
+version: 0.3.0
+lastUpdated: 2025-12-30
 ---
 
-# Logic Apps AI Assistant - Design Overview
+# Logic Apps MCP Server - Design Overview
 
 ## Executive Summary
 
-This document describes the design for a Logic Apps AI Assistant that helps users debug, author, and manage Azure Logic Apps through natural language. The solution is offered in **two deployment models** to serve different customer segments.
+This document describes the design for a Logic Apps MCP Server that enables AI assistants to interact with Azure Logic Apps through natural language. The solution is offered in **two deployment models** to serve different use cases.
 
 ---
 
-## Customer Segments
+## Deployment Models
 
-| Segment | Profile | LLM | Solution | Cost |
-|---------|---------|-----|----------|------|
-| **Enterprise with AI** | Has GitHub Copilot, Claude, Cursor | User's subscription | [Local MCP Server](LOCAL_MCP_SERVER.md) | Free |
-| **No AI Subscription** | Azure subscription only | Azure AI Foundry | [Cloud Agent Loop](CLOUD_AGENT_LOOP.md) | Pay-per-use |
+| Model | Use Case | LLM | Auth |
+|-------|----------|-----|------|
+| **Local MCP Server** | Individual developers with local AI tools | User's subscription (Copilot, Claude, etc.) | Azure CLI (`az login`) |
+| **Cloud MCP Server** | Remote/hosted AI integrations | Bring your own AI client | Passthrough (client provides bearer token) |
 
 ---
 
@@ -26,23 +26,22 @@ This document describes the design for a Logic Apps AI Assistant that helps user
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                        SHARED COMPONENTS                                    │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │  • 37 Tools (33 Logic Apps operations + 4 knowledge tools)          │   │
-│  │  • Bundled documentation (~3,600 lines)                             │   │
-│  │  • Same TypeScript codebase                                         │   │
+│  │  - 37 Tools (33 Logic Apps operations + 4 knowledge tools)          │   │
+│  │  - Bundled documentation (~3,600 lines)                             │   │
+│  │  - Same TypeScript codebase                                         │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────────────┘
                     │                                   │
                     ▼                                   ▼
 ┌───────────────────────────────────┐   ┌───────────────────────────────────┐
-│  LOCAL MCP SERVER                 │   │  CLOUD AGENT LOOP                 │
-│  (Enterprise with AI tools)       │   │  (No AI subscription)             │
+│  LOCAL MCP SERVER                 │   │  CLOUD MCP SERVER                 │
+│  (Individual developers)          │   │  (Remote AI integrations)         │
 ├───────────────────────────────────┤   ├───────────────────────────────────┤
-│  Runtime: User's machine          │   │  Runtime: Azure (LA + FA)         │
-│  Transport: stdio                 │   │  Transport: HTTP SSE              │
-│  LLM: Claude/GPT/etc (theirs)     │   │  LLM: Azure AI Foundry            │
-│  Auth: Azure CLI (az login)       │   │  Auth: Managed Identity           │
-│  Frontend: Claude/Copilot/Cursor  │   │  Frontend: Built-in Chat UI       │
-│  Cost: Free                       │   │  Cost: ~$325/mo + tokens          │
+│  Runtime: User's machine          │   │  Runtime: Azure Function App      │
+│  Transport: stdio                 │   │  Transport: HTTP                  │
+│  LLM: Claude/GPT/etc (theirs)     │   │  LLM: Bring your own             │
+│  Auth: Azure CLI credentials      │   │  Auth: Passthrough (bearer token) │
+│  Frontend: Claude/Copilot/Cursor  │   │  Frontend: Any MCP client        │
 └───────────────────────────────────┘   └───────────────────────────────────┘
 ```
 
@@ -55,14 +54,16 @@ This document describes the design for a Logic Apps AI Assistant that helps user
 - npm package: `@laveeshb/logicapps-mcp`
 - Works with: VS Code Copilot, Claude Desktop, Cursor, Windsurf
 - Distribution: npm, mcp.so, Smithery
+- Auth: Uses Azure CLI cached credentials (`az login`)
 - **Status**: ✅ Implemented
 
-### [Cloud Agent Loop](CLOUD_AGENT_LOOP.md)
+### [Cloud MCP Server](CLOUD_MCP_SERVER.md)
 
-- Logic Apps Standard + Function App
-- Uses "Bring Your Own MCP" feature
-- Managed Identity authentication
-- **Status**: 🔲 Phase 2
+- Deployment: Azure Function App via Bicep
+- Transport: HTTP (MCP over HTTP)
+- Auth: Passthrough - clients provide ARM-scoped bearer token
+- No managed identity for ARM access - all access is through client tokens
+- **Status**: ✅ Implemented
 
 ---
 
@@ -95,33 +96,9 @@ Both solutions implement the same 37 tools:
 
 ---
 
-## Shared Documentation
-
-Both solutions consume the same bundled documentation:
-
-```
-docs/
-├── troubleshooting/
-│   ├── expression-errors.md
-│   ├── connection-issues.md
-│   ├── run-failures.md
-│   └── known-limitations.md
-├── authoring/
-│   ├── workflow-patterns.md
-│   ├── connector-patterns.md
-│   └── deployment.md
-└── reference/
-    ├── tool-catalog.md
-    └── sku-differences.md
-```
-
-**Size**: ~3,600 lines (~15-20KB)
-
----
-
 ## Implementation Status
 
-### Phase 1: Local MCP Server ✅
+### Local MCP Server ✅
 
 | Task | Status |
 |------|--------|
@@ -131,15 +108,16 @@ docs/
 | npm package config | ✅ Done |
 | Tests passing | ✅ Done |
 
-### Phase 2: Cloud Agent Loop 🔲
+### Cloud MCP Server ✅
 
 | Task | Status |
 |------|--------|
-| HTTP transport for MCP server | 🔲 TODO |
-| Azure Functions wrapper | 🔲 TODO |
-| Agent Loop workflow | 🔲 TODO |
-| Bicep deployment template | 🔲 TODO |
-| Documentation | 🔲 TODO |
+| HTTP transport for MCP server | ✅ Done |
+| Azure Functions wrapper | ✅ Done |
+| Passthrough auth | ✅ Done |
+| Bicep deployment template | ✅ Done |
+| Deploy scripts (PS1 + Bash) | ✅ Done |
+| Documentation | ✅ Done |
 
 ---
 
@@ -150,14 +128,12 @@ docs/
 | Two solutions, shared code | Maximize reuse, maintain consistency |
 | Bundled docs for MCP | Reliability, works offline |
 | Function App for cloud MCP | Reuse same TypeScript code |
-| Managed Identity | Security best practice, no secrets |
-| Easy Auth on both apps | Zero-trust, identity-based access |
-| "Bring Your Own MCP" | Native Agent Loop integration |
+| Passthrough auth for cloud | No server-side credentials needed, user-scoped access |
+| No managed identity for ARM | Simpler, users see only what they can access |
 
 ---
 
 ## References
 
 - [Local MCP Server - Detailed Design](LOCAL_MCP_SERVER.md)
-- [Cloud Agent Loop - Detailed Design](CLOUD_AGENT_LOOP.md)
-- [MCP Server Support for Agent Loop](https://techcommunity.microsoft.com/blog/integrationsonazureblog/announcing-mcp-server-support-for-logic-apps-agent-loop/4470778)
+- [Cloud MCP Server - Detailed Design](CLOUD_MCP_SERVER.md)

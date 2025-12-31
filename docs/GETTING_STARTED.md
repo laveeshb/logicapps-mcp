@@ -5,38 +5,31 @@ This guide helps you choose the right setup and get started with AI-powered Logi
 ## Decision Flowchart
 
 ```
-        Can you access the Logic Apps
-        you want to manage? (via az login)
+        Do you have a local AI assistant?
+        (GitHub Copilot, Claude Desktop, Cursor)
                     │
          ┌──────────┴──────────┐
          │                     │
         YES                    NO
          │                     │
-         ▼                     │
-    Do you have a              │
-    local AI assistant?        │
-    (Copilot, Claude)          │
-         │                     │
-    ┌────┴────┐                │
-    │         │                │
-   YES        NO ──────────────┤
-    │                          │
-    ▼                          ▼
+         ▼                     ▼
 ┌─────────────────┐    ┌─────────────────┐
-│ Local MCP Server│    │   Cloud Agent   │
+│ Local MCP Server│    │ Cloud MCP Server│
 │                 │    │                 │
 │ npm install +   │    │ Deploy to Azure │
-│ AI config       │    │ REST API access │
+│ AI config       │    │ + remote AI     │
 └─────────────────┘    └─────────────────┘
+
+Both options require Azure access (az login) to get credentials.
 ```
 
-| Aspect | Local MCP Server | Cloud Agent |
-|--------|------------------|-------------|
+| Aspect | Local MCP Server | Cloud MCP Server |
+|--------|------------------|------------------|
 | **Setup** | `npm install` + AI config | Deploy to Azure |
-| **AI Model** | Your local AI (Copilot, Claude) | Azure OpenAI |
-| **API Auth** | Your Azure CLI credentials | Your identity (via Easy Auth) |
-| **Resource Access** | What *you* can access | What the *managed identity* can access |
-| **Best For** | Individual developers | Teams, enterprise, automation |
+| **AI Model** | Your local AI (Copilot, Claude) | Bring your own AI client |
+| **API Auth** | Your Azure CLI credentials | Passthrough (client provides bearer token) |
+| **Resource Access** | What *you* can access | What *the token holder* can access |
+| **Best For** | Individual developers | Remote/hosted AI integrations |
 
 ## Local MCP Server Setup
 
@@ -121,32 +114,87 @@ Try these prompts:
 - "Show Logic Apps in subscription xyz"
 - "What workflows failed in the last 24 hours?"
 
-## Cloud Agent Setup
+## Cloud MCP Server Setup
 
-See [Cloud Agent](CLOUD_AGENT.md) for detailed deployment instructions.
+Deploy a hosted MCP server to Azure. The server uses **passthrough authentication**—it has no Azure credentials of its own. Clients must provide an ARM-scoped bearer token in the `Authorization` header.
 
-### Quick Deploy
+### Prerequisites
+
+1. Azure subscription
+2. Azure CLI installed and authenticated (`az login`)
+3. Azure Functions Core Tools (`npm install -g azure-functions-core-tools@4`)
+4. Node.js 20+
+
+### Step 1: Deploy
 
 ```bash
-# Deploy (creates Azure OpenAI resource for you)
-./deploy/deploy.ps1 -ResourceGroup my-rg -CreateAiResource -CreateResourceGroup
+# PowerShell
+./deploy/deploy.ps1 -ResourceGroup my-rg -CreateResourceGroup
 
-# Grant the managed identity access to your Logic Apps
-az role assignment create \
-  --assignee <managed-identity-id-from-output> \
-  --role "Reader" \
-  --scope /subscriptions/<subscription-id>
+# Bash
+./deploy/deploy.sh -g my-rg --create-rg
+```
 
-# Call the agent (be specific - open-ended queries may time out)
+This creates:
+- **Function App** - Hosts the MCP server
+- **Storage Account** - Required for Functions runtime
+- **Application Insights** - Telemetry and monitoring
+
+### Step 2: Test the Deployment
+
+```bash
+# Get an ARM-scoped token
 TOKEN=$(az account get-access-token --resource https://management.azure.com --query accessToken -o tsv)
-curl -X POST "https://<app>.azurewebsites.net/api/agent" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"message": "Get error details for run 08585373430220335253625502230CU00 of workflow order-processing in Logic App contoso-app"}'
+
+# Test health endpoint
+curl -H "Authorization: Bearer $TOKEN" https://<your-app>.azurewebsites.net/api/health
+
+# Expected: {"status":"ok","version":"0.2.0"}
+```
+
+### Step 3: Connect Your AI Client
+
+The MCP endpoint is available at:
+```
+https://<your-app>.azurewebsites.net/api/mcp
+```
+
+Configure your AI client to:
+1. Send requests to the MCP endpoint
+2. Include `Authorization: Bearer <ARM-token>` header
+3. Use the MCP protocol (JSON-RPC over HTTP)
+
+### Authentication Model
+
+The cloud MCP server uses **passthrough authentication**:
+
+```
+┌──────────────────┐     ┌──────────────────┐     ┌──────────────────┐
+│    AI Client     │────▶│    MCP Server    │────▶│    Azure ARM     │
+│                  │     │  (Function App)  │     │      APIs        │
+└─────────┬────────┘     └─────────┬────────┘     └─────────┬────────┘
+          │                        │                        │
+          │ Authorization:         │ Uses client's          │
+          │ Bearer <ARM-token>     │ token directly         │
+          └────────────────────────┴────────────────────────┘
+```
+
+- **No managed identity for ARM**: The server doesn't have its own Azure access
+- **Token required**: Every request must include an ARM-scoped bearer token
+- **User-scoped access**: Users only see resources they have access to
+- **No token = error**: Requests without a valid token will fail
+
+### Getting an ARM Token
+
+```bash
+# Azure CLI
+az account get-access-token --resource https://management.azure.com --query accessToken -o tsv
+
+# PowerShell
+$token = (Get-AzAccessToken -ResourceUrl https://management.azure.com).Token
 ```
 
 ## Next Steps
 
 - [Available Tools](TOOLS.md) - See all 37 tools
 - [Configuration](CONFIGURATION.md) - Environment variables and authentication
-- [Cloud Agent](CLOUD_AGENT.md) - Deployment details
