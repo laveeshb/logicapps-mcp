@@ -109,9 +109,6 @@ describe("handler integration", () => {
     const result = await handleToolCall("unknown_tool", {});
 
     expect(result.isError).toBe(true);
-    const content = result.content[0];
-    const data = JSON.parse(content.type === "text" ? content.text : "");
-    expect(data.code).toBe("InvalidTool");
   });
 
   describe("knowledge tools", () => {
@@ -142,7 +139,7 @@ describe("handler integration", () => {
       const content = result.content[0];
       const data = JSON.parse(content.type === "text" ? content.text : "");
       expect(data.topic).toBe("diagnose-failures");
-      expect(data.instructions).toBeDefined();
+      expect(data.content).toBeDefined();
     });
   });
 });

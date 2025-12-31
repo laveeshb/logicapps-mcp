@@ -3,6 +3,8 @@
  * No configuration required - just `az login` and run tests.
  */
 
+import { getAzureCliToken } from "../auth/azureCli.js";
+import { setPassthroughToken } from "../auth/tokenManager.js";
 import { listSubscriptions } from "../tools/subscriptions.js";
 import { listLogicApps } from "../tools/logicApps.js";
 import { listWorkflows } from "../tools/workflows.js";
@@ -36,19 +38,39 @@ export async function discoverTestResources(): Promise<TestResources | null> {
   if (discoveryFailed) return null;
 
   try {
-    // Get first subscription
+    // Get token from Azure CLI and set as passthrough token
+    const cliToken = await getAzureCliToken();
+    setPassthroughToken(cliToken.accessToken);
+
+    // Get subscriptions
     const subs = await listSubscriptions();
     if (subs.subscriptions.length === 0) {
       console.log("No Azure subscriptions found. Run 'az login' first.");
       discoveryFailed = true;
       return null;
     }
-    const subscriptionId = subs.subscriptions[0].subscriptionId;
 
-    // Find Logic Apps across resource groups
-    const allApps = await listLogicApps(subscriptionId);
-    if (allApps.logicApps.length === 0) {
-      console.log("No Logic Apps found in subscription.");
+    // Search through subscriptions for Logic Apps
+    let subscriptionId: string | null = null;
+    let allApps: Awaited<ReturnType<typeof listLogicApps>> | null = null;
+
+    for (const sub of subs.subscriptions) {
+      try {
+        const apps = await listLogicApps(sub.subscriptionId);
+        if (apps.logicApps.length > 0) {
+          subscriptionId = sub.subscriptionId;
+          allApps = apps;
+          console.log(`Found ${apps.logicApps.length} Logic Apps in subscription: ${sub.displayName}`);
+          break;
+        }
+      } catch {
+        // Skip subscriptions we can't access
+        continue;
+      }
+    }
+
+    if (!subscriptionId || !allApps) {
+      console.log("No Logic Apps found in any subscription.");
       discoveryFailed = true;
       return null;
     }
