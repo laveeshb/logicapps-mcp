@@ -552,7 +552,53 @@ export async function searchRuns(
 
   const filter = filterParts.length > 0 ? filterParts.join(" and ") : undefined;
 
-  // Use existing listRunHistory with the constructed filter
+  // If clientTrackingId is provided, we need to handle pagination specially
+  // because the API doesn't support filtering by clientTrackingId server-side
+  if (clientTrackingId) {
+    // Fetch pages until we have enough matching results or run out of pages
+    const matchingRuns: SearchRunsResult["runs"] = [];
+    let currentSkipToken = skipToken;
+    const maxIterations = 10; // Safety limit to prevent infinite loops
+    let iterations = 0;
+
+    while (matchingRuns.length < top && iterations < maxIterations) {
+      iterations++;
+
+      const pageResult = await listRunHistory(
+        subscriptionId,
+        resourceGroupName,
+        logicAppName,
+        workflowName,
+        100, // Fetch max page size for efficiency
+        filter,
+        currentSkipToken
+      );
+
+      // Filter this page for matching clientTrackingId
+      const matching = pageResult.runs.filter(
+        (run) => run.correlation?.clientTrackingId === clientTrackingId
+      );
+      matchingRuns.push(...matching);
+
+      // If no more pages, stop
+      if (!pageResult.nextLink) {
+        break;
+      }
+
+      // Extract skipToken from nextLink for next iteration
+      const nextLinkUrl = new URL(pageResult.nextLink);
+      currentSkipToken = nextLinkUrl.searchParams.get("$skiptoken") ?? undefined;
+    }
+
+    return {
+      runs: matchingRuns.slice(0, top),
+      count: Math.min(matchingRuns.length, top),
+      // Cannot provide valid nextLink for client-side filtered results
+      nextLink: undefined,
+    };
+  }
+
+  // Standard case: use server-side filtering only
   const result = await listRunHistory(
     subscriptionId,
     resourceGroupName,
@@ -563,15 +609,9 @@ export async function searchRuns(
     skipToken
   );
 
-  // Client-side filter for clientTrackingId if provided (API doesn't support it in filter)
-  let runs = result.runs;
-  if (clientTrackingId) {
-    runs = runs.filter((run) => run.correlation?.clientTrackingId === clientTrackingId);
-  }
-
   return {
-    runs,
-    count: runs.length,
+    runs: result.runs,
+    count: result.runs.length,
     nextLink: result.nextLink,
   };
 }
