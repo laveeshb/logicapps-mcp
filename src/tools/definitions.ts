@@ -989,7 +989,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "batch_enable_workflows",
     description:
-      "Enable multiple workflows in a single operation. For Standard SKU, provide workflow names within the Logic App. Uses controlled concurrency to avoid Azure throttling. Returns results for each workflow showing success or failure.",
+      "Enable multiple workflows in a single operation. For Standard SKU, enables each specified workflow. For Consumption SKU, enables the single workflow (workflowNames ignored). Uses controlled concurrency to avoid Azure throttling. Returns results showing success or failure.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1021,7 +1021,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "batch_disable_workflows",
     description:
-      "Disable multiple workflows in a single operation. For Standard SKU, provide workflow names within the Logic App. Uses controlled concurrency to avoid Azure throttling. Returns results for each workflow showing success or failure.",
+      "Disable multiple workflows in a single operation. For Standard SKU, disables each specified workflow. For Consumption SKU, disables the single workflow (workflowNames ignored). Uses controlled concurrency to avoid Azure throttling. Returns results showing success or failure.",
     inputSchema: {
       type: "object",
       properties: {

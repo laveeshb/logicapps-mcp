@@ -5,6 +5,7 @@
 
 import { cancelRun } from "./runs.js";
 import { enableWorkflow, disableWorkflow } from "./workflows.js";
+import { detectLogicAppSku } from "./shared.js";
 
 // ============================================================================
 // Concurrency Control
@@ -115,7 +116,8 @@ export async function cancelRuns(
 
 /**
  * Enable multiple workflows.
- * For Standard SKU, provide workflowNames. For Consumption, provide logicAppNames.
+ * For Standard SKU, enables each workflow in workflowNames.
+ * For Consumption SKU, enables the single workflow (ignores workflowNames).
  */
 export async function batchEnableWorkflows(
   subscriptionId: string,
@@ -124,6 +126,38 @@ export async function batchEnableWorkflows(
   workflowNames: string[],
   concurrency: number = 5
 ): Promise<BatchResult> {
+  // Short-circuit for empty array to avoid unnecessary API call
+  if (workflowNames.length === 0) {
+    return { total: 0, succeeded: 0, failed: 0, results: [] };
+  }
+
+  // For Consumption SKU, there's only one workflow - just enable it directly
+  const sku = await detectLogicAppSku(subscriptionId, resourceGroupName, logicAppName);
+  if (sku === "consumption") {
+    try {
+      await enableWorkflow(subscriptionId, resourceGroupName, logicAppName);
+      return {
+        total: 1,
+        succeeded: 1,
+        failed: 0,
+        results: [{ id: logicAppName, success: true }],
+      };
+    } catch (error) {
+      return {
+        total: 1,
+        succeeded: 0,
+        failed: 1,
+        results: [
+          {
+            id: logicAppName,
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          },
+        ],
+      };
+    }
+  }
+
   const results = await withConcurrency(
     workflowNames,
     async (workflowName): Promise<BatchItemResult> => {
@@ -153,7 +187,8 @@ export async function batchEnableWorkflows(
 
 /**
  * Disable multiple workflows.
- * For Standard SKU, provide workflowNames. For Consumption, provide logicAppNames.
+ * For Standard SKU, disables each workflow in workflowNames.
+ * For Consumption SKU, disables the single workflow (ignores workflowNames).
  */
 export async function batchDisableWorkflows(
   subscriptionId: string,
@@ -162,6 +197,38 @@ export async function batchDisableWorkflows(
   workflowNames: string[],
   concurrency: number = 5
 ): Promise<BatchResult> {
+  // Short-circuit for empty array to avoid unnecessary API call
+  if (workflowNames.length === 0) {
+    return { total: 0, succeeded: 0, failed: 0, results: [] };
+  }
+
+  // For Consumption SKU, there's only one workflow - just disable it directly
+  const sku = await detectLogicAppSku(subscriptionId, resourceGroupName, logicAppName);
+  if (sku === "consumption") {
+    try {
+      await disableWorkflow(subscriptionId, resourceGroupName, logicAppName);
+      return {
+        total: 1,
+        succeeded: 1,
+        failed: 0,
+        results: [{ id: logicAppName, success: true }],
+      };
+    } catch (error) {
+      return {
+        total: 1,
+        succeeded: 0,
+        failed: 1,
+        results: [
+          {
+            id: logicAppName,
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          },
+        ],
+      };
+    }
+  }
+
   const results = await withConcurrency(
     workflowNames,
     async (workflowName): Promise<BatchItemResult> => {
