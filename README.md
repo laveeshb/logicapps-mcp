@@ -57,7 +57,7 @@ curl -H "Authorization: Bearer $token" https://<app>.azurewebsites.net/api/healt
 
 ## Features
 
-- **40 Tools** for Logic Apps operations: list, debug, create, update, delete workflows
+- **37 Tools** for Logic Apps operations: list, debug, create, update, delete workflows
 - **Dual SKU Support**: Works with both Consumption and Standard Logic Apps
 - **Run Debugging**: Trace failures through actions, loops, and scopes
 - **Write Operations**: Create workflows, run triggers, cancel runs
@@ -76,7 +76,7 @@ curl -H "Authorization: Bearer $token" https://<app>.azurewebsites.net/api/healt
 ## Documentation
 
 - [Getting Started Guide](docs/GETTING_STARTED.md) - Setup for Claude, Copilot, Cloud MCP Server
-- [Available Tools](docs/TOOLS.md) - All 40 tools with descriptions
+- [Available Tools](docs/TOOLS.md) - All 37 tools with descriptions
 - [Configuration](docs/CONFIGURATION.md) - Environment variables, auth, SKU differences
 
 ## Development
