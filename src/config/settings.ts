@@ -10,7 +10,7 @@ import {
   getCloudEndpoints,
 } from "./clouds.js";
 
-export interface FlowieSettings {
+export interface LogicAppsMcpSettings {
   tenantId: string;
   clientId: string;
   cloud: AzureCloudEndpoints;
@@ -28,11 +28,11 @@ interface ConfigFile {
 
 const DEFAULT_CLIENT_ID = "04b07795-8ddb-461a-bbee-02f9e1bf7b46"; // Azure CLI public client ID
 
-export async function loadSettings(): Promise<FlowieSettings> {
+export async function loadSettings(): Promise<LogicAppsMcpSettings> {
   // Try to load config file
   let configFile: ConfigFile = {};
   try {
-    const configPath = join(homedir(), ".flowie", "config.json");
+    const configPath = join(homedir(), ".logicapps-mcp", "config.json");
     const content = await readFile(configPath, "utf-8");
     configFile = JSON.parse(content);
   } catch {
@@ -55,7 +55,7 @@ export async function loadSettings(): Promise<FlowieSettings> {
     defaultSubscriptionId:
       process.env.AZURE_SUBSCRIPTION_ID ?? configFile.defaultSubscriptionId,
     logLevel:
-      (process.env.FLOWIE_LOG_LEVEL as FlowieSettings["logLevel"]) ?? "info",
-    cacheTtlSeconds: parseInt(process.env.FLOWIE_CACHE_TTL ?? "300", 10),
+      (process.env.LOGICAPPS_MCP_LOG_LEVEL as LogicAppsMcpSettings["logLevel"]) ?? "info",
+    cacheTtlSeconds: parseInt(process.env.LOGICAPPS_MCP_CACHE_TTL ?? "300", 10),
   };
 }

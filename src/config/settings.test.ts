@@ -24,8 +24,8 @@ describe("settings", () => {
     delete process.env.AZURE_CLIENT_ID;
     delete process.env.AZURE_SUBSCRIPTION_ID;
     delete process.env.AZURE_CLOUD;
-    delete process.env.FLOWIE_LOG_LEVEL;
-    delete process.env.FLOWIE_CACHE_TTL;
+    delete process.env.LOGICAPPS_MCP_LOG_LEVEL;
+    delete process.env.LOGICAPPS_MCP_CACHE_TTL;
   });
 
   afterEach(() => {
@@ -108,8 +108,8 @@ describe("settings", () => {
       expect(settings.cloud.name).toBe("AzureGovernment");
     });
 
-    it("should parse FLOWIE_LOG_LEVEL environment variable", async () => {
-      process.env.FLOWIE_LOG_LEVEL = "debug";
+    it("should parse LOGICAPPS_MCP_LOG_LEVEL environment variable", async () => {
+      process.env.LOGICAPPS_MCP_LOG_LEVEL = "debug";
       vi.mocked(fs.readFile).mockRejectedValue(new Error("ENOENT"));
 
       const settings = await loadSettings();
@@ -117,8 +117,8 @@ describe("settings", () => {
       expect(settings.logLevel).toBe("debug");
     });
 
-    it("should parse FLOWIE_CACHE_TTL environment variable", async () => {
-      process.env.FLOWIE_CACHE_TTL = "600";
+    it("should parse LOGICAPPS_MCP_CACHE_TTL environment variable", async () => {
+      process.env.LOGICAPPS_MCP_CACHE_TTL = "600";
       vi.mocked(fs.readFile).mockRejectedValue(new Error("ENOENT"));
 
       const settings = await loadSettings();

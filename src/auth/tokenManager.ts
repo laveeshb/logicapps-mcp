@@ -3,13 +3,13 @@
  * Requires a bearer token from the client - no local credential fallback.
  */
 
-import { FlowieSettings } from "../config/settings.js";
+import { LogicAppsMcpSettings } from "../config/settings.js";
 import { McpError } from "../utils/errors.js";
 
-let cachedSettings: FlowieSettings | null = null;
+let cachedSettings: LogicAppsMcpSettings | null = null;
 let passthroughToken: string | null = null;
 
-export function setSettings(settings: FlowieSettings): void {
+export function setSettings(settings: LogicAppsMcpSettings): void {
   cachedSettings = settings;
 }
 
