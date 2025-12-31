@@ -215,7 +215,7 @@ if ($CreateAiResource) {
             --model-version "2024-08-06" `
             --model-format OpenAI `
             --sku-name Standard `
-            --sku-capacity 80 | Out-Null
+            --sku-capacity 1000 | Out-Null  # Request max 1M TPM (will use available quota)
 
         if ($LASTEXITCODE -ne 0) {
             Write-Host "Error creating model deployment. The model may not be available in this region." -ForegroundColor Red

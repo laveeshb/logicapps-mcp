@@ -411,6 +411,21 @@
           credentials: 'include' // Include cookies for Easy Auth
         });
 
+        if (response.status === 429) {
+          const errorData = await response.json().catch(() => ({}));
+          const retryAfter = errorData.retryAfter || parseInt(response.headers.get('Retry-After')) || 60;
+          const errorMsg = errorData.error || `Azure OpenAI rate limit reached. Please wait ${retryAfter} seconds and try again.`;
+          addMessage(errorMsg, false, true);
+
+          // Re-enable input after retry period
+          setTimeout(() => {
+            messageInput.disabled = false;
+            sendBtn.disabled = false;
+            messageInput.focus();
+          }, retryAfter * 1000);
+          return;
+        }
+
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
           throw new Error(errorData.error || `Request failed: ${response.status}`);
@@ -419,7 +434,12 @@
         const data = await response.json();
         const assistantMessage = data.response || data.message || 'No response received';
 
-        addMessage(assistantMessage, false);
+        // Show timeout warning if applicable
+        if (data.timedOut) {
+          addMessage(assistantMessage + '\n\n(Response was cut short due to time limit)', false);
+        } else {
+          addMessage(assistantMessage, false);
+        }
         conversationHistory.push({ role: 'assistant', content: assistantMessage });
 
       } catch (error) {

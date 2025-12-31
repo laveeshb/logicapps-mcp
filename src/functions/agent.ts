@@ -28,18 +28,37 @@ import { handleToolCall } from "../tools/handler.js";
 import { loadSettings } from "../config/index.js";
 import { setSettings, initializeAuth } from "../auth/index.js";
 
-const MAX_ITERATIONS = 15;
-const DEFAULT_SYSTEM_PROMPT = `You are a helpful Azure Logic Apps assistant. You help users manage and troubleshoot their Logic Apps workflows using the available tools.
+const MAX_ITERATIONS = 10;
+const REQUEST_TIMEOUT_MS = 25000; // 25 seconds total
+const OPENAI_CALL_TIMEOUT_MS = 12000; // 12 seconds max per OpenAI call
+const DEFAULT_SYSTEM_PROMPT = `You are a helpful Azure Logic Apps troubleshooting assistant. Your role is to help users investigate and debug their Logic Apps workflows.
 
-Key guidelines:
-- Always use tools to get real information - never make up data
-- When listing resources, show them in a clear, formatted way
-- For debugging failed runs, follow this pattern:
-  1. list_run_history or search_runs to find the run
-  2. get_run_actions to see which action failed
-  3. get_action_io to see actual inputs/outputs
-- Be concise but thorough in your responses
-- If a tool fails, explain what went wrong and suggest alternatives`;
+## Interaction Style
+- Be conversational and investigative - ask clarifying questions before diving into searches
+- When a query is vague, ask for specifics: subscription name, Logic App name, run ID, time range, error message
+- Don't try to search across all subscriptions/apps - narrow down first
+
+## Example Interactions
+User: "My Logic App is failing"
+You: "I'd be happy to help investigate. Could you tell me:
+1. Which subscription is it in?
+2. What's the Logic App name?
+3. Do you have a specific run ID, or should I look at recent failures?"
+
+User: "Show me failed runs"
+You: "Sure! To find the right failures:
+1. Which Logic App should I check?
+2. What time period - last hour, today, or a specific date?"
+
+## When You Have Enough Info
+- Use tools to get real data - never make up information
+- For debugging failed runs: get_run_actions → find failed action → get_action_io for details
+- Present findings clearly with relevant details
+- Suggest next steps or fixes when possible
+
+## Important
+- If a tool returns an authorization error, tell the user they may not have access to that resource
+- Keep responses concise - users want quick answers`;
 
 let mcpInitialized = false;
 
@@ -57,6 +76,7 @@ async function ensureMcpInitialized(): Promise<void> {
 
 /**
  * Create an Azure OpenAI client using managed identity.
+ * Configured with limited retries to fail fast on rate limits.
  */
 function createOpenAIClient(
   endpoint: string,
@@ -73,6 +93,8 @@ function createOpenAIClient(
     endpoint,
     deployment,
     apiVersion: "2024-08-01-preview",
+    maxRetries: 0, // Fail immediately on rate limits
+    timeout: OPENAI_CALL_TIMEOUT_MS, // Hard timeout per request
   });
 }
 
@@ -164,6 +186,7 @@ interface AgentResponse {
   response: string;
   iterations: number;
   model: string;
+  timedOut?: boolean;
   conversationHistory: ChatCompletionMessageParam[];
 }
 
@@ -228,11 +251,39 @@ async function agentHandler(
     const tools = convertToolsToOpenAI();
     let iterations = 0;
     let finalResponse = "";
+    const startTime = Date.now();
+    let timedOut = false;
 
     // Agent loop
     while (iterations < maxIterations) {
       iterations++;
-      context.log(`Agent iteration ${iterations}`);
+      const elapsed = Date.now() - startTime;
+      context.log(`Agent iteration ${iterations}, elapsed: ${elapsed}ms`);
+
+      // Check if we're approaching timeout
+      if (elapsed > REQUEST_TIMEOUT_MS) {
+        context.warn(`Request timeout approaching after ${elapsed}ms, forcing final response`);
+        timedOut = true;
+
+        // Ask LLM to summarize what we have so far
+        messages.push({
+          role: "system",
+          content: "TIME LIMIT REACHED. Summarize your findings so far in 2-3 sentences. Be honest about what you couldn't complete.",
+        });
+
+        try {
+          const finalCompletion = await openaiClient.chat.completions.create({
+            model: deployment,
+            messages,
+            max_tokens: 300, // Short response
+          });
+          finalResponse = finalCompletion.choices[0]?.message?.content
+            || "Request timed out. Try being more specific - for example, specify the subscription or Logic App name.";
+        } catch {
+          finalResponse = "Request timed out. Try being more specific - for example, specify the subscription or Logic App name.";
+        }
+        break;
+      }
 
       // Call the AI model
       const completion = await openaiClient.chat.completions.create({
@@ -290,6 +341,7 @@ async function agentHandler(
       response: finalResponse,
       iterations,
       model: deployment,
+      timedOut,
       conversationHistory: messages,
     };
 
@@ -307,15 +359,41 @@ async function agentHandler(
       context.error(errorStack);
     }
 
+    // Check for timeout errors
+    const isTimeoutError = errorMessage.includes("timed out") ||
+                           errorMessage.includes("timeout");
+
+    if (isTimeoutError) {
+      return {
+        status: 504,
+        jsonBody: {
+          error: "The request timed out. Try being more specific - for example, specify the subscription or Logic App name directly.",
+          details: errorMessage,
+        },
+      };
+    }
+
     // Check for rate limit errors from OpenAI
     const isRateLimitError = errorMessage.includes("429") ||
                              errorMessage.includes("rate limit") ||
-                             errorMessage.includes("exceeded");
+                             errorMessage.includes("exceeded") ||
+                             errorMessage.includes("throttl");
 
     if (isRateLimitError) {
+      // Extract retry-after time if present (e.g., "retry after 60 seconds")
+      const retryMatch = errorMessage.match(/retry after (\d+) seconds/i);
+      const retryAfter = retryMatch ? parseInt(retryMatch[1], 10) : 60;
+
       return {
         status: 429,
-        jsonBody: { error: errorMessage },
+        headers: {
+          "Retry-After": String(retryAfter),
+        },
+        jsonBody: {
+          error: `Azure OpenAI rate limit reached. The model deployment has exceeded its tokens-per-minute quota. Please wait ${retryAfter} seconds and try again.`,
+          retryAfter,
+          details: errorMessage,
+        },
       };
     }
 

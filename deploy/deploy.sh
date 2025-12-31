@@ -269,7 +269,7 @@ if [ "$CREATE_AI_RESOURCE" = true ]; then
             --model-version "2024-08-06" \
             --model-format OpenAI \
             --sku-name Standard \
-            --sku-capacity 80 > /dev/null
+            --sku-capacity 1000 > /dev/null  # Request max 1M TPM (will use available quota)
 
         if [ $? -ne 0 ]; then
             echo "Error creating model deployment. The model may not be available in this region."
