@@ -2,7 +2,13 @@
  * Workflow operations for both SKUs.
  */
 
-import { armRequest, armRequestAllPages, vfsRequest, workflowMgmtRequest } from "../utils/http.js";
+import {
+  armRequest,
+  armRequestVoid,
+  armRequestAllPages,
+  vfsRequest,
+  workflowMgmtRequest,
+} from "../utils/http.js";
 import {
   ConsumptionLogicApp,
   StandardWorkflow,
@@ -351,7 +357,7 @@ export async function enableWorkflow(
   const sku = await detectLogicAppSku(subscriptionId, resourceGroupName, logicAppName);
 
   if (sku === "consumption") {
-    await armRequest(
+    await armRequestVoid(
       `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}/enable`,
       { method: "POST", queryParams: { "api-version": "2019-05-01" } }
     );
@@ -399,7 +405,7 @@ export async function disableWorkflow(
   const sku = await detectLogicAppSku(subscriptionId, resourceGroupName, logicAppName);
 
   if (sku === "consumption") {
-    await armRequest(
+    await armRequestVoid(
       `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}/disable`,
       { method: "POST", queryParams: { "api-version": "2019-05-01" } }
     );
@@ -696,7 +702,7 @@ export async function deleteWorkflow(
   const sku = await detectLogicAppSku(subscriptionId, resourceGroupName, logicAppName);
 
   if (sku === "consumption") {
-    await armRequest(
+    await armRequestVoid(
       `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}`,
       {
         method: "DELETE",
