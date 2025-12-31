@@ -6,6 +6,7 @@ import { armRequest, armRequestAllPages } from "../utils/http.js";
 import { ApiConnection } from "../types/logicApp.js";
 import { getAccessToken } from "../auth/tokenManager.js";
 import { getCloudEndpoints } from "../config/clouds.js";
+import { McpError } from "../utils/errors.js";
 
 export interface GetConnectionsResult {
   connections: Array<{
@@ -580,6 +581,36 @@ export async function createConnection(
   displayName?: string,
   parameterValues?: Record<string, unknown>
 ): Promise<CreateConnectionResult> {
+  // Validate required parameters
+  if (!subscriptionId?.trim()) {
+    throw new McpError("InvalidParameter", "subscriptionId is required and cannot be empty");
+  }
+  if (!resourceGroupName?.trim()) {
+    throw new McpError("InvalidParameter", "resourceGroupName is required and cannot be empty");
+  }
+  if (!connectionName?.trim()) {
+    throw new McpError("InvalidParameter", "connectionName is required and cannot be empty");
+  }
+  if (!connectorName?.trim()) {
+    throw new McpError("InvalidParameter", "connectorName is required and cannot be empty");
+  }
+  if (!location?.trim()) {
+    throw new McpError("InvalidParameter", "location is required and cannot be empty");
+  }
+
+  // Validate connectionName format (Azure resource naming rules)
+  // Must start with letter or number, can contain letters, numbers, hyphens, and underscores
+  const connectionNameRegex = /^[a-zA-Z0-9][a-zA-Z0-9_-]*$/;
+  if (!connectionNameRegex.test(connectionName)) {
+    throw new McpError(
+      "InvalidParameter",
+      "connectionName must start with a letter or number and can only contain letters, numbers, hyphens, and underscores"
+    );
+  }
+  if (connectionName.length > 80) {
+    throw new McpError("InvalidParameter", "connectionName must be 80 characters or less");
+  }
+
   // Build the connection resource
   const connectionBody = {
     location,
