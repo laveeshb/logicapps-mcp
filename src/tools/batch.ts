@@ -14,13 +14,16 @@ import { enableWorkflow, disableWorkflow } from "./workflows.js";
  * Execute promises with controlled concurrency.
  * @param items Items to process
  * @param fn Async function to apply to each item
- * @param concurrency Maximum concurrent operations (default: 5)
+ * @param concurrency Maximum concurrent operations (default: 5, minimum: 1)
  */
 async function withConcurrency<T, R>(
   items: T[],
   fn: (item: T) => Promise<R>,
   concurrency: number = 5
 ): Promise<R[]> {
+  // Ensure concurrency is at least 1
+  const effectiveConcurrency = Math.max(1, concurrency);
+
   const results: R[] = new Array(items.length);
   const executing: Set<Promise<void>> = new Set();
 
@@ -28,19 +31,24 @@ async function withConcurrency<T, R>(
     const index = i;
     const item = items[i];
 
-    const promise = fn(item).then((result) => {
-      results[index] = result;
-      executing.delete(promise);
-    });
+    const promise = fn(item)
+      .then((result) => {
+        results[index] = result;
+      })
+      .finally(() => {
+        executing.delete(promise);
+      });
 
     executing.add(promise);
 
-    if (executing.size >= concurrency) {
-      await Promise.race(executing);
+    if (executing.size >= effectiveConcurrency) {
+      // Wait for at least one to complete, ignore rejections here
+      // (they'll be caught when we await Promise.all)
+      await Promise.race(executing).catch(() => {});
     }
   }
 
-  // Wait for remaining promises
+  // Wait for remaining promises - this will throw if any rejected
   await Promise.all(executing);
 
   return results;
