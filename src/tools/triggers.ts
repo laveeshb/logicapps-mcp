@@ -2,7 +2,12 @@
  * Trigger-related tools for Logic Apps.
  */
 
-import { armRequest, armRequestAllPages, workflowMgmtRequest } from "../utils/http.js";
+import {
+  armRequest,
+  armRequestVoid,
+  armRequestAllPages,
+  workflowMgmtRequest,
+} from "../utils/http.js";
 import { McpError } from "../utils/errors.js";
 import { detectLogicAppSku, getStandardAppAccess } from "./shared.js";
 
@@ -283,7 +288,7 @@ export async function runTrigger(
   const sku = await detectLogicAppSku(subscriptionId, resourceGroupName, logicAppName);
 
   if (sku === "consumption") {
-    await armRequest(
+    await armRequestVoid(
       `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}/triggers/${triggerName}/run`,
       { method: "POST", queryParams: { "api-version": "2019-05-01" } }
     );
@@ -301,7 +306,7 @@ export async function runTrigger(
   }
 
   // For Standard, use the ARM API with hostruntime path
-  await armRequest(
+  await armRequestVoid(
     `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Web/sites/${logicAppName}/hostruntime/runtime/webhooks/workflow/api/management/workflows/${workflowName}/triggers/${triggerName}/run`,
     { method: "POST", queryParams: { "api-version": "2022-03-01" } }
   );

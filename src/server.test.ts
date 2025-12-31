@@ -33,7 +33,9 @@ describe("server", () => {
 
     it("should list logic-apps-guide prompt", async () => {
       const handler = handlers.get(ListPromptsRequestSchema);
-      const result = await handler!();
+      const result = (await handler!()) as {
+        prompts: Array<{ name: string; description: string }>;
+      };
 
       expect(result.prompts).toHaveLength(2);
       expect(result.prompts[0].name).toBe("logic-apps-guide");
@@ -44,7 +46,9 @@ describe("server", () => {
 
     it("should return logic-apps-guide content", async () => {
       const handler = handlers.get(GetPromptRequestSchema);
-      const result = await handler!({ params: { name: "logic-apps-guide" } });
+      const result = (await handler!({ params: { name: "logic-apps-guide" } })) as {
+        messages: Array<{ role: string; content: { type: string; text: string } }>;
+      };
 
       expect(result.messages).toHaveLength(1);
       expect(result.messages[0].role).toBe("user");
@@ -56,7 +60,9 @@ describe("server", () => {
 
     it("should return native-operations-guide content", async () => {
       const handler = handlers.get(GetPromptRequestSchema);
-      const result = await handler!({ params: { name: "native-operations-guide" } });
+      const result = (await handler!({ params: { name: "native-operations-guide" } })) as {
+        messages: Array<{ role: string; content: { type: string; text: string } }>;
+      };
 
       expect(result.messages).toHaveLength(1);
       expect(result.messages[0].role).toBe("user");
@@ -87,7 +93,9 @@ describe("server", () => {
 
     it("should list all tools", async () => {
       const handler = handlers.get(ListToolsRequestSchema);
-      const result = await handler!();
+      const result = (await handler!()) as {
+        tools: Array<{ name: string; description: string; inputSchema: unknown }>;
+      };
 
       expect(result.tools.length).toBeGreaterThan(0);
       expect(result.tools[0]).toHaveProperty("name");

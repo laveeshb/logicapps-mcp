@@ -12,6 +12,10 @@ export interface ArmResponse<T> {
   nextLink?: string;
 }
 
+/**
+ * Make a request to the Azure Resource Manager API.
+ * Throws an error if the response body is empty when a response is expected.
+ */
 export async function armRequest<T>(
   path: string,
   options: {
@@ -20,6 +24,50 @@ export async function armRequest<T>(
     queryParams?: Record<string, string>;
   } = {}
 ): Promise<T> {
+  const response = await armRequestRaw(path, options);
+
+  // Handle empty responses - throw error since caller expects data
+  if (response.status === 204 || response.status === 202) {
+    throw new McpError(
+      "ServiceError",
+      `Unexpected empty response (${response.status}) when data was expected`
+    );
+  }
+
+  const text = await response.text();
+  if (!text) {
+    throw new McpError("ServiceError", "Unexpected empty response body when data was expected");
+  }
+
+  return JSON.parse(text) as T;
+}
+
+/**
+ * Make a request to the Azure Resource Manager API that may not return a body.
+ * Use this for DELETE operations or POST operations that return 202/204.
+ */
+export async function armRequestVoid(
+  path: string,
+  options: {
+    method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+    body?: unknown;
+    queryParams?: Record<string, string>;
+  } = {}
+): Promise<void> {
+  await armRequestRaw(path, options);
+}
+
+/**
+ * Internal: Make a raw ARM request and return the response.
+ */
+async function armRequestRaw(
+  path: string,
+  options: {
+    method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+    body?: unknown;
+    queryParams?: Record<string, string>;
+  } = {}
+): Promise<Response> {
   const cloud = getCloudEndpoints();
   const token = await getAccessToken();
 
@@ -43,13 +91,7 @@ export async function armRequest<T>(
     await handleArmError(response);
   }
 
-  // Handle empty responses (e.g., 202 Accepted, 204 No Content)
-  const text = await response.text();
-  if (!text) {
-    return undefined as T;
-  }
-
-  return JSON.parse(text) as T;
+  return response;
 }
 
 export async function armRequestAllPages<T>(
