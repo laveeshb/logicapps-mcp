@@ -7,6 +7,124 @@ import { getAccessToken } from "../auth/tokenManager.js";
 import { getCloudEndpoints } from "../config/clouds.js";
 import { McpError } from "./errors.js";
 
+// ============================================================================
+// Retry Configuration
+// ============================================================================
+
+interface RetryConfig {
+  maxRetries: number;
+  baseDelayMs: number;
+  maxDelayMs: number;
+  timeoutMs: number;
+}
+
+// Default configuration
+let retryConfig: RetryConfig = {
+  maxRetries: 3,
+  baseDelayMs: 1000,
+  maxDelayMs: 30000,
+  timeoutMs: 30000,
+};
+
+// Status codes that are retryable
+const RETRYABLE_STATUS_CODES = new Set([408, 429, 500, 502, 503, 504]);
+
+/**
+ * Configure retry behavior for HTTP requests.
+ */
+export function setRetryConfig(config: Partial<RetryConfig>): void {
+  retryConfig = { ...retryConfig, ...config };
+}
+
+/**
+ * Sleep for a given number of milliseconds.
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Fetch with retry logic, exponential backoff, and timeout.
+ */
+async function fetchWithRetry(url: string, options: RequestInit): Promise<Response> {
+  let lastError: Error | undefined;
+
+  for (let attempt = 0; attempt <= retryConfig.maxRetries; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), retryConfig.timeoutMs);
+
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      // Success - return response
+      if (response.ok) {
+        return response;
+      }
+
+      // Non-retryable error - return immediately
+      if (!RETRYABLE_STATUS_CODES.has(response.status)) {
+        return response;
+      }
+
+      // Retryable error - calculate delay
+      let delayMs: number;
+
+      if (response.status === 429) {
+        // Respect Retry-After header for rate limiting
+        const retryAfter = response.headers.get("Retry-After");
+        if (retryAfter) {
+          // Retry-After can be seconds or a date
+          const parsed = parseInt(retryAfter, 10);
+          delayMs = isNaN(parsed) ? retryConfig.baseDelayMs : parsed * 1000;
+        } else {
+          delayMs = retryConfig.baseDelayMs * Math.pow(2, attempt);
+        }
+      } else {
+        // Exponential backoff with jitter for other retryable errors
+        delayMs = Math.min(
+          retryConfig.baseDelayMs * Math.pow(2, attempt) + Math.random() * 1000,
+          retryConfig.maxDelayMs
+        );
+      }
+
+      // Don't retry if this was the last attempt
+      if (attempt < retryConfig.maxRetries) {
+        await sleep(delayMs);
+      } else {
+        return response;
+      }
+    } catch (error) {
+      clearTimeout(timeoutId);
+
+      if (error instanceof Error && error.name === "AbortError") {
+        lastError = new McpError("ServiceError", `Request timed out after ${retryConfig.timeoutMs}ms`);
+      } else {
+        lastError = error instanceof Error ? error : new Error(String(error));
+      }
+
+      // Network errors are retryable - continue if not last attempt
+      if (attempt >= retryConfig.maxRetries) {
+        throw lastError;
+      }
+
+      // Wait before retry
+      const delayMs = Math.min(
+        retryConfig.baseDelayMs * Math.pow(2, attempt) + Math.random() * 1000,
+        retryConfig.maxDelayMs
+      );
+      await sleep(delayMs);
+    }
+  }
+
+  // Should not reach here, but just in case
+  throw lastError ?? new Error("Request failed after retries");
+}
+
 export interface ArmResponse<T> {
   value: T[];
   nextLink?: string;
@@ -59,6 +177,7 @@ export async function armRequestVoid(
 
 /**
  * Internal: Make a raw ARM request and return the response.
+ * Uses retry logic for transient errors.
  */
 async function armRequestRaw(
   path: string,
@@ -78,7 +197,7 @@ async function armRequestRaw(
     url += (url.includes("?") ? "&" : "?") + params.toString();
   }
 
-  const response = await fetch(url, {
+  const response = await fetchWithRetry(url, {
     method: options.method ?? "GET",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -109,9 +228,9 @@ export async function armRequestAllPages<T>(
       response = await armRequest<ArmResponse<T>>(path, { queryParams });
       isFirstRequest = false;
     } else {
-      // nextLink is a full URL, fetch directly
+      // nextLink is a full URL, fetch directly with retry
       const token = await getAccessToken();
-      const res = await fetch(nextLink!, {
+      const res = await fetchWithRetry(nextLink!, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -143,7 +262,7 @@ export async function workflowMgmtRequest<T>(
 ): Promise<T> {
   const url = `https://${logicAppHostname}${path}`;
 
-  const response = await fetch(url, {
+  const response = await fetchWithRetry(url, {
     method: options.method ?? "GET",
     headers: {
       "x-functions-key": masterKey,
@@ -180,7 +299,7 @@ export async function vfsRequest(
 ): Promise<void> {
   const url = `https://${logicAppHostname}${path}`;
 
-  const response = await fetch(url, {
+  const response = await fetchWithRetry(url, {
     method: options.method ?? "GET",
     headers: {
       "x-functions-key": masterKey,
