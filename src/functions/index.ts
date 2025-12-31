@@ -29,6 +29,9 @@ import { setSettings, initializeAuth } from "../auth/index.js";
 // Import agent function to register it
 import "./agent.js";
 
+// Import Copilot auth test endpoint
+import "./copilot-auth-test.js";
+
 let initialized = false;
 
 /**
