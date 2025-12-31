@@ -82,8 +82,19 @@ curl -H "Authorization: Bearer $token" https://<app>.azurewebsites.net/api/healt
 ## Development
 
 ```bash
-npm run dev      # Run in development mode
-npm test         # Run tests
+npm run dev              # Run in development mode
+npm test                 # Run unit tests
+npm run test:integration # Run integration tests (requires Azure setup)
+npm run test:all         # Run all tests
+```
+
+### Integration Testing
+
+Integration tests run against real Azure resources. They auto-discover your subscriptions and Logic Apps:
+
+```bash
+az login                     # Login to Azure
+npm run test:integration     # Tests find resources automatically
 ```
 
 ## License
