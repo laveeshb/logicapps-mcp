@@ -84,8 +84,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
         },
         workflowName: {
           type: "string",
-          description:
-            "Workflow name (required for Standard SKU, omit for Consumption)",
+          description: "Workflow name (required for Standard SKU, omit for Consumption)",
         },
       },
       required: ["subscriptionId", "resourceGroupName", "logicAppName"],
@@ -120,7 +119,8 @@ export const TOOL_DEFINITIONS: Tool[] = [
   },
   {
     name: "list_run_history",
-    description: "Get the run history for a workflow with optional filtering. For Standard SKU, workflowName is required. Use search_runs for easier filtering by status/date. After finding a run, use get_run_details and get_run_actions to debug. Returns a nextLink if more pages are available - use skipToken to fetch the next page.",
+    description:
+      "Get the run history for a workflow with optional filtering. For Standard SKU, workflowName is required. Use search_runs for easier filtering by status/date. After finding a run, use get_run_details and get_run_actions to debug. Returns a nextLink if more pages are available - use skipToken to fetch the next page.",
     inputSchema: {
       type: "object",
       properties: {
@@ -150,7 +150,8 @@ export const TOOL_DEFINITIONS: Tool[] = [
         },
         skipToken: {
           type: "string",
-          description: "Pagination token from a previous response's nextLink to fetch the next page of results",
+          description:
+            "Pagination token from a previous response's nextLink to fetch the next page of results",
         },
       },
       required: ["subscriptionId", "resourceGroupName", "logicAppName"],
@@ -158,7 +159,8 @@ export const TOOL_DEFINITIONS: Tool[] = [
   },
   {
     name: "get_run_details",
-    description: "Get detailed information about a specific workflow run including status, timing, and error summary. For Standard SKU, workflowName is required. Use get_run_actions to see which specific action failed.",
+    description:
+      "Get detailed information about a specific workflow run including status, timing, and error summary. For Standard SKU, workflowName is required. Use get_run_actions to see which specific action failed.",
     inputSchema: {
       type: "object",
       properties: {
@@ -183,17 +185,13 @@ export const TOOL_DEFINITIONS: Tool[] = [
           description: "The run ID to retrieve",
         },
       },
-      required: [
-        "subscriptionId",
-        "resourceGroupName",
-        "logicAppName",
-        "runId",
-      ],
+      required: ["subscriptionId", "resourceGroupName", "logicAppName", "runId"],
     },
   },
   {
     name: "get_run_actions",
-    description: "Get the action execution details for a specific workflow run including status, timing, and trackedProperties. For Standard SKU, workflowName is required. Use get_action_io to see actual inputs/outputs for an action.",
+    description:
+      "Get the action execution details for a specific workflow run including status, timing, and trackedProperties. For Standard SKU, workflowName is required. Use get_action_io to see actual inputs/outputs for an action.",
     inputSchema: {
       type: "object",
       properties: {
@@ -227,7 +225,8 @@ export const TOOL_DEFINITIONS: Tool[] = [
   },
   {
     name: "get_connections",
-    description: "List API connections (e.g., Office 365, SQL, Service Bus) in a resource group. Connections are shared resources used by Logic Apps for authentication. Use get_connection_details or test_connection for more info.",
+    description:
+      "List API connections (e.g., Office 365, SQL, Service Bus) in a resource group. Connections are shared resources used by Logic Apps for authentication. Use get_connection_details or test_connection for more info.",
     inputSchema: {
       type: "object",
       properties: {
@@ -268,7 +267,8 @@ export const TOOL_DEFINITIONS: Tool[] = [
         },
         connectorName: {
           type: "string",
-          description: "Managed connector name (e.g., 'azureblob', 'sql', 'servicebus', 'office365')",
+          description:
+            "Managed connector name (e.g., 'azureblob', 'sql', 'servicebus', 'office365')",
         },
         location: {
           type: "string",
@@ -276,7 +276,8 @@ export const TOOL_DEFINITIONS: Tool[] = [
         },
         displayName: {
           type: "string",
-          description: "Friendly display name for the connection (optional, defaults to connectionName)",
+          description:
+            "Friendly display name for the connection (optional, defaults to connectionName)",
         },
         parameterValues: {
           type: "object",
@@ -285,12 +286,19 @@ export const TOOL_DEFINITIONS: Tool[] = [
           additionalProperties: true,
         },
       },
-      required: ["subscriptionId", "resourceGroupName", "connectionName", "connectorName", "location"],
+      required: [
+        "subscriptionId",
+        "resourceGroupName",
+        "connectionName",
+        "connectorName",
+        "location",
+      ],
     },
   },
   {
     name: "get_connector_swagger",
-    description: "Get the OpenAPI/Swagger definition for a managed connector (e.g., msnweather, sql, servicebus, office365). Returns available operations, paths, and schemas. ESSENTIAL for discovering correct action paths when creating or updating workflows with connector actions.",
+    description:
+      "Get the OpenAPI/Swagger definition for a managed connector (e.g., msnweather, sql, servicebus, office365). Returns available operations, paths, and schemas. ESSENTIAL for discovering correct action paths when creating or updating workflows with connector actions.",
     inputSchema: {
       type: "object",
       properties: {
@@ -304,7 +312,8 @@ export const TOOL_DEFINITIONS: Tool[] = [
         },
         connectorName: {
           type: "string",
-          description: "Connector name (e.g., 'msnweather', 'sql', 'servicebus', 'office365', 'azureblob')",
+          description:
+            "Connector name (e.g., 'msnweather', 'sql', 'servicebus', 'office365', 'azureblob')",
         },
       },
       required: ["subscriptionId", "location", "connectorName"],
@@ -347,11 +356,13 @@ export const TOOL_DEFINITIONS: Tool[] = [
         },
         operationId: {
           type: "string",
-          description: "The operationId from the connector swagger to invoke (e.g., 'GetTables', 'GetQueues', 'GetDataSets')",
+          description:
+            "The operationId from the connector swagger to invoke (e.g., 'GetTables', 'GetQueues', 'GetDataSets')",
         },
         parameters: {
           type: "object",
-          description: "Parameters required by the operation. Check the swagger for required parameters. For example, GetTable requires {table: 'tableName'}",
+          description:
+            "Parameters required by the operation. Check the swagger for required parameters. For example, GetTable requires {table: 'tableName'}",
           additionalProperties: true,
         },
       },
@@ -739,7 +750,8 @@ export const TOOL_DEFINITIONS: Tool[] = [
         },
         skipToken: {
           type: "string",
-          description: "Pagination token from a previous response's nextLink to fetch the next page of results",
+          description:
+            "Pagination token from a previous response's nextLink to fetch the next page of results",
         },
       },
       required: ["subscriptionId", "resourceGroupName", "logicAppName"],
@@ -896,7 +908,8 @@ export const TOOL_DEFINITIONS: Tool[] = [
         },
         triggerName: {
           type: "string",
-          description: "The name of the trigger to run (e.g., 'manual', 'When_a_HTTP_request_is_received')",
+          description:
+            "The name of the trigger to run (e.g., 'manual', 'When_a_HTTP_request_is_received')",
         },
         workflowName: {
           type: "string",
@@ -954,7 +967,8 @@ export const TOOL_DEFINITIONS: Tool[] = [
         },
         logicAppName: {
           type: "string",
-          description: "Logic App resource name (for Consumption, this becomes the new Logic App name)",
+          description:
+            "Logic App resource name (for Consumption, this becomes the new Logic App name)",
         },
         definition: {
           type: "object",
@@ -975,7 +989,8 @@ export const TOOL_DEFINITIONS: Tool[] = [
         },
         connections: {
           type: "object",
-          description: "API connection references for Consumption SKU. Object mapping connection names used in the definition to their connection details. Example: {\"office365\": {\"connectionName\": \"office365-test\", \"id\": \"/subscriptions/.../providers/Microsoft.Web/locations/.../managedApis/office365\"}}",
+          description:
+            'API connection references for Consumption SKU. Object mapping connection names used in the definition to their connection details. Example: {"office365": {"connectionName": "office365-test", "id": "/subscriptions/.../providers/Microsoft.Web/locations/.../managedApis/office365"}}',
           additionalProperties: {
             type: "object",
             properties: {
@@ -985,7 +1000,8 @@ export const TOOL_DEFINITIONS: Tool[] = [
               },
               id: {
                 type: "string",
-                description: "Resource ID of the managed API (e.g., /subscriptions/.../providers/Microsoft.Web/locations/.../managedApis/office365)",
+                description:
+                  "Resource ID of the managed API (e.g., /subscriptions/.../providers/Microsoft.Web/locations/.../managedApis/office365)",
               },
             },
             required: ["connectionName", "id"],
@@ -1029,7 +1045,8 @@ export const TOOL_DEFINITIONS: Tool[] = [
         },
         connections: {
           type: "object",
-          description: "API connection references for Consumption SKU. Object mapping connection names used in the definition to their connection details. Example: {\"office365\": {\"connectionName\": \"office365-test\", \"id\": \"/subscriptions/.../providers/Microsoft.Web/locations/.../managedApis/office365\"}}",
+          description:
+            'API connection references for Consumption SKU. Object mapping connection names used in the definition to their connection details. Example: {"office365": {"connectionName": "office365-test", "id": "/subscriptions/.../providers/Microsoft.Web/locations/.../managedApis/office365"}}',
           additionalProperties: {
             type: "object",
             properties: {
@@ -1039,7 +1056,8 @@ export const TOOL_DEFINITIONS: Tool[] = [
               },
               id: {
                 type: "string",
-                description: "Resource ID of the managed API (e.g., /subscriptions/.../providers/Microsoft.Web/locations/.../managedApis/office365)",
+                description:
+                  "Resource ID of the managed API (e.g., /subscriptions/.../providers/Microsoft.Web/locations/.../managedApis/office365)",
               },
             },
             required: ["connectionName", "id"],
@@ -1087,7 +1105,8 @@ export const TOOL_DEFINITIONS: Tool[] = [
         topic: {
           type: "string",
           enum: ["expression-errors", "connection-issues", "run-failures", "known-limitations"],
-          description: "The troubleshooting topic: 'expression-errors' for null checks, type conversions, date handling; 'connection-issues' for OAuth, Managed Identity, auth problems; 'run-failures' for action failures, triggers, loops, timeouts; 'known-limitations' for platform constraints and workarounds",
+          description:
+            "The troubleshooting topic: 'expression-errors' for null checks, type conversions, date handling; 'connection-issues' for OAuth, Managed Identity, auth problems; 'run-failures' for action failures, triggers, loops, timeouts; 'known-limitations' for platform constraints and workarounds",
         },
       },
       required: ["topic"],
@@ -1103,7 +1122,8 @@ export const TOOL_DEFINITIONS: Tool[] = [
         topic: {
           type: "string",
           enum: ["workflow-patterns", "connector-patterns", "deployment"],
-          description: "The authoring topic: 'workflow-patterns' for triggers, control flow, error handling; 'connector-patterns' for SQL, Service Bus, Blob, Office 365; 'deployment' for ARM, Terraform, CI/CD",
+          description:
+            "The authoring topic: 'workflow-patterns' for triggers, control flow, error handling; 'connector-patterns' for SQL, Service Bus, Blob, Office 365; 'deployment' for ARM, Terraform, CI/CD",
         },
       },
       required: ["topic"],
@@ -1119,7 +1139,8 @@ export const TOOL_DEFINITIONS: Tool[] = [
         topic: {
           type: "string",
           enum: ["tool-catalog", "sku-differences"],
-          description: "The reference topic: 'tool-catalog' for all 33 MCP tools with examples; 'sku-differences' for Consumption vs Standard deep dive",
+          description:
+            "The reference topic: 'tool-catalog' for all 33 MCP tools with examples; 'sku-differences' for Consumption vs Standard deep dive",
         },
       },
       required: ["topic"],
@@ -1134,8 +1155,15 @@ export const TOOL_DEFINITIONS: Tool[] = [
       properties: {
         topic: {
           type: "string",
-          enum: ["diagnose-failures", "explain-workflow", "monitor-workflows", "create-workflow", "fix-workflow"],
-          description: "The instruction topic: 'diagnose-failures' when user asks about failures or errors; 'explain-workflow' to understand what a workflow does; 'monitor-workflows' to check status and health; 'create-workflow' to build new workflows; 'fix-workflow' to modify and repair existing workflows",
+          enum: [
+            "diagnose-failures",
+            "explain-workflow",
+            "monitor-workflows",
+            "create-workflow",
+            "fix-workflow",
+          ],
+          description:
+            "The instruction topic: 'diagnose-failures' when user asks about failures or errors; 'explain-workflow' to understand what a workflow does; 'monitor-workflows' to check status and health; 'create-workflow' to build new workflows; 'fix-workflow' to modify and repair existing workflows",
         },
       },
       required: ["topic"],

@@ -2,17 +2,11 @@
  * Workflow operations for both SKUs.
  */
 
-import {
-  armRequest,
-  armRequestAllPages,
-  vfsRequest,
-  workflowMgmtRequest,
-} from "../utils/http.js";
+import { armRequest, armRequestAllPages, vfsRequest, workflowMgmtRequest } from "../utils/http.js";
 import {
   ConsumptionLogicApp,
   StandardWorkflow,
   StandardWorkflowDefinitionFile,
-  StandardWorkflowUpdatePayload,
   TriggerState,
   WorkflowDefinition,
   WorkflowVersion,
@@ -63,11 +57,7 @@ export async function listWorkflows(
   resourceGroupName: string,
   logicAppName: string
 ): Promise<ListWorkflowsResult> {
-  const sku = await detectLogicAppSku(
-    subscriptionId,
-    resourceGroupName,
-    logicAppName
-  );
+  const sku = await detectLogicAppSku(subscriptionId, resourceGroupName, logicAppName);
 
   if (sku === "consumption") {
     const workflow = await armRequest<ConsumptionLogicApp>(
@@ -117,11 +107,7 @@ export async function getWorkflowDefinition(
   logicAppName: string,
   workflowName?: string
 ): Promise<GetWorkflowDefinitionResult> {
-  const sku = await detectLogicAppSku(
-    subscriptionId,
-    resourceGroupName,
-    logicAppName
-  );
+  const sku = await detectLogicAppSku(subscriptionId, resourceGroupName, logicAppName);
 
   if (sku === "consumption") {
     const workflow = await armRequest<ConsumptionLogicApp>(
@@ -137,10 +123,7 @@ export async function getWorkflowDefinition(
 
   // Standard - get definition from VFS endpoint
   if (!workflowName) {
-    throw new McpError(
-      "InvalidParameter",
-      "workflowName is required for Standard Logic Apps"
-    );
+    throw new McpError("InvalidParameter", "workflowName is required for Standard Logic Apps");
   }
 
   const { hostname, masterKey } = await getStandardAppAccess(
@@ -148,7 +131,7 @@ export async function getWorkflowDefinition(
     resourceGroupName,
     logicAppName
   );
-  
+
   // The workflow definition is stored in the VFS at /admin/vfs/site/wwwroot/{workflowName}/workflow.json
   const definitionFile = await workflowMgmtRequest<StandardWorkflowDefinitionFile>(
     hostname,
@@ -170,11 +153,7 @@ export async function getWorkflowTriggers(
   logicAppName: string,
   workflowName?: string
 ): Promise<GetWorkflowTriggersResult> {
-  const sku = await detectLogicAppSku(
-    subscriptionId,
-    resourceGroupName,
-    logicAppName
-  );
+  const sku = await detectLogicAppSku(subscriptionId, resourceGroupName, logicAppName);
 
   if (sku === "consumption") {
     const triggers = await armRequestAllPages<TriggerState>(
@@ -195,10 +174,7 @@ export async function getWorkflowTriggers(
 
   // Standard - get triggers from workflow metadata (available in list/get workflow response)
   if (!workflowName) {
-    throw new McpError(
-      "InvalidParameter",
-      "workflowName is required for Standard Logic Apps"
-    );
+    throw new McpError("InvalidParameter", "workflowName is required for Standard Logic Apps");
   }
 
   const { hostname, masterKey } = await getStandardAppAccess(
@@ -206,7 +182,7 @@ export async function getWorkflowTriggers(
     resourceGroupName,
     logicAppName
   );
-  
+
   const workflow = await workflowMgmtRequest<StandardWorkflow>(
     hostname,
     `/runtime/webhooks/workflow/api/management/workflows/${workflowName}?api-version=2020-05-01-preview`,
@@ -214,13 +190,11 @@ export async function getWorkflowTriggers(
   );
 
   return {
-    triggers: Object.entries(workflow.triggers ?? {}).map(
-      ([name, trigger]) => ({
-        name,
-        type: trigger.type,
-        state: workflow.isDisabled ? "Disabled" : "Enabled",
-      })
-    ),
+    triggers: Object.entries(workflow.triggers ?? {}).map(([name, trigger]) => ({
+      name,
+      type: trigger.type,
+      state: workflow.isDisabled ? "Disabled" : "Enabled",
+    })),
   };
 }
 
@@ -234,11 +208,7 @@ export async function listWorkflowVersions(
   logicAppName: string,
   top?: number
 ): Promise<ListWorkflowVersionsResult> {
-  const sku = await detectLogicAppSku(
-    subscriptionId,
-    resourceGroupName,
-    logicAppName
-  );
+  const sku = await detectLogicAppSku(subscriptionId, resourceGroupName, logicAppName);
 
   if (sku !== "consumption") {
     throw new McpError(
@@ -285,11 +255,7 @@ export async function getWorkflowVersion(
   logicAppName: string,
   versionId: string
 ): Promise<GetWorkflowVersionResult> {
-  const sku = await detectLogicAppSku(
-    subscriptionId,
-    resourceGroupName,
-    logicAppName
-  );
+  const sku = await detectLogicAppSku(subscriptionId, resourceGroupName, logicAppName);
 
   if (sku !== "consumption") {
     throw new McpError(
@@ -382,11 +348,7 @@ export async function enableWorkflow(
   logicAppName: string,
   workflowName?: string
 ): Promise<EnableDisableWorkflowResult> {
-  const sku = await detectLogicAppSku(
-    subscriptionId,
-    resourceGroupName,
-    logicAppName
-  );
+  const sku = await detectLogicAppSku(subscriptionId, resourceGroupName, logicAppName);
 
   if (sku === "consumption") {
     await armRequest(
@@ -404,10 +366,7 @@ export async function enableWorkflow(
 
   // Standard - requires workflowName
   if (!workflowName) {
-    throw new McpError(
-      "InvalidParameter",
-      "workflowName is required for Standard Logic Apps"
-    );
+    throw new McpError("InvalidParameter", "workflowName is required for Standard Logic Apps");
   }
 
   // Standard Logic Apps use app settings to control workflow state
@@ -437,11 +396,7 @@ export async function disableWorkflow(
   logicAppName: string,
   workflowName?: string
 ): Promise<EnableDisableWorkflowResult> {
-  const sku = await detectLogicAppSku(
-    subscriptionId,
-    resourceGroupName,
-    logicAppName
-  );
+  const sku = await detectLogicAppSku(subscriptionId, resourceGroupName, logicAppName);
 
   if (sku === "consumption") {
     await armRequest(
@@ -459,10 +414,7 @@ export async function disableWorkflow(
 
   // Standard - requires workflowName
   if (!workflowName) {
-    throw new McpError(
-      "InvalidParameter",
-      "workflowName is required for Standard Logic Apps"
-    );
+    throw new McpError("InvalidParameter", "workflowName is required for Standard Logic Apps");
   }
 
   // Standard Logic Apps use app settings to control workflow state
@@ -525,7 +477,10 @@ export async function createWorkflow(
     // Build parameters with connection references if provided
     let parameters: Record<string, unknown> | undefined;
     if (connections && Object.keys(connections).length > 0) {
-      const connectionsValue: Record<string, { connectionId: string; connectionName: string; id: string }> = {};
+      const connectionsValue: Record<
+        string,
+        { connectionId: string; connectionName: string; id: string }
+      > = {};
       for (const [name, ref] of Object.entries(connections)) {
         connectionsValue[name] = {
           connectionId: `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Web/connections/${ref.connectionName}`,
@@ -559,7 +514,7 @@ export async function createWorkflow(
     );
 
     const connectionCount = connections ? Object.keys(connections).length : 0;
-    const connectionMsg = connectionCount > 0 ? ` with ${connectionCount} API connection(s)` : '';
+    const connectionMsg = connectionCount > 0 ? ` with ${connectionCount} API connection(s)` : "";
     return {
       success: true,
       name: logicAppName,
@@ -580,15 +535,10 @@ export async function createWorkflow(
   };
 
   // Use VFS API to create the workflow.json file
-  await vfsRequest(
-    hostname,
-    `/admin/vfs/site/wwwroot/${workflowName}/workflow.json`,
-    masterKey,
-    {
-      method: "PUT",
-      body: workflowContent,
-    }
-  );
+  await vfsRequest(hostname, `/admin/vfs/site/wwwroot/${workflowName}/workflow.json`, masterKey, {
+    method: "PUT",
+    body: workflowContent,
+  });
 
   return {
     success: true,
@@ -625,11 +575,7 @@ export async function updateWorkflow(
   kind?: string,
   connections?: Record<string, ConnectionReference>
 ): Promise<UpdateWorkflowResult> {
-  const sku = await detectLogicAppSku(
-    subscriptionId,
-    resourceGroupName,
-    logicAppName
-  );
+  const sku = await detectLogicAppSku(subscriptionId, resourceGroupName, logicAppName);
 
   if (sku === "consumption") {
     // Get current workflow to preserve other properties
@@ -640,10 +586,10 @@ export async function updateWorkflow(
 
     // Get parameters declared in the definition
     const definitionParams = definition.parameters || {};
-    
+
     // Build parameters - only include parameters that are declared in the definition
-    let parameters: Record<string, unknown> = {};
-    
+    const parameters: Record<string, unknown> = {};
+
     // Copy over existing parameter values that are still in the definition
     if (current.properties.parameters) {
       for (const [key, value] of Object.entries(current.properties.parameters)) {
@@ -652,11 +598,14 @@ export async function updateWorkflow(
         }
       }
     }
-    
+
     // If connections are provided, build the $connections parameter
     if (connections && Object.keys(connections).length > 0) {
       // Build $connections parameter value
-      const connectionsValue: Record<string, { connectionId: string; connectionName: string; id: string }> = {};
+      const connectionsValue: Record<
+        string,
+        { connectionId: string; connectionName: string; id: string }
+      > = {};
       for (const [name, ref] of Object.entries(connections)) {
         connectionsValue[name] = {
           connectionId: `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Web/connections/${ref.connectionName}`,
@@ -689,7 +638,7 @@ export async function updateWorkflow(
     );
 
     const connectionCount = connections ? Object.keys(connections).length : 0;
-    const connectionMsg = connectionCount > 0 ? ` with ${connectionCount} API connection(s)` : '';
+    const connectionMsg = connectionCount > 0 ? ` with ${connectionCount} API connection(s)` : "";
     return {
       success: true,
       name: logicAppName,
@@ -699,10 +648,7 @@ export async function updateWorkflow(
 
   // Standard - requires workflowName
   if (!workflowName) {
-    throw new McpError(
-      "InvalidParameter",
-      "workflowName is required for Standard Logic Apps"
-    );
+    throw new McpError("InvalidParameter", "workflowName is required for Standard Logic Apps");
   }
 
   // Standard: Update workflow using VFS API
@@ -718,15 +664,10 @@ export async function updateWorkflow(
   };
 
   // Use VFS API to update the workflow.json file
-  await vfsRequest(
-    hostname,
-    `/admin/vfs/site/wwwroot/${workflowName}/workflow.json`,
-    masterKey,
-    {
-      method: "PUT",
-      body: workflowContent,
-    }
-  );
+  await vfsRequest(hostname, `/admin/vfs/site/wwwroot/${workflowName}/workflow.json`, masterKey, {
+    method: "PUT",
+    body: workflowContent,
+  });
 
   return {
     success: true,
@@ -752,11 +693,7 @@ export async function deleteWorkflow(
   logicAppName: string,
   workflowName?: string
 ): Promise<DeleteWorkflowResult> {
-  const sku = await detectLogicAppSku(
-    subscriptionId,
-    resourceGroupName,
-    logicAppName
-  );
+  const sku = await detectLogicAppSku(subscriptionId, resourceGroupName, logicAppName);
 
   if (sku === "consumption") {
     await armRequest(
@@ -790,14 +727,9 @@ export async function deleteWorkflow(
   );
 
   // Delete the workflow folder (recursive)
-  await vfsRequest(
-    hostname,
-    `/admin/vfs/site/wwwroot/${workflowName}/?recursive=true`,
-    masterKey,
-    {
-      method: "DELETE",
-    }
-  );
+  await vfsRequest(hostname, `/admin/vfs/site/wwwroot/${workflowName}/?recursive=true`, masterKey, {
+    method: "DELETE",
+  });
 
   return {
     success: true,

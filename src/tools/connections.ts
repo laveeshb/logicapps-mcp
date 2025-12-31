@@ -4,7 +4,6 @@
 
 import { armRequest, armRequestAllPages } from "../utils/http.js";
 import { ApiConnection } from "../types/logicApp.js";
-import { McpError } from "../utils/errors.js";
 import { getAccessToken } from "../auth/tokenManager.js";
 import { getCloudEndpoints } from "../config/clouds.js";
 
@@ -125,11 +124,7 @@ export async function testConnection(
   connectionName: string
 ): Promise<TestConnectionResult> {
   // First get the connection details to check status and get test links
-  const details = await getConnectionDetails(
-    subscriptionId,
-    resourceGroupName,
-    connectionName
-  );
+  const details = await getConnectionDetails(subscriptionId, resourceGroupName, connectionName);
 
   const result: TestConnectionResult = {
     connectionName,
@@ -172,7 +167,9 @@ export async function testConnection(
         result.isValid = true;
         result.status = "Connected";
       } else {
-        const errorBody = await response.json().catch(() => ({})) as { error?: { code?: string; message?: string } };
+        const errorBody = (await response.json().catch(() => ({}))) as {
+          error?: { code?: string; message?: string };
+        };
         result.error = {
           code: errorBody.error?.code ?? `HTTP${response.status}`,
           message: errorBody.error?.message ?? response.statusText,
@@ -206,18 +203,24 @@ export interface GetConnectorSwaggerResult {
   iconUri?: string;
   swagger?: {
     basePath?: string;
-    paths: Record<string, Record<string, {
-      operationId?: string;
-      summary?: string;
-      description?: string;
-      parameters?: Array<{
-        name: string;
-        in: string;
-        required?: boolean;
-        type?: string;
-        description?: string;
-      }>;
-    }>>;
+    paths: Record<
+      string,
+      Record<
+        string,
+        {
+          operationId?: string;
+          summary?: string;
+          description?: string;
+          parameters?: Array<{
+            name: string;
+            in: string;
+            required?: boolean;
+            type?: string;
+            description?: string;
+          }>;
+        }
+      >
+    >;
     definitions?: Record<string, unknown>;
   };
   capabilities?: string[];
@@ -242,30 +245,36 @@ export async function getConnectorSwagger(
     };
     host?: string;
     basePath?: string;
-    paths?: Record<string, Record<string, {
-      operationId?: string;
-      summary?: string;
-      description?: string;
-      parameters?: Array<{
-        name: string;
-        in: string;
-        required?: boolean;
-        type?: string;
-        description?: string;
-        "x-ms-dynamic-values"?: {
+    paths?: Record<
+      string,
+      Record<
+        string,
+        {
           operationId?: string;
-          parameters?: Record<string, unknown>;
-          "value-path"?: string;
-          "value-title"?: string;
-          "value-collection"?: string;
-        };
-        "x-ms-dynamic-schema"?: {
-          operationId?: string;
-          parameters?: Record<string, unknown>;
-          "value-path"?: string;
-        };
-      }>;
-    }>>;
+          summary?: string;
+          description?: string;
+          parameters?: Array<{
+            name: string;
+            in: string;
+            required?: boolean;
+            type?: string;
+            description?: string;
+            "x-ms-dynamic-values"?: {
+              operationId?: string;
+              parameters?: Record<string, unknown>;
+              "value-path"?: string;
+              "value-title"?: string;
+              "value-collection"?: string;
+            };
+            "x-ms-dynamic-schema"?: {
+              operationId?: string;
+              parameters?: Record<string, unknown>;
+              "value-path"?: string;
+            };
+          }>;
+        }
+      >
+    >;
     definitions?: Record<string, unknown>;
     "x-ms-capabilities"?: Record<string, unknown>;
   }
@@ -289,7 +298,7 @@ export async function getConnectorSwagger(
   // First, get the swagger definition with export=true
   const swagger = await armRequest<SwaggerResponse>(
     `/subscriptions/${subscriptionId}/providers/Microsoft.Web/locations/${location}/managedApis/${connectorName}`,
-    { queryParams: { "api-version": "2018-07-01-preview", "export": "true" } }
+    { queryParams: { "api-version": "2018-07-01-preview", export: "true" } }
   );
 
   // Then get connector metadata (without export) for display info
@@ -300,8 +309,10 @@ export async function getConnectorSwagger(
 
   const result: GetConnectorSwaggerResult = {
     connectorName: metadata.name,
-    displayName: metadata.properties.generalInformation?.displayName ?? swagger.info?.title ?? metadata.name,
-    description: metadata.properties.generalInformation?.description ?? swagger.info?.description ?? "",
+    displayName:
+      metadata.properties.generalInformation?.displayName ?? swagger.info?.title ?? metadata.name,
+    description:
+      metadata.properties.generalInformation?.description ?? swagger.info?.description ?? "",
     iconUri: metadata.properties.generalInformation?.iconUrl,
     capabilities: metadata.properties.capabilities,
     connectionParameters: metadata.properties.connectionParameters,
@@ -345,7 +356,7 @@ export async function invokeConnectorOperation(
     return {
       operationId,
       success: false,
-      error: `Connection '${connectionName}' is not authorized. Status: ${connectionTest.status}. ${connectionTest.error ? `Error: ${connectionTest.error.message}` : ''} Authorize it in the Azure Portal: ${portalUrl}`,
+      error: `Connection '${connectionName}' is not authorized. Status: ${connectionTest.status}. ${connectionTest.error ? `Error: ${connectionTest.error.message}` : ""} Authorize it in the Azure Portal: ${portalUrl}`,
     };
   }
 
@@ -372,30 +383,38 @@ export async function invokeConnectorOperation(
   const connectorResponse = await armRequest<{
     swagger?: string;
     basePath?: string;
-    paths?: Record<string, Record<string, {
-      operationId?: string;
-      parameters?: Array<{
-        name: string;
-        in: string;
-        required?: boolean;
-      }>;
-    }>>;
+    paths?: Record<
+      string,
+      Record<
+        string,
+        {
+          operationId?: string;
+          parameters?: Array<{
+            name: string;
+            in: string;
+            required?: boolean;
+          }>;
+        }
+      >
+    >;
   }>(
     `/subscriptions/${subscriptionId}/providers/Microsoft.Web/locations/${location}/managedApis/${apiName}`,
-    { queryParams: { "api-version": "2018-07-01-preview", "export": "true" } }
+    { queryParams: { "api-version": "2018-07-01-preview", export: "true" } }
   );
 
   // Find the operation in the swagger
   let operationPath: string | undefined;
   let httpMethod: string | undefined;
-  let operationDef: {
-    operationId?: string;
-    parameters?: Array<{
-      name: string;
-      in: string;
-      required?: boolean;
-    }>;
-  } | undefined;
+  let operationDef:
+    | {
+        operationId?: string;
+        parameters?: Array<{
+          name: string;
+          in: string;
+          required?: boolean;
+        }>;
+      }
+    | undefined;
 
   if (connectorResponse.paths) {
     for (const [path, methods] of Object.entries(connectorResponse.paths)) {
@@ -423,7 +442,7 @@ export async function invokeConnectorOperation(
   // The swagger paths often start with /{connectionId}/ which needs to be stripped
   // since the dynamicInvoke endpoint is already on the connection
   let resolvedPath = operationPath;
-  
+
   // Strip the /{connectionId} prefix if present
   if (resolvedPath.startsWith("/{connectionId}")) {
     resolvedPath = resolvedPath.substring("/{connectionId}".length);
@@ -437,12 +456,10 @@ export async function invokeConnectorOperation(
     resolvedPath = "/" + resolvedPath;
   }
 
-
-
   // Build query parameters and path parameters from the provided parameters
   const queryParams: Record<string, string> = {};
   const bodyParams: Record<string, unknown> = {};
-  
+
   if (parameters && operationDef?.parameters) {
     for (const param of operationDef.parameters) {
       // Skip connectionId - it's handled by the dynamicInvoke endpoint
@@ -502,9 +519,6 @@ export async function invokeConnectorOperation(
         body: { request: dynamicRequest },
       }
     );
-
-
-
 
     if (result.error) {
       return {
@@ -574,9 +588,7 @@ export async function createConnection(
       api: {
         id: `/subscriptions/${subscriptionId}/providers/Microsoft.Web/locations/${location}/managedApis/${connectorName}`,
       },
-      ...(parameterValues && Object.keys(parameterValues).length > 0
-        ? { parameterValues }
-        : {}),
+      ...(parameterValues && Object.keys(parameterValues).length > 0 ? { parameterValues } : {}),
     },
   };
 

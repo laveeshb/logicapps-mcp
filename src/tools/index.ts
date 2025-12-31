@@ -36,19 +36,17 @@ export type {
 } from "./runs.js";
 
 export { getConnections, getConnectionDetails, testConnection } from "./connections.js";
-export type { GetConnectionsResult, GetConnectionDetailsResult, TestConnectionResult } from "./connections.js";
+export type {
+  GetConnectionsResult,
+  GetConnectionDetailsResult,
+  TestConnectionResult,
+} from "./connections.js";
 
 export { getTriggerHistory, getTriggerCallbackUrl } from "./triggers.js";
-export type {
-  GetTriggerHistoryResult,
-  GetTriggerCallbackUrlResult,
-} from "./triggers.js";
+export type { GetTriggerHistoryResult, GetTriggerCallbackUrlResult } from "./triggers.js";
 
 export { getActionRepetitions, getScopeRepetitions } from "./repetitions.js";
-export type {
-  GetActionRepetitionsResult,
-  GetScopeRepetitionsResult,
-} from "./repetitions.js";
+export type { GetActionRepetitionsResult, GetScopeRepetitionsResult } from "./repetitions.js";
 
 export { getActionRequestHistory } from "./requestHistory.js";
 export type { GetActionRequestHistoryResult } from "./requestHistory.js";

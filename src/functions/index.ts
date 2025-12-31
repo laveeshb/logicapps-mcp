@@ -12,17 +12,17 @@
  * No fallback to Managed Identity - user token is always required.
  */
 
-import {
-  app,
-  HttpRequest,
-  HttpResponseInit,
-  InvocationContext,
-} from "@azure/functions";
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { registerTools } from "../server.js";
 import { loadSettings } from "../config/index.js";
-import { setSettings, initializeAuth, setPassthroughToken, clearPassthroughToken } from "../auth/index.js";
+import {
+  setSettings,
+  initializeAuth,
+  setPassthroughToken,
+  clearPassthroughToken,
+} from "../auth/index.js";
 
 let initialized = false;
 
@@ -53,9 +53,7 @@ function createMcpServer(): Server {
 /**
  * Convert Web Standard Response to Azure Functions HttpResponseInit.
  */
-async function convertResponse(
-  response: Response
-): Promise<HttpResponseInit> {
+async function convertResponse(response: Response): Promise<HttpResponseInit> {
   const headers: Record<string, string> = {};
   response.headers.forEach((value, key) => {
     headers[key] = value;
@@ -82,7 +80,7 @@ async function convertResponse(
           totalRead += value.length;
           // Check if we've received a complete JSON-RPC response
           const text = decoder.decode(Buffer.concat(chunks.map((c) => Buffer.from(c))));
-          if (text.includes('"jsonrpc"') && text.includes('\n\n')) {
+          if (text.includes('"jsonrpc"') && text.includes("\n\n")) {
             break;
           }
         }
@@ -91,9 +89,7 @@ async function convertResponse(
 
     await readWithTimeout();
 
-    const body = Buffer.concat(chunks.map((c) => Buffer.from(c))).toString(
-      "utf-8"
-    );
+    const body = Buffer.concat(chunks.map((c) => Buffer.from(c))).toString("utf-8");
 
     return {
       status: response.status,
@@ -188,8 +184,7 @@ async function mcpHandler(
         jsonrpc: "2.0",
         error: {
           code: -32603,
-          message:
-            error instanceof Error ? error.message : "Internal server error",
+          message: error instanceof Error ? error.message : "Internal server error",
         },
         id: null,
       },

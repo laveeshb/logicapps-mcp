@@ -2,11 +2,7 @@
  * Action request history tools for debugging HTTP connector calls.
  */
 
-import {
-  armRequest,
-  armRequestAllPages,
-  workflowMgmtRequest,
-} from "../utils/http.js";
+import { armRequest, armRequestAllPages, workflowMgmtRequest } from "../utils/http.js";
 import { McpError } from "../utils/errors.js";
 import { detectLogicAppSku, getStandardAppAccess } from "./shared.js";
 
@@ -75,11 +71,7 @@ export async function getActionRequestHistory(
   workflowName?: string,
   requestHistoryName?: string
 ): Promise<GetActionRequestHistoryResult> {
-  const sku = await detectLogicAppSku(
-    subscriptionId,
-    resourceGroupName,
-    logicAppName
-  );
+  const sku = await detectLogicAppSku(subscriptionId, resourceGroupName, logicAppName);
 
   if (sku === "consumption") {
     return getRequestHistoryConsumption(
@@ -94,10 +86,7 @@ export async function getActionRequestHistory(
 
   // Standard requires workflowName
   if (!workflowName) {
-    throw new McpError(
-      "InvalidParameter",
-      "workflowName is required for Standard Logic Apps"
-    );
+    throw new McpError("InvalidParameter", "workflowName is required for Standard Logic Apps");
   }
 
   return getRequestHistoryStandard(
@@ -122,10 +111,9 @@ async function getRequestHistoryConsumption(
   const basePath = `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}/runs/${runId}/actions/${actionName}/requestHistories`;
 
   if (requestHistoryName) {
-    const entry = await armRequest<RequestHistoryEntry>(
-      `${basePath}/${requestHistoryName}`,
-      { queryParams: { "api-version": "2019-05-01" } }
-    );
+    const entry = await armRequest<RequestHistoryEntry>(`${basePath}/${requestHistoryName}`, {
+      queryParams: { "api-version": "2019-05-01" },
+    });
 
     return {
       actionName,

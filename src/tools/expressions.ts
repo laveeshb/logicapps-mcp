@@ -37,11 +37,7 @@ export async function getExpressionTraces(
   actionName: string,
   workflowName?: string
 ): Promise<GetExpressionTracesResult> {
-  const sku = await detectLogicAppSku(
-    subscriptionId,
-    resourceGroupName,
-    logicAppName
-  );
+  const sku = await detectLogicAppSku(subscriptionId, resourceGroupName, logicAppName);
 
   if (sku === "consumption") {
     return getExpressionTracesConsumption(
@@ -55,10 +51,7 @@ export async function getExpressionTraces(
 
   // Standard requires workflowName
   if (!workflowName) {
-    throw new McpError(
-      "InvalidParameter",
-      "workflowName is required for Standard Logic Apps"
-    );
+    throw new McpError("InvalidParameter", "workflowName is required for Standard Logic Apps");
   }
 
   return getExpressionTracesStandard(

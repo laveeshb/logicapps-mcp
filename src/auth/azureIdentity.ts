@@ -49,31 +49,26 @@ export async function getToken(
     cachedScope = scope;
 
     if (!cachedToken) {
-      throw new McpError(
-        "AuthenticationError",
-        "Failed to get access token - no token returned"
-      );
+      throw new McpError("AuthenticationError", "Failed to get access token - no token returned");
     }
 
     return cachedToken.token;
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : String(error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
 
     // Provide helpful error messages
-    if (errorMessage.includes("EnvironmentCredential") ||
-        errorMessage.includes("ManagedIdentityCredential") ||
-        errorMessage.includes("AzureCliCredential")) {
+    if (
+      errorMessage.includes("EnvironmentCredential") ||
+      errorMessage.includes("ManagedIdentityCredential") ||
+      errorMessage.includes("AzureCliCredential")
+    ) {
       throw new McpError(
         "AuthenticationError",
         `Azure authentication failed. Locally, run 'az login'. In Azure, ensure Managed Identity is configured. Details: ${errorMessage}`
       );
     }
 
-    throw new McpError(
-      "AuthenticationError",
-      `Failed to get Azure access token: ${errorMessage}`
-    );
+    throw new McpError("AuthenticationError", `Failed to get Azure access token: ${errorMessage}`);
   }
 }
 

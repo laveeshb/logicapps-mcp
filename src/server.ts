@@ -9,8 +9,6 @@ import {
   ListToolsRequestSchema,
   ListPromptsRequestSchema,
   GetPromptRequestSchema,
-  ListResourcesRequestSchema,
-  ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { TOOL_DEFINITIONS } from "./tools/definitions.js";
 import { handleToolCall } from "./tools/handler.js";
@@ -771,11 +769,13 @@ export function registerTools(server: Server): void {
     prompts: [
       {
         name: "logic-apps-guide",
-        description: "System guidance for Azure Logic Apps operations - helps with tool selection and common workflows",
+        description:
+          "System guidance for Azure Logic Apps operations - helps with tool selection and common workflows",
       },
       {
         name: "native-operations-guide",
-        description: "Complete reference for all native Logic Apps operations (triggers, actions, control flow) with JSON schemas and examples. Use this when authoring or modifying workflow definitions.",
+        description:
+          "Complete reference for all native Logic Apps operations (triggers, actions, control flow) with JSON schemas and examples. Use this when authoring or modifying workflow definitions.",
       },
     ],
   }));

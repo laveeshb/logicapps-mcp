@@ -10,7 +10,7 @@ import { registerTools } from "./server.js";
 
 describe("server", () => {
   let server: Server;
-  let handlers: Map<unknown, Function>;
+  let handlers: Map<unknown, (...args: unknown[]) => unknown>;
 
   beforeEach(() => {
     handlers = new Map();
@@ -70,9 +70,9 @@ describe("server", () => {
     it("should throw error for unknown prompt", async () => {
       const handler = handlers.get(GetPromptRequestSchema);
 
-      await expect(
-        handler!({ params: { name: "unknown-prompt" } })
-      ).rejects.toThrow("Unknown prompt: unknown-prompt");
+      await expect(handler!({ params: { name: "unknown-prompt" } })).rejects.toThrow(
+        "Unknown prompt: unknown-prompt"
+      );
     });
   });
 

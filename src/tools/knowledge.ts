@@ -19,7 +19,7 @@ const KNOWLEDGE_ROOT = join(__dirname, "..", "..", "knowledge");
 /**
  * Valid topics for troubleshooting guides
  */
-export type TroubleshootingTopic = 
+export type TroubleshootingTopic =
   | "expression-errors"
   | "connection-issues"
   | "run-failures"
@@ -28,17 +28,12 @@ export type TroubleshootingTopic =
 /**
  * Valid topics for authoring guides
  */
-export type AuthoringTopic = 
-  | "workflow-patterns"
-  | "connector-patterns"
-  | "deployment";
+export type AuthoringTopic = "workflow-patterns" | "connector-patterns" | "deployment";
 
 /**
  * Valid topics for reference guides
  */
-export type ReferenceTopic = 
-  | "tool-catalog"
-  | "sku-differences";
+export type ReferenceTopic = "tool-catalog" | "sku-differences";
 
 /**
  * Valid workflow instruction topics
@@ -55,34 +50,39 @@ export type WorkflowInstructionTopic =
  */
 function readKnowledgeFile(relativePath: string): string {
   const fullPath = join(KNOWLEDGE_ROOT, relativePath);
-  
+
   if (!existsSync(fullPath)) {
     throw new Error(`Documentation file not found: ${relativePath}. Looking in: ${fullPath}`);
   }
-  
+
   return readFileSync(fullPath, "utf-8");
 }
 
 /**
  * Get troubleshooting guidance for Logic Apps issues.
- * 
+ *
  * @param topic - The troubleshooting topic to retrieve
  * @returns The markdown content of the troubleshooting guide
  */
-export function getTroubleshootingGuide(topic: TroubleshootingTopic): { topic: string; content: string } {
+export function getTroubleshootingGuide(topic: TroubleshootingTopic): {
+  topic: string;
+  content: string;
+} {
   const validTopics: TroubleshootingTopic[] = [
     "expression-errors",
-    "connection-issues", 
+    "connection-issues",
     "run-failures",
     "known-limitations",
   ];
-  
+
   if (!validTopics.includes(topic)) {
-    throw new Error(`Invalid troubleshooting topic: ${topic}. Valid topics: ${validTopics.join(", ")}`);
+    throw new Error(
+      `Invalid troubleshooting topic: ${topic}. Valid topics: ${validTopics.join(", ")}`
+    );
   }
-  
+
   const content = readKnowledgeFile(join("troubleshooting", `${topic}.md`));
-  
+
   return {
     topic,
     content,
@@ -91,23 +91,19 @@ export function getTroubleshootingGuide(topic: TroubleshootingTopic): { topic: s
 
 /**
  * Get authoring guidance for creating Logic Apps workflows.
- * 
+ *
  * @param topic - The authoring topic to retrieve
  * @returns The markdown content of the authoring guide
  */
 export function getAuthoringGuide(topic: AuthoringTopic): { topic: string; content: string } {
-  const validTopics: AuthoringTopic[] = [
-    "workflow-patterns",
-    "connector-patterns",
-    "deployment",
-  ];
-  
+  const validTopics: AuthoringTopic[] = ["workflow-patterns", "connector-patterns", "deployment"];
+
   if (!validTopics.includes(topic)) {
     throw new Error(`Invalid authoring topic: ${topic}. Valid topics: ${validTopics.join(", ")}`);
   }
-  
+
   const content = readKnowledgeFile(join("authoring", `${topic}.md`));
-  
+
   return {
     topic,
     content,
@@ -116,22 +112,19 @@ export function getAuthoringGuide(topic: AuthoringTopic): { topic: string; conte
 
 /**
  * Get reference documentation for Logic Apps.
- * 
+ *
  * @param topic - The reference topic to retrieve
  * @returns The markdown content of the reference guide
  */
 export function getReference(topic: ReferenceTopic): { topic: string; content: string } {
-  const validTopics: ReferenceTopic[] = [
-    "tool-catalog",
-    "sku-differences",
-  ];
-  
+  const validTopics: ReferenceTopic[] = ["tool-catalog", "sku-differences"];
+
   if (!validTopics.includes(topic)) {
     throw new Error(`Invalid reference topic: ${topic}. Valid topics: ${validTopics.join(", ")}`);
   }
-  
+
   const content = readKnowledgeFile(join("reference", `${topic}.md`));
-  
+
   return {
     topic,
     content,
@@ -140,11 +133,14 @@ export function getReference(topic: ReferenceTopic): { topic: string; content: s
 
 /**
  * Get step-by-step workflow instructions for common user tasks.
- * 
+ *
  * @param topic - The workflow instruction topic to retrieve
  * @returns The markdown content with detailed steps
  */
-export function getWorkflowInstructions(topic: WorkflowInstructionTopic): { topic: string; content: string } {
+export function getWorkflowInstructions(topic: WorkflowInstructionTopic): {
+  topic: string;
+  content: string;
+} {
   const validTopics: WorkflowInstructionTopic[] = [
     "diagnose-failures",
     "explain-workflow",
@@ -152,13 +148,15 @@ export function getWorkflowInstructions(topic: WorkflowInstructionTopic): { topi
     "create-workflow",
     "fix-workflow",
   ];
-  
+
   if (!validTopics.includes(topic)) {
-    throw new Error(`Invalid workflow instruction topic: ${topic}. Valid topics: ${validTopics.join(", ")}`);
+    throw new Error(
+      `Invalid workflow instruction topic: ${topic}. Valid topics: ${validTopics.join(", ")}`
+    );
   }
-  
+
   const content = readKnowledgeFile(join("workflows", `${topic}.md`));
-  
+
   return {
     topic,
     content,

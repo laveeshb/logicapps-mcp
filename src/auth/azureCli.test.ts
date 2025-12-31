@@ -34,14 +34,12 @@ describe("azureCli", () => {
         tokenType: "Bearer",
       };
 
-      mockExec.mockImplementation(
-        (_cmd: unknown, callback?: unknown) => {
-          if (typeof callback === "function") {
-            callback(null, { stdout: JSON.stringify(mockResponse), stderr: "" });
-          }
-          return {} as ReturnType<typeof exec>;
+      mockExec.mockImplementation((_cmd: unknown, callback?: unknown) => {
+        if (typeof callback === "function") {
+          callback(null, { stdout: JSON.stringify(mockResponse), stderr: "" });
         }
-      );
+        return {} as ReturnType<typeof exec>;
+      });
 
       const token = await getAzureCliToken();
 
@@ -54,34 +52,26 @@ describe("azureCli", () => {
 
     it("should throw when Azure CLI is not installed", async () => {
       const error = new Error("ENOENT: command not found");
-      mockExec.mockImplementation(
-        (_cmd: unknown, callback?: unknown) => {
-          if (typeof callback === "function") {
-            callback(error, "", "");
-          }
-          return {} as ReturnType<typeof exec>;
+      mockExec.mockImplementation((_cmd: unknown, callback?: unknown) => {
+        if (typeof callback === "function") {
+          callback(error, "", "");
         }
-      );
+        return {} as ReturnType<typeof exec>;
+      });
 
-      await expect(getAzureCliToken()).rejects.toThrow(
-        "Azure CLI is not installed"
-      );
+      await expect(getAzureCliToken()).rejects.toThrow("Azure CLI is not installed");
     });
 
     it("should throw when user is not logged in", async () => {
       const error = new Error("Please run 'az login' to setup account");
-      mockExec.mockImplementation(
-        (_cmd: unknown, callback?: unknown) => {
-          if (typeof callback === "function") {
-            callback(error, "", "");
-          }
-          return {} as ReturnType<typeof exec>;
+      mockExec.mockImplementation((_cmd: unknown, callback?: unknown) => {
+        if (typeof callback === "function") {
+          callback(error, "", "");
         }
-      );
+        return {} as ReturnType<typeof exec>;
+      });
 
-      await expect(getAzureCliToken()).rejects.toThrow(
-        "Not logged in to Azure CLI"
-      );
+      await expect(getAzureCliToken()).rejects.toThrow("Not logged in to Azure CLI");
     });
 
     it("should use custom resource when provided", async () => {
@@ -94,15 +84,13 @@ describe("azureCli", () => {
       };
 
       let capturedCommand = "";
-      mockExec.mockImplementation(
-        (cmd: unknown, callback?: unknown) => {
-          capturedCommand = cmd as string;
-          if (typeof callback === "function") {
-            callback(null, { stdout: JSON.stringify(mockResponse), stderr: "" });
-          }
-          return {} as ReturnType<typeof exec>;
+      mockExec.mockImplementation((cmd: unknown, callback?: unknown) => {
+        capturedCommand = cmd as string;
+        if (typeof callback === "function") {
+          callback(null, { stdout: JSON.stringify(mockResponse), stderr: "" });
         }
-      );
+        return {} as ReturnType<typeof exec>;
+      });
 
       await getAzureCliToken("https://vault.azure.net");
 
@@ -121,14 +109,12 @@ describe("azureCli", () => {
         tokenType: "Bearer",
       };
 
-      mockExec.mockImplementation(
-        (_cmd: unknown, callback?: unknown) => {
-          if (typeof callback === "function") {
-            callback(null, { stdout: JSON.stringify(mockResponse), stderr: "" });
-          }
-          return {} as ReturnType<typeof exec>;
+      mockExec.mockImplementation((_cmd: unknown, callback?: unknown) => {
+        if (typeof callback === "function") {
+          callback(null, { stdout: JSON.stringify(mockResponse), stderr: "" });
         }
-      );
+        return {} as ReturnType<typeof exec>;
+      });
 
       const result = await checkAzureCliAuth();
 
@@ -140,14 +126,12 @@ describe("azureCli", () => {
 
     it("should return loggedIn false when not authenticated", async () => {
       const error = new Error("Please run 'az login'");
-      mockExec.mockImplementation(
-        (_cmd: unknown, callback?: unknown) => {
-          if (typeof callback === "function") {
-            callback(error, "", "");
-          }
-          return {} as ReturnType<typeof exec>;
+      mockExec.mockImplementation((_cmd: unknown, callback?: unknown) => {
+        if (typeof callback === "function") {
+          callback(error, "", "");
         }
-      );
+        return {} as ReturnType<typeof exec>;
+      });
 
       const result = await checkAzureCliAuth();
 

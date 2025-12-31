@@ -79,13 +79,7 @@ export interface WorkflowRun {
   name: string;
   type: string;
   properties: {
-    status:
-      | "Running"
-      | "Waiting"
-      | "Succeeded"
-      | "Failed"
-      | "Cancelled"
-      | "Skipped";
+    status: "Running" | "Waiting" | "Succeeded" | "Failed" | "Cancelled" | "Skipped";
     startTime: string;
     endTime?: string;
     trigger?: {

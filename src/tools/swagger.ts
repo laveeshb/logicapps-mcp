@@ -32,34 +32,18 @@ export async function getWorkflowSwagger(
   logicAppName: string,
   workflowName?: string
 ): Promise<GetWorkflowSwaggerResult> {
-  const sku = await detectLogicAppSku(
-    subscriptionId,
-    resourceGroupName,
-    logicAppName
-  );
+  const sku = await detectLogicAppSku(subscriptionId, resourceGroupName, logicAppName);
 
   if (sku === "consumption") {
-    return getSwaggerConsumption(
-      subscriptionId,
-      resourceGroupName,
-      logicAppName
-    );
+    return getSwaggerConsumption(subscriptionId, resourceGroupName, logicAppName);
   }
 
   // Standard requires workflowName
   if (!workflowName) {
-    throw new McpError(
-      "InvalidParameter",
-      "workflowName is required for Standard Logic Apps"
-    );
+    throw new McpError("InvalidParameter", "workflowName is required for Standard Logic Apps");
   }
 
-  return getSwaggerStandard(
-    subscriptionId,
-    resourceGroupName,
-    logicAppName,
-    workflowName
-  );
+  return getSwaggerStandard(subscriptionId, resourceGroupName, logicAppName, workflowName);
 }
 
 async function getSwaggerConsumption(
