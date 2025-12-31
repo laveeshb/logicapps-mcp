@@ -93,4 +93,4 @@ MCP Prompts provide AI assistants with guidance on tool selection and common wor
 
 - [Getting Started](GETTING_STARTED.md) - Setup for local MCP server or cloud agent
 - [Configuration](CONFIGURATION.md) - Environment variables and authentication
-- [Cloud Agent](CLOUD_AGENT.md) - Deploy to Azure for team/enterprise use
+- [Cloud MCP Server](CLOUD_MCP_SERVER.md) - Deploy to Azure for team/enterprise use

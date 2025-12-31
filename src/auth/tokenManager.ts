@@ -1,60 +1,61 @@
 /**
- * Manages token lifecycle using Azure Identity SDK.
- * Works both locally (Azure CLI) and in Azure (Managed Identity).
+ * Token manager for passthrough authentication.
+ * Requires a bearer token from the client - no local credential fallback.
  */
 
 import { FlowieSettings } from "../config/settings.js";
-import { getToken, checkAuth, clearCache } from "./azureIdentity.js";
 import { McpError } from "../utils/errors.js";
 
 let cachedSettings: FlowieSettings | null = null;
+let passthroughToken: string | null = null;
 
 export function setSettings(settings: FlowieSettings): void {
   cachedSettings = settings;
 }
 
 /**
- * Initializes authentication at server startup.
- * Verifies Azure credentials are available.
- * Throws if authentication fails.
+ * Sets a passthrough token to be used for ARM API calls.
+ */
+export function setPassthroughToken(token: string): void {
+  passthroughToken = token;
+}
+
+/**
+ * Clears the passthrough token.
+ * Should be called after each request to avoid token leakage.
+ */
+export function clearPassthroughToken(): void {
+  passthroughToken = null;
+}
+
+/**
+ * Initializes settings (no auth check needed - passthrough only).
  */
 export async function initializeAuth(): Promise<void> {
   if (!cachedSettings) {
     throw new McpError("AuthenticationError", "Settings not initialized");
   }
-
-  const authStatus = await checkAuth();
-
-  if (!authStatus.authenticated) {
-    throw new McpError(
-      "AuthenticationError",
-      `Azure authentication required. ${authStatus.error ?? "Please run: az login (locally) or configure Managed Identity (in Azure)"}`
-    );
-  }
-
-  console.error("Authenticated with Azure (using DefaultAzureCredential)");
+  console.error("MCP server ready (passthrough auth mode)");
 }
 
 /**
  * Gets a valid access token for Azure ARM API.
- * Automatically refreshes if expired or about to expire.
+ * Requires a passthrough token - no fallback.
  */
 export async function getAccessToken(): Promise<string> {
-  if (!cachedSettings) {
-    throw new McpError("AuthenticationError", "Settings not initialized");
+  if (!passthroughToken) {
+    throw new McpError(
+      "AuthenticationError",
+      "Bearer token required. Provide Authorization header with ARM-scoped token."
+    );
   }
 
-  // Convert resource URL to scope format (.default suffix)
-  const audience = cachedSettings.cloud.authentication.tokenAudience;
-  const scope = audience.endsWith("/.default") ? audience : `${audience}/.default`;
-
-  return getToken(scope);
+  return passthroughToken;
 }
 
 /**
- * Clears cached tokens.
+ * No-op for passthrough mode.
  */
 export async function logout(): Promise<void> {
-  clearCache();
-  console.error("Cleared cached tokens.");
+  clearPassthroughToken();
 }

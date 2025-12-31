@@ -16,15 +16,15 @@ You:  Add retry logic to that action - 3 attempts with exponential backoff.
 AI:   Done. Updated the workflow with retry policy. Want me to test it?
 ```
 
-Works with **GitHub Copilot**, **Claude Desktop**, or as a **cloud-hosted agent**. Supports both Consumption and Standard Logic Apps.
+Works with **GitHub Copilot**, **Claude Desktop**, or any MCP-compatible AI client. Supports both Consumption and Standard Logic Apps.
 
 ## Choose Your Setup
 
-| | Local MCP Server | Cloud Agent |
-|--|------------------|-------------|
-| **Use when** | You have a local AI (Copilot, Claude) and can `az login` to access the Logic Apps | You need shared/audited access, or can't access Logic Apps directly |
+| | Local MCP Server | Cloud MCP Server |
+|--|------------------|------------------|
+| **Use when** | You have a local AI (Copilot, Claude) | You need a hosted MCP server for remote AI clients |
 | **Setup** | `npm install` + AI config | Deploy to Azure |
-| **Auth** | Your Azure CLI credentials | Managed Identity |
+| **Auth** | Your Azure CLI credentials | Passthrough (client provides bearer token) |
 
 See the [Getting Started Guide](docs/GETTING_STARTED.md) for detailed setup instructions.
 
@@ -40,18 +40,20 @@ az login
 # 3. Add to your AI assistant and restart (see Getting Started Guide)
 ```
 
-## Quick Start (Cloud Agent)
+## Quick Start (Cloud MCP Server)
+
+Deploy a hosted MCP server with passthrough authentication. Clients must provide their own ARM-scoped bearer token.
 
 ```bash
-# Deploy to Azure (creates everything including Azure OpenAI)
-./deploy/deploy.ps1 -ResourceGroup my-rg -CreateAiResource -CreateResourceGroup
+# Deploy to Azure
+./deploy/deploy.ps1 -ResourceGroup my-rg -CreateResourceGroup
 
-# Grant the managed identity access to your Logic Apps
-az role assignment create \
-  --assignee <managed-identity-id-from-output> \
-  --role "Reader" \
-  --scope /subscriptions/<subscription-id>
+# Test the endpoint
+$token = az account get-access-token --resource https://management.azure.com --query accessToken -o tsv
+curl -H "Authorization: Bearer $token" https://<app>.azurewebsites.net/api/health
 ```
+
+**Authentication Model**: The cloud MCP server uses passthrough authentication. It does not have its own Azure access—clients must provide an ARM-scoped bearer token in the `Authorization` header. The server uses this token directly for all Azure Resource Manager API calls. Users only see resources they have access to with their own Azure credentials.
 
 ## Features
 
@@ -73,9 +75,8 @@ az role assignment create \
 
 ## Documentation
 
-- [Getting Started Guide](docs/GETTING_STARTED.md) - Setup for Claude, Copilot, Cloud Agent
+- [Getting Started Guide](docs/GETTING_STARTED.md) - Setup for Claude, Copilot, Cloud MCP Server
 - [Available Tools](docs/TOOLS.md) - All 37 tools with descriptions
-- [Cloud Agent](docs/CLOUD_AGENT.md) - Deployment and configuration details
 - [Configuration](docs/CONFIGURATION.md) - Environment variables, auth, SKU differences
 
 ## Development

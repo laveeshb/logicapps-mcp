@@ -23,4 +23,6 @@ export {
   setSettings,
   initializeAuth,
   logout,
+  setPassthroughToken,
+  clearPassthroughToken,
 } from "./tokenManager.js";

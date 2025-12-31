@@ -7,11 +7,9 @@
  * Uses WebStandardStreamableHTTPServerTransport which works directly with
  * Web Standard Request/Response objects that Azure Functions v4 supports.
  *
- * Deployment:
- * 1. Deploy this function app to Azure
- * 2. Configure Managed Identity
- * 3. Set up Easy Auth to restrict access
- * 4. Call the /api/agent endpoint for AI-powered assistance
+ * Requires passthrough authentication: a bearer token must be provided in
+ * the Authorization header. This token is used for ARM API calls.
+ * No fallback to Managed Identity - user token is always required.
  */
 
 import {
@@ -24,10 +22,7 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { registerTools } from "../server.js";
 import { loadSettings } from "../config/index.js";
-import { setSettings, initializeAuth } from "../auth/index.js";
-
-// Import agent function to register it
-import "./agent.js";
+import { setSettings, initializeAuth, setPassthroughToken, clearPassthroughToken } from "../auth/index.js";
 
 let initialized = false;
 
@@ -136,6 +131,7 @@ async function convertRequest(request: HttpRequest): Promise<Request> {
 
 /**
  * Main MCP HTTP handler for Azure Functions.
+ * Supports passthrough auth: extracts bearer token from Authorization header.
  */
 async function mcpHandler(
   request: HttpRequest,
@@ -146,30 +142,44 @@ async function mcpHandler(
   try {
     await ensureInitialized();
 
-    // Convert Azure Functions request to Web Standard Request
-    const webRequest = await convertRequest(request);
+    // Extract bearer token for passthrough auth (required)
+    const authHeader = request.headers.get("authorization");
+    const bearerToken = authHeader?.replace(/^Bearer\s+/i, "");
 
-    // Create MCP server and transport
-    const server = createMcpServer();
-    const transport = new WebStandardStreamableHTTPServerTransport({
-      sessionIdGenerator: undefined, // Stateless mode
-      enableJsonResponse: true, // Return JSON instead of SSE where possible
-    });
+    if (bearerToken) {
+      setPassthroughToken(bearerToken);
+    }
+    // If no token, tools will fail with AuthenticationError when they try to get token
 
-    await server.connect(transport);
+    try {
+      // Convert Azure Functions request to Web Standard Request
+      const webRequest = await convertRequest(request);
 
-    // Handle the request
-    const response = await transport.handleRequest(webRequest);
+      // Create MCP server and transport
+      const server = createMcpServer();
+      const transport = new WebStandardStreamableHTTPServerTransport({
+        sessionIdGenerator: undefined, // Stateless mode
+        enableJsonResponse: true, // Return JSON instead of SSE where possible
+      });
 
-    // Clean up
-    await transport.close();
-    await server.close();
+      await server.connect(transport);
 
-    // Convert Web Standard Response to Azure Functions response
-    const azResponse = await convertResponse(response);
-    context.log(`MCP response status: ${azResponse.status}`);
+      // Handle the request
+      const response = await transport.handleRequest(webRequest);
 
-    return azResponse;
+      // Clean up
+      await transport.close();
+      await server.close();
+
+      // Convert Web Standard Response to Azure Functions response
+      const azResponse = await convertResponse(response);
+      context.log(`MCP response status: ${azResponse.status}`);
+
+      return azResponse;
+    } finally {
+      // Always clear the passthrough token after request
+      clearPassthroughToken();
+    }
   } catch (error) {
     context.error("Error handling MCP request:", error);
     return {
