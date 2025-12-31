@@ -172,7 +172,7 @@ The cloud MCP server uses **passthrough authentication**:
 ┌──────────────────┐     ┌──────────────────┐     ┌──────────────────┐
 │    AI Client     │────▶│    MCP Server    │────▶│    Azure ARM     │
 │                  │     │  (Function App)  │     │      APIs        │
-└─────────┬────────┘     └─────────┬────────┘     └─────────┬────────┘
+└──────────────────┘     └──────────────────┘     └──────────────────┘
           │                        │                        │
           │ Authorization:         │ Uses client's          │
           │ Bearer <ARM-token>     │ token directly         │
