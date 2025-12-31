@@ -24,6 +24,16 @@ describe("errors", () => {
       const error = new McpError("CustomCode", "Custom message");
       expect(error.code).toBe("CustomCode");
     });
+
+    it("should create UnsupportedOperation error", () => {
+      const error = new McpError(
+        "UnsupportedOperation",
+        "This operation is not supported for Consumption Logic Apps"
+      );
+
+      expect(error.code).toBe("UnsupportedOperation");
+      expect(error.message).toBe("This operation is not supported for Consumption Logic Apps");
+    });
   });
 
   describe("formatError", () => {
