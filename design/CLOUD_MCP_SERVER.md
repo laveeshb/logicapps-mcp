@@ -77,7 +77,7 @@ The server does **not** have its own Azure credentials for ARM API calls. All Az
 
 ```
 ┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│   AI Client     │────▶│   MCP Server     │────▶│   Azure ARM     │
+│   AI Client     │ ──> │   MCP Server     │ ──> │   Azure ARM     │
 │                 │     │  (Function App)  │     │   APIs          │
 └─────────────────┘     └──────────────────┘     └─────────────────┘
         │                       │                        │

@@ -15,9 +15,9 @@ The cloud MCP server is a pure passthrough service:
 
 ```
 ┌──────────────────┐     ┌──────────────────┐     ┌──────────────────┐
-│    AI Client     │────▶│    MCP Server    │────▶│    Azure ARM     │
+│    AI Client     │ ──> │    MCP Server    │ ──> │    Azure ARM     │
 │                  │     │  (Function App)  │     │      APIs        │
-└─────────┬────────┘     └─────────┬────────┘     └─────────┬────────┘
+└──────────────────┘     └──────────────────┘     └──────────────────┘
           │                        │                        │
           │ Authorization:         │ Uses client's          │
           │ Bearer <ARM-token>     │ token directly         │
