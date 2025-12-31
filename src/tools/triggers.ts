@@ -2,11 +2,7 @@
  * Trigger-related tools for Logic Apps.
  */
 
-import {
-  armRequest,
-  armRequestAllPages,
-  workflowMgmtRequest,
-} from "../utils/http.js";
+import { armRequest, armRequestAllPages, workflowMgmtRequest } from "../utils/http.js";
 import { McpError } from "../utils/errors.js";
 import { detectLogicAppSku, getStandardAppAccess } from "./shared.js";
 
@@ -63,11 +59,7 @@ export async function getTriggerHistory(
   top?: number,
   filter?: string
 ): Promise<GetTriggerHistoryResult> {
-  const sku = await detectLogicAppSku(
-    subscriptionId,
-    resourceGroupName,
-    logicAppName
-  );
+  const sku = await detectLogicAppSku(subscriptionId, resourceGroupName, logicAppName);
 
   const effectiveTop = Math.min(top ?? 25, 100);
 
@@ -84,10 +76,7 @@ export async function getTriggerHistory(
 
   // Standard requires workflowName
   if (!workflowName) {
-    throw new McpError(
-      "InvalidParameter",
-      "workflowName is required for Standard Logic Apps"
-    );
+    throw new McpError("InvalidParameter", "workflowName is required for Standard Logic Apps");
   }
 
   return getTriggerHistoryStandard(
@@ -208,27 +197,15 @@ export async function getTriggerCallbackUrl(
   triggerName: string,
   workflowName?: string
 ): Promise<GetTriggerCallbackUrlResult> {
-  const sku = await detectLogicAppSku(
-    subscriptionId,
-    resourceGroupName,
-    logicAppName
-  );
+  const sku = await detectLogicAppSku(subscriptionId, resourceGroupName, logicAppName);
 
   if (sku === "consumption") {
-    return getCallbackUrlConsumption(
-      subscriptionId,
-      resourceGroupName,
-      logicAppName,
-      triggerName
-    );
+    return getCallbackUrlConsumption(subscriptionId, resourceGroupName, logicAppName, triggerName);
   }
 
   // Standard requires workflowName
   if (!workflowName) {
-    throw new McpError(
-      "InvalidParameter",
-      "workflowName is required for Standard Logic Apps"
-    );
+    throw new McpError("InvalidParameter", "workflowName is required for Standard Logic Apps");
   }
 
   return getCallbackUrlStandard(
@@ -303,11 +280,7 @@ export async function runTrigger(
   triggerName: string,
   workflowName?: string
 ): Promise<RunTriggerResult> {
-  const sku = await detectLogicAppSku(
-    subscriptionId,
-    resourceGroupName,
-    logicAppName
-  );
+  const sku = await detectLogicAppSku(subscriptionId, resourceGroupName, logicAppName);
 
   if (sku === "consumption") {
     await armRequest(
@@ -324,10 +297,7 @@ export async function runTrigger(
 
   // Standard requires workflowName
   if (!workflowName) {
-    throw new McpError(
-      "InvalidParameter",
-      "workflowName is required for Standard Logic Apps"
-    );
+    throw new McpError("InvalidParameter", "workflowName is required for Standard Logic Apps");
   }
 
   // For Standard, use the ARM API with hostruntime path

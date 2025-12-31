@@ -4,18 +4,11 @@
  */
 
 // Legacy Azure CLI exports (kept for backwards compatibility)
-export {
-  getAzureCliToken,
-  checkAzureCliAuth,
-} from "./azureCli.js";
+export { getAzureCliToken, checkAzureCliAuth } from "./azureCli.js";
 export type { AzureCliToken } from "./azureCli.js";
 
 // New Azure Identity exports (recommended)
-export {
-  getToken,
-  checkAuth,
-  clearCache,
-} from "./azureIdentity.js";
+export { getToken, checkAuth, clearCache } from "./azureIdentity.js";
 
 // Token manager (uses Azure Identity internally)
 export {

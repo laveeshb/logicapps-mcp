@@ -2,11 +2,7 @@
  * Action and scope repetition tools for debugging loops and conditional branches.
  */
 
-import {
-  armRequest,
-  armRequestAllPages,
-  workflowMgmtRequest,
-} from "../utils/http.js";
+import { armRequest, armRequestAllPages, workflowMgmtRequest } from "../utils/http.js";
 import { McpError } from "../utils/errors.js";
 import { detectLogicAppSku, getStandardAppAccess } from "./shared.js";
 
@@ -92,11 +88,7 @@ export async function getActionRepetitions(
   workflowName?: string,
   repetitionName?: string
 ): Promise<GetActionRepetitionsResult> {
-  const sku = await detectLogicAppSku(
-    subscriptionId,
-    resourceGroupName,
-    logicAppName
-  );
+  const sku = await detectLogicAppSku(subscriptionId, resourceGroupName, logicAppName);
 
   if (sku === "consumption") {
     return getActionRepetitionsConsumption(
@@ -111,10 +103,7 @@ export async function getActionRepetitions(
 
   // Standard requires workflowName
   if (!workflowName) {
-    throw new McpError(
-      "InvalidParameter",
-      "workflowName is required for Standard Logic Apps"
-    );
+    throw new McpError("InvalidParameter", "workflowName is required for Standard Logic Apps");
   }
 
   return getActionRepetitionsStandard(
@@ -139,10 +128,9 @@ async function getActionRepetitionsConsumption(
   const basePath = `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}/runs/${runId}/actions/${actionName}/repetitions`;
 
   if (repetitionName) {
-    const repetition = await armRequest<ActionRepetitionEntry>(
-      `${basePath}/${repetitionName}`,
-      { queryParams: { "api-version": "2019-05-01" } }
-    );
+    const repetition = await armRequest<ActionRepetitionEntry>(`${basePath}/${repetitionName}`, {
+      queryParams: { "api-version": "2019-05-01" },
+    });
 
     return {
       actionName,
@@ -162,10 +150,9 @@ async function getActionRepetitionsConsumption(
     };
   }
 
-  const repetitions = await armRequestAllPages<ActionRepetitionEntry>(
-    basePath,
-    { "api-version": "2019-05-01" }
-  );
+  const repetitions = await armRequestAllPages<ActionRepetitionEntry>(basePath, {
+    "api-version": "2019-05-01",
+  });
 
   return {
     actionName,
@@ -259,11 +246,7 @@ export async function getScopeRepetitions(
   actionName: string,
   workflowName?: string
 ): Promise<GetScopeRepetitionsResult> {
-  const sku = await detectLogicAppSku(
-    subscriptionId,
-    resourceGroupName,
-    logicAppName
-  );
+  const sku = await detectLogicAppSku(subscriptionId, resourceGroupName, logicAppName);
 
   if (sku === "consumption") {
     return getScopeRepetitionsConsumption(
@@ -277,10 +260,7 @@ export async function getScopeRepetitions(
 
   // Standard requires workflowName
   if (!workflowName) {
-    throw new McpError(
-      "InvalidParameter",
-      "workflowName is required for Standard Logic Apps"
-    );
+    throw new McpError("InvalidParameter", "workflowName is required for Standard Logic Apps");
   }
 
   return getScopeRepetitionsStandard(

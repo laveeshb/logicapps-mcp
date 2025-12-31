@@ -28,11 +28,7 @@ vi.mock("./connections.js", () => ({
 
 import { listSubscriptions } from "./subscriptions.js";
 import { listLogicApps } from "./logicApps.js";
-import {
-  listWorkflows,
-  getWorkflowDefinition,
-  getWorkflowTriggers,
-} from "./workflows.js";
+import { listWorkflows, getWorkflowDefinition, getWorkflowTriggers } from "./workflows.js";
 import { listRunHistory, getRunDetails, getRunActions } from "./runs.js";
 import { getConnections } from "./connections.js";
 
@@ -109,12 +105,7 @@ describe("handleToolCall", () => {
       logicAppName: "my-app",
     });
 
-    expect(getWorkflowTriggers).toHaveBeenCalledWith(
-      "sub-123",
-      "rg-test",
-      "my-app",
-      undefined
-    );
+    expect(getWorkflowTriggers).toHaveBeenCalledWith("sub-123", "rg-test", "my-app", undefined);
   });
 
   it("should call listRunHistory with optional parameters", async () => {

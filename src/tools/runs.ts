@@ -2,14 +2,15 @@
  * Workflow run history operations for both SKUs.
  */
 
-import {
-  armRequest,
-  armRequestAllPages,
-  workflowMgmtRequest,
-} from "../utils/http.js";
+import { armRequest, armRequestAllPages, workflowMgmtRequest } from "../utils/http.js";
 import { WorkflowRun, RunAction, ConsumptionLogicApp } from "../types/logicApp.js";
 import { McpError } from "../utils/errors.js";
-import { detectLogicAppSku, getStandardAppAccess, getConsumptionRunPortalUrl, getStandardRunPortalUrl } from "./shared.js";
+import {
+  detectLogicAppSku,
+  getStandardAppAccess,
+  getConsumptionRunPortalUrl,
+  getStandardRunPortalUrl,
+} from "./shared.js";
 
 export interface ListRunHistoryResult {
   runs: Array<{
@@ -71,11 +72,7 @@ export async function listRunHistory(
   filter?: string,
   skipToken?: string
 ): Promise<ListRunHistoryResult> {
-  const sku = await detectLogicAppSku(
-    subscriptionId,
-    resourceGroupName,
-    logicAppName
-  );
+  const sku = await detectLogicAppSku(subscriptionId, resourceGroupName, logicAppName);
   const effectiveTop = Math.min(top, 100);
 
   if (sku === "consumption") {
@@ -109,7 +106,13 @@ export async function listRunHistory(
         endTime: run.properties.endTime,
         trigger: { name: run.properties.trigger?.name ?? "unknown" },
         correlation: run.properties.correlation,
-        portalUrl: getConsumptionRunPortalUrl(subscriptionId, resourceGroupName, logicAppName, run.name, location),
+        portalUrl: getConsumptionRunPortalUrl(
+          subscriptionId,
+          resourceGroupName,
+          logicAppName,
+          run.name,
+          location
+        ),
       })),
       nextLink: response.nextLink,
     };
@@ -117,10 +120,7 @@ export async function listRunHistory(
 
   // Standard - use Workflow Management API
   if (!workflowName) {
-    throw new McpError(
-      "InvalidParameter",
-      "workflowName is required for Standard Logic Apps"
-    );
+    throw new McpError("InvalidParameter", "workflowName is required for Standard Logic Apps");
   }
 
   const { hostname, masterKey } = await getStandardAppAccess(
@@ -150,7 +150,13 @@ export async function listRunHistory(
       endTime: run.properties.endTime,
       trigger: { name: run.properties.trigger?.name ?? "unknown" },
       correlation: run.properties.correlation,
-      portalUrl: getStandardRunPortalUrl(subscriptionId, resourceGroupName, logicAppName, workflowName, run.name),
+      portalUrl: getStandardRunPortalUrl(
+        subscriptionId,
+        resourceGroupName,
+        logicAppName,
+        workflowName,
+        run.name
+      ),
     })),
     nextLink: response.nextLink,
   };
@@ -163,11 +169,7 @@ export async function getRunDetails(
   runId: string,
   workflowName?: string
 ): Promise<GetRunDetailsResult> {
-  const sku = await detectLogicAppSku(
-    subscriptionId,
-    resourceGroupName,
-    logicAppName
-  );
+  const sku = await detectLogicAppSku(subscriptionId, resourceGroupName, logicAppName);
 
   if (sku === "consumption") {
     // Fetch Logic App details to get location
@@ -191,17 +193,20 @@ export async function getRunDetails(
         endTime: run.properties.endTime,
         trigger: { name: run.properties.trigger?.name ?? "unknown" },
         error: run.properties.error,
-        portalUrl: getConsumptionRunPortalUrl(subscriptionId, resourceGroupName, logicAppName, run.name, location),
+        portalUrl: getConsumptionRunPortalUrl(
+          subscriptionId,
+          resourceGroupName,
+          logicAppName,
+          run.name,
+          location
+        ),
       },
     };
   }
 
   // Standard
   if (!workflowName) {
-    throw new McpError(
-      "InvalidParameter",
-      "workflowName is required for Standard Logic Apps"
-    );
+    throw new McpError("InvalidParameter", "workflowName is required for Standard Logic Apps");
   }
 
   const { hostname, masterKey } = await getStandardAppAccess(
@@ -224,7 +229,13 @@ export async function getRunDetails(
       endTime: run.properties.endTime,
       trigger: { name: run.properties.trigger?.name ?? "unknown" },
       error: run.properties.error,
-      portalUrl: getStandardRunPortalUrl(subscriptionId, resourceGroupName, logicAppName, workflowName, run.name),
+      portalUrl: getStandardRunPortalUrl(
+        subscriptionId,
+        resourceGroupName,
+        logicAppName,
+        workflowName,
+        run.name
+      ),
     },
   };
 }
@@ -237,11 +248,7 @@ export async function getRunActions(
   workflowName?: string,
   actionName?: string
 ): Promise<GetRunActionsResult> {
-  const sku = await detectLogicAppSku(
-    subscriptionId,
-    resourceGroupName,
-    logicAppName
-  );
+  const sku = await detectLogicAppSku(subscriptionId, resourceGroupName, logicAppName);
 
   if (sku === "consumption") {
     return getRunActionsConsumption(
@@ -255,10 +262,7 @@ export async function getRunActions(
 
   // Standard
   if (!workflowName) {
-    throw new McpError(
-      "InvalidParameter",
-      "workflowName is required for Standard Logic Apps"
-    );
+    throw new McpError("InvalidParameter", "workflowName is required for Standard Logic Apps");
   }
 
   return getRunActionsStandard(
@@ -394,11 +398,7 @@ export async function getActionIO(
   workflowName?: string,
   type: "inputs" | "outputs" | "both" = "both"
 ): Promise<GetActionIOResult> {
-  const sku = await detectLogicAppSku(
-    subscriptionId,
-    resourceGroupName,
-    logicAppName
-  );
+  const sku = await detectLogicAppSku(subscriptionId, resourceGroupName, logicAppName);
 
   let action: RunAction;
 
@@ -409,10 +409,7 @@ export async function getActionIO(
     );
   } else {
     if (!workflowName) {
-      throw new McpError(
-        "InvalidParameter",
-        "workflowName is required for Standard Logic Apps"
-      );
+      throw new McpError("InvalidParameter", "workflowName is required for Standard Logic Apps");
     }
 
     const { hostname, masterKey } = await getStandardAppAccess(
@@ -448,7 +445,7 @@ export async function getActionIO(
  */
 async function fetchContentLink(url: string): Promise<unknown> {
   const response = await fetch(url);
-  
+
   if (!response.ok) {
     throw new McpError(
       "ServiceError",
@@ -522,9 +519,7 @@ export async function searchRuns(
   // Client-side filter for clientTrackingId if provided (API doesn't support it in filter)
   let runs = result.runs;
   if (clientTrackingId) {
-    runs = runs.filter(
-      (run) => run.correlation?.clientTrackingId === clientTrackingId
-    );
+    runs = runs.filter((run) => run.correlation?.clientTrackingId === clientTrackingId);
   }
 
   return {
@@ -555,11 +550,7 @@ export async function cancelRun(
   runId: string,
   workflowName?: string
 ): Promise<CancelRunResult> {
-  const sku = await detectLogicAppSku(
-    subscriptionId,
-    resourceGroupName,
-    logicAppName
-  );
+  const sku = await detectLogicAppSku(subscriptionId, resourceGroupName, logicAppName);
 
   if (sku === "consumption") {
     await armRequest(
@@ -576,10 +567,7 @@ export async function cancelRun(
 
   // Standard requires workflowName
   if (!workflowName) {
-    throw new McpError(
-      "InvalidParameter",
-      "workflowName is required for Standard Logic Apps"
-    );
+    throw new McpError("InvalidParameter", "workflowName is required for Standard Logic Apps");
   }
 
   // For Standard, use the ARM API with hostruntime path

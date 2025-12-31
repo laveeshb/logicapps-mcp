@@ -19,14 +19,33 @@ import {
   deleteWorkflow,
 } from "./workflows.js";
 import { getTriggerHistory, getTriggerCallbackUrl, runTrigger } from "./triggers.js";
-import { listRunHistory, getRunDetails, getRunActions, getActionIO, searchRuns, cancelRun } from "./runs.js";
+import {
+  listRunHistory,
+  getRunDetails,
+  getRunActions,
+  getActionIO,
+  searchRuns,
+  cancelRun,
+} from "./runs.js";
 import { getActionRepetitions, getScopeRepetitions } from "./repetitions.js";
 import { getActionRequestHistory } from "./requestHistory.js";
 import { getExpressionTraces } from "./expressions.js";
 import { getWorkflowSwagger } from "./swagger.js";
-import { getConnections, getConnectionDetails, testConnection, getConnectorSwagger, invokeConnectorOperation, createConnection } from "./connections.js";
+import {
+  getConnections,
+  getConnectionDetails,
+  testConnection,
+  getConnectorSwagger,
+  invokeConnectorOperation,
+  createConnection,
+} from "./connections.js";
 import { getHostStatus } from "./host.js";
-import { getTroubleshootingGuide, getAuthoringGuide, getReference, getWorkflowInstructions } from "./knowledge.js";
+import {
+  getTroubleshootingGuide,
+  getAuthoringGuide,
+  getReference,
+  getWorkflowInstructions,
+} from "./knowledge.js";
 import { McpError, formatError } from "../utils/errors.js";
 
 export async function handleToolCall(
@@ -334,7 +353,11 @@ export async function handleToolCall(
       // Knowledge tools
       case "get_troubleshooting_guide":
         result = getTroubleshootingGuide(
-          args.topic as "expression-errors" | "connection-issues" | "run-failures" | "known-limitations"
+          args.topic as
+            | "expression-errors"
+            | "connection-issues"
+            | "run-failures"
+            | "known-limitations"
         );
         break;
       case "get_authoring_guide":
@@ -343,13 +366,16 @@ export async function handleToolCall(
         );
         break;
       case "get_reference":
-        result = getReference(
-          args.topic as "tool-catalog" | "sku-differences"
-        );
+        result = getReference(args.topic as "tool-catalog" | "sku-differences");
         break;
       case "get_workflow_instructions":
         result = getWorkflowInstructions(
-          args.topic as "diagnose-failures" | "explain-workflow" | "monitor-workflows" | "create-workflow" | "fix-workflow"
+          args.topic as
+            | "diagnose-failures"
+            | "explain-workflow"
+            | "monitor-workflows"
+            | "create-workflow"
+            | "fix-workflow"
         );
         break;
       default:

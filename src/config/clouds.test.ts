@@ -1,9 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import {
-  AZURE_CLOUDS,
-  getCloudEndpoints,
-  AzureCloudEndpoints,
-} from "./clouds.js";
+import { AZURE_CLOUDS, getCloudEndpoints, AzureCloudEndpoints } from "./clouds.js";
 
 describe("clouds", () => {
   describe("AZURE_CLOUDS", () => {
@@ -13,9 +9,7 @@ describe("clouds", () => {
       expect(AZURE_CLOUDS.AzurePublic.authentication.loginEndpoint).toBe(
         "https://login.microsoftonline.com"
       );
-      expect(AZURE_CLOUDS.AzurePublic.resourceManager).toBe(
-        "https://management.azure.com"
-      );
+      expect(AZURE_CLOUDS.AzurePublic.resourceManager).toBe("https://management.azure.com");
     });
 
     it("should have AzureGovernment cloud configuration", () => {
@@ -95,9 +89,7 @@ describe("clouds", () => {
     });
 
     it("should throw for unknown cloud name", () => {
-      expect(() => getCloudEndpoints("UnknownCloud")).toThrow(
-        /Unknown Azure cloud: UnknownCloud/
-      );
+      expect(() => getCloudEndpoints("UnknownCloud")).toThrow(/Unknown Azure cloud: UnknownCloud/);
     });
   });
 });

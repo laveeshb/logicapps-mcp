@@ -64,9 +64,7 @@ describe("tool definitions", () => {
   });
 
   describe("get_workflow_definition", () => {
-    const tool = TOOL_DEFINITIONS.find(
-      (t) => t.name === "get_workflow_definition"
-    );
+    const tool = TOOL_DEFINITIONS.find((t) => t.name === "get_workflow_definition");
 
     it("should have optional workflowName parameter", () => {
       expect(tool?.inputSchema.properties?.workflowName).toBeDefined();

@@ -42,11 +42,7 @@ describe("errors", () => {
 
     it("should format McpError with details", () => {
       const details = { resourceId: "/subscriptions/123" };
-      const error = new McpError(
-        "ResourceNotFound",
-        "Not found",
-        details
-      );
+      const error = new McpError("ResourceNotFound", "Not found", details);
       const formatted = formatError(error);
 
       expect(formatted.error.details).toEqual(details);

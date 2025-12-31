@@ -31,11 +31,7 @@ export async function getHostStatus(
   resourceGroupName: string,
   logicAppName: string
 ): Promise<GetHostStatusResult> {
-  const sku = await detectLogicAppSku(
-    subscriptionId,
-    resourceGroupName,
-    logicAppName
-  );
+  const sku = await detectLogicAppSku(subscriptionId, resourceGroupName, logicAppName);
 
   if (sku === "consumption") {
     throw new McpError(
@@ -50,11 +46,7 @@ export async function getHostStatus(
     logicAppName
   );
 
-  const status = await workflowMgmtRequest<HostStatus>(
-    hostname,
-    `/admin/host/status`,
-    masterKey
-  );
+  const status = await workflowMgmtRequest<HostStatus>(hostname, `/admin/host/status`, masterKey);
 
   return {
     sku: "standard",

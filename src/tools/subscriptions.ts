@@ -20,10 +20,9 @@ export interface SubscriptionResult {
 }
 
 export async function listSubscriptions(): Promise<SubscriptionResult> {
-  const subscriptions = await armRequestAllPages<SubscriptionResponse>(
-    "/subscriptions",
-    { "api-version": "2022-12-01" }
-  );
+  const subscriptions = await armRequestAllPages<SubscriptionResponse>("/subscriptions", {
+    "api-version": "2022-12-01",
+  });
 
   return {
     subscriptions: subscriptions.map((sub) => ({

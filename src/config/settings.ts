@@ -5,10 +5,7 @@
 import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import {
-  AzureCloudEndpoints,
-  getCloudEndpoints,
-} from "./clouds.js";
+import { AzureCloudEndpoints, getCloudEndpoints } from "./clouds.js";
 
 export interface LogicAppsMcpSettings {
   tenantId: string;
@@ -49,13 +46,10 @@ export async function loadSettings(): Promise<LogicAppsMcpSettings> {
 
   return {
     tenantId: process.env.AZURE_TENANT_ID ?? configFile.tenantId ?? "common",
-    clientId:
-      process.env.AZURE_CLIENT_ID ?? configFile.clientId ?? DEFAULT_CLIENT_ID,
+    clientId: process.env.AZURE_CLIENT_ID ?? configFile.clientId ?? DEFAULT_CLIENT_ID,
     cloud,
-    defaultSubscriptionId:
-      process.env.AZURE_SUBSCRIPTION_ID ?? configFile.defaultSubscriptionId,
-    logLevel:
-      (process.env.LOGICAPPS_MCP_LOG_LEVEL as LogicAppsMcpSettings["logLevel"]) ?? "info",
+    defaultSubscriptionId: process.env.AZURE_SUBSCRIPTION_ID ?? configFile.defaultSubscriptionId,
+    logLevel: (process.env.LOGICAPPS_MCP_LOG_LEVEL as LogicAppsMcpSettings["logLevel"]) ?? "info",
     cacheTtlSeconds: parseInt(process.env.LOGICAPPS_MCP_CACHE_TTL ?? "300", 10),
   };
 }

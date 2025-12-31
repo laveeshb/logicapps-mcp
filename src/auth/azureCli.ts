@@ -47,8 +47,7 @@ export async function getAzureCliToken(
       tokenType: response.tokenType,
     };
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : String(error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
 
     if (errorMessage.includes("ENOENT") || errorMessage.includes("not found")) {
       throw new McpError(
@@ -62,10 +61,7 @@ export async function getAzureCliToken(
       errorMessage.includes("not logged in") ||
       errorMessage.includes("AADSTS")
     ) {
-      throw new McpError(
-        "AuthenticationError",
-        "Not logged in to Azure CLI. Please run: az login"
-      );
+      throw new McpError("AuthenticationError", "Not logged in to Azure CLI. Please run: az login");
     }
 
     throw new McpError(

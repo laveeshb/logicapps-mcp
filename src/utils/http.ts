@@ -48,7 +48,7 @@ export async function armRequest<T>(
   if (!text) {
     return undefined as T;
   }
-  
+
   return JSON.parse(text) as T;
 }
 
@@ -144,9 +144,7 @@ export async function vfsRequest(
       "x-functions-key": masterKey,
       "Content-Type": "application/json",
       // VFS API requires If-Match header for PUT/DELETE operations
-      ...(options.method === "PUT" || options.method === "DELETE"
-        ? { "If-Match": "*" }
-        : {}),
+      ...(options.method === "PUT" || options.method === "DELETE" ? { "If-Match": "*" } : {}),
     },
     body: options.body ? JSON.stringify(options.body) : undefined,
   });

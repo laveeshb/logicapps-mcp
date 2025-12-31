@@ -3,11 +3,7 @@
  */
 
 import { armRequestAllPages } from "../utils/http.js";
-import {
-  ConsumptionLogicApp,
-  StandardLogicApp,
-  LogicApp,
-} from "../types/logicApp.js";
+import { ConsumptionLogicApp, StandardLogicApp, LogicApp } from "../types/logicApp.js";
 import { extractResourceGroup } from "./shared.js";
 
 export interface ListLogicAppsResult {
@@ -23,19 +19,13 @@ export async function listLogicApps(
 
   // Fetch Consumption Logic Apps
   if (sku === "consumption" || sku === "all") {
-    const consumptionApps = await fetchConsumptionLogicApps(
-      subscriptionId,
-      resourceGroupName
-    );
+    const consumptionApps = await fetchConsumptionLogicApps(subscriptionId, resourceGroupName);
     logicApps.push(...consumptionApps);
   }
 
   // Fetch Standard Logic Apps
   if (sku === "standard" || sku === "all") {
-    const standardApps = await fetchStandardLogicApps(
-      subscriptionId,
-      resourceGroupName
-    );
+    const standardApps = await fetchStandardLogicApps(subscriptionId, resourceGroupName);
     logicApps.push(...standardApps);
   }
 
@@ -80,9 +70,7 @@ async function fetchStandardLogicApps(
   });
 
   // Filter to only workflow apps
-  const workflowApps = sites.filter((site) =>
-    site.kind?.toLowerCase().includes("workflowapp")
-  );
+  const workflowApps = sites.filter((site) => site.kind?.toLowerCase().includes("workflowapp"));
 
   return workflowApps.map((app) => ({
     id: app.id,
