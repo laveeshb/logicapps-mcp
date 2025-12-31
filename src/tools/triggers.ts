@@ -159,7 +159,7 @@ async function getTriggerHistoryStandard(
 
   return {
     triggerName,
-    histories: histories.map((h) => ({
+    histories: histories.slice(0, top).map((h) => ({
       name: h.name,
       status: h.properties.status,
       startTime: h.properties.startTime,
