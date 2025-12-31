@@ -1,52 +1,60 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
   ListToolsRequestSchema,
   CallToolRequestSchema,
-  ListPromptsRequestSchema,
-  GetPromptRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import { registerTools } from "./server.js";
+import { registerToolsAndPrompts } from "./server.js";
 
 describe("server", () => {
-  let server: Server;
-  let handlers: Map<unknown, (...args: unknown[]) => unknown>;
+  let mcpServer: McpServer;
+  let toolHandlers: Map<unknown, (...args: unknown[]) => unknown>;
+  let registeredPrompts: Map<string, { description?: string; callback: (...args: unknown[]) => unknown }>;
 
   beforeEach(() => {
-    handlers = new Map();
-    server = {
+    toolHandlers = new Map();
+    registeredPrompts = new Map();
+
+    // Mock the underlying server
+    const mockServer = {
       setRequestHandler: vi.fn((schema, handler) => {
-        handlers.set(schema, handler);
+        toolHandlers.set(schema, handler);
       }),
-    } as unknown as Server;
-    registerTools(server);
+    };
+
+    // Mock McpServer
+    mcpServer = {
+      server: mockServer,
+      registerPrompt: vi.fn((name, config, callback) => {
+        registeredPrompts.set(name, { description: config.description, callback });
+      }),
+    } as unknown as McpServer;
+
+    registerToolsAndPrompts(mcpServer);
   });
 
   describe("prompts", () => {
-    it("should register prompts/list handler", () => {
-      expect(handlers.has(ListPromptsRequestSchema)).toBe(true);
+    it("should register logic-apps-guide prompt", () => {
+      expect(registeredPrompts.has("logic-apps-guide")).toBe(true);
     });
 
-    it("should register prompts/get handler", () => {
-      expect(handlers.has(GetPromptRequestSchema)).toBe(true);
+    it("should register native-operations-guide prompt", () => {
+      expect(registeredPrompts.has("native-operations-guide")).toBe(true);
     });
 
-    it("should list logic-apps-guide prompt", async () => {
-      const handler = handlers.get(ListPromptsRequestSchema);
-      const result = (await handler!()) as {
-        prompts: Array<{ name: string; description: string }>;
-      };
+    it("should list both prompts with descriptions", () => {
+      expect(registeredPrompts.size).toBe(2);
 
-      expect(result.prompts).toHaveLength(2);
-      expect(result.prompts[0].name).toBe("logic-apps-guide");
-      expect(result.prompts[0].description).toContain("Azure Logic Apps");
-      expect(result.prompts[1].name).toBe("native-operations-guide");
-      expect(result.prompts[1].description).toContain("native Logic Apps operations");
+      const logicAppsGuide = registeredPrompts.get("logic-apps-guide");
+      expect(logicAppsGuide?.description).toContain("Azure Logic Apps");
+
+      const nativeOpsGuide = registeredPrompts.get("native-operations-guide");
+      expect(nativeOpsGuide?.description).toContain("native Logic Apps operations");
     });
 
     it("should return logic-apps-guide content", async () => {
-      const handler = handlers.get(GetPromptRequestSchema);
-      const result = (await handler!({ params: { name: "logic-apps-guide" } })) as {
+      const prompt = registeredPrompts.get("logic-apps-guide");
+      const result = (await prompt!.callback()) as {
         messages: Array<{ role: string; content: { type: string; text: string } }>;
       };
 
@@ -59,8 +67,8 @@ describe("server", () => {
     });
 
     it("should return native-operations-guide content", async () => {
-      const handler = handlers.get(GetPromptRequestSchema);
-      const result = (await handler!({ params: { name: "native-operations-guide" } })) as {
+      const prompt = registeredPrompts.get("native-operations-guide");
+      const result = (await prompt!.callback()) as {
         messages: Array<{ role: string; content: { type: string; text: string } }>;
       };
 
@@ -72,27 +80,19 @@ describe("server", () => {
       expect(result.messages[0].content.text).toContain("For Each Loop");
       expect(result.messages[0].content.text).toContain("Condition");
     });
-
-    it("should throw error for unknown prompt", async () => {
-      const handler = handlers.get(GetPromptRequestSchema);
-
-      await expect(handler!({ params: { name: "unknown-prompt" } })).rejects.toThrow(
-        "Unknown prompt: unknown-prompt"
-      );
-    });
   });
 
   describe("tools", () => {
     it("should register tools/list handler", () => {
-      expect(handlers.has(ListToolsRequestSchema)).toBe(true);
+      expect(toolHandlers.has(ListToolsRequestSchema)).toBe(true);
     });
 
     it("should register tools/call handler", () => {
-      expect(handlers.has(CallToolRequestSchema)).toBe(true);
+      expect(toolHandlers.has(CallToolRequestSchema)).toBe(true);
     });
 
     it("should list all tools", async () => {
-      const handler = handlers.get(ListToolsRequestSchema);
+      const handler = toolHandlers.get(ListToolsRequestSchema);
       const result = (await handler!()) as {
         tools: Array<{ name: string; description: string; inputSchema: unknown }>;
       };
@@ -101,6 +101,26 @@ describe("server", () => {
       expect(result.tools[0]).toHaveProperty("name");
       expect(result.tools[0]).toHaveProperty("description");
       expect(result.tools[0]).toHaveProperty("inputSchema");
+    });
+
+    it("should have list_subscriptions tool", async () => {
+      const handler = toolHandlers.get(ListToolsRequestSchema);
+      const result = (await handler!()) as {
+        tools: Array<{ name: string }>;
+      };
+
+      const tool = result.tools.find((t) => t.name === "list_subscriptions");
+      expect(tool).toBeDefined();
+    });
+
+    it("should have list_logic_apps tool", async () => {
+      const handler = toolHandlers.get(ListToolsRequestSchema);
+      const result = (await handler!()) as {
+        tools: Array<{ name: string }>;
+      };
+
+      const tool = result.tools.find((t) => t.name === "list_logic_apps");
+      expect(tool).toBeDefined();
     });
   });
 });

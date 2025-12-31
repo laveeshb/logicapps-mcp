@@ -13,9 +13,9 @@
  */
 
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
-import { registerTools } from "../server.js";
+import { registerToolsAndPrompts } from "../server.js";
 import { loadSettings } from "../config/index.js";
 import {
   setSettings,
@@ -41,13 +41,13 @@ async function ensureInitialized(): Promise<void> {
 /**
  * Create a new MCP server instance.
  */
-function createMcpServer(): Server {
-  const server = new Server(
+function createMcpServer(): McpServer {
+  const mcpServer = new McpServer(
     { name: "logicapps-mcp", version: "0.2.0" },
     { capabilities: { tools: {}, prompts: {} } }
   );
-  registerTools(server);
-  return server;
+  registerToolsAndPrompts(mcpServer);
+  return mcpServer;
 }
 
 /**
@@ -152,20 +152,20 @@ async function mcpHandler(
       const webRequest = await convertRequest(request);
 
       // Create MCP server and transport
-      const server = createMcpServer();
+      const mcpServer = createMcpServer();
       const transport = new WebStandardStreamableHTTPServerTransport({
         sessionIdGenerator: undefined, // Stateless mode
         enableJsonResponse: true, // Return JSON instead of SSE where possible
       });
 
-      await server.connect(transport);
+      await mcpServer.connect(transport);
 
       // Handle the request
       const response = await transport.handleRequest(webRequest);
 
       // Clean up
       await transport.close();
-      await server.close();
+      await mcpServer.close();
 
       // Convert Web Standard Response to Azure Functions response
       const azResponse = await convertResponse(response);

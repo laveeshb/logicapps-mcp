@@ -1,15 +1,10 @@
 /**
- * Registers all MCP tools with the server.
+ * Registers all MCP tools and prompts with the server.
  * Each tool is imported from its respective module and registered here.
  */
 
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-  ListPromptsRequestSchema,
-  GetPromptRequestSchema,
-} from "@modelcontextprotocol/sdk/types.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { ListToolsRequestSchema, CallToolRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { TOOL_DEFINITIONS } from "./tools/definitions.js";
 import { handleToolCall } from "./tools/handler.js";
 
@@ -753,7 +748,11 @@ Multiple statuses (error handling):
 \`\`\`
 `;
 
-export function registerTools(server: Server): void {
+export function registerToolsAndPrompts(mcpServer: McpServer): void {
+  // Use underlying server for tools (JSON Schema-based definitions)
+  // This is the recommended approach for advanced usage per McpServer docs
+  const server = mcpServer.server;
+
   // List available tools
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
     tools: TOOL_DEFINITIONS,
@@ -764,50 +763,42 @@ export function registerTools(server: Server): void {
     return handleToolCall(request.params.name, request.params.arguments ?? {});
   });
 
-  // List available prompts
-  server.setRequestHandler(ListPromptsRequestSchema, async () => ({
-    prompts: [
-      {
-        name: "logic-apps-guide",
-        description:
-          "System guidance for Azure Logic Apps operations - helps with tool selection and common workflows",
-      },
-      {
-        name: "native-operations-guide",
-        description:
-          "Complete reference for all native Logic Apps operations (triggers, actions, control flow) with JSON schemas and examples. Use this when authoring or modifying workflow definitions.",
-      },
-    ],
-  }));
+  // Register prompts using McpServer's high-level API
+  mcpServer.registerPrompt(
+    "logic-apps-guide",
+    {
+      description:
+        "System guidance for Azure Logic Apps operations - helps with tool selection and common workflows",
+    },
+    async () => ({
+      messages: [
+        {
+          role: "user",
+          content: {
+            type: "text",
+            text: LOGIC_APPS_GUIDE,
+          },
+        },
+      ],
+    })
+  );
 
-  // Get prompt content
-  server.setRequestHandler(GetPromptRequestSchema, async (request) => {
-    if (request.params.name === "logic-apps-guide") {
-      return {
-        messages: [
-          {
-            role: "user",
-            content: {
-              type: "text",
-              text: LOGIC_APPS_GUIDE,
-            },
+  mcpServer.registerPrompt(
+    "native-operations-guide",
+    {
+      description:
+        "Complete reference for all native Logic Apps operations (triggers, actions, control flow) with JSON schemas and examples. Use this when authoring or modifying workflow definitions.",
+    },
+    async () => ({
+      messages: [
+        {
+          role: "user",
+          content: {
+            type: "text",
+            text: NATIVE_OPERATIONS_GUIDE,
           },
-        ],
-      };
-    }
-    if (request.params.name === "native-operations-guide") {
-      return {
-        messages: [
-          {
-            role: "user",
-            content: {
-              type: "text",
-              text: NATIVE_OPERATIONS_GUIDE,
-            },
-          },
-        ],
-      };
-    }
-    throw new Error(`Unknown prompt: ${request.params.name}`);
-  });
+        },
+      ],
+    })
+  );
 }

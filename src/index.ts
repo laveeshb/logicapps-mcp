@@ -13,11 +13,11 @@
  *   npx @laveeshb/logicapps-mcp --http --port 8080
  */
 
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { loadSettings } from "./config/index.js";
 import { setSettings, initializeAuth } from "./auth/index.js";
-import { registerTools } from "./server.js";
+import { registerToolsAndPrompts } from "./server.js";
 
 /**
  * Run MCP server in stdio mode (for local MCP clients).
@@ -27,23 +27,23 @@ async function runStdioMode(): Promise<void> {
   setSettings(settings);
   await initializeAuth();
 
-  const server = new Server(
+  const mcpServer = new McpServer(
     { name: "logicapps-mcp", version: "0.2.0" },
     { capabilities: { tools: {}, prompts: {} } }
   );
 
-  registerTools(server);
+  registerToolsAndPrompts(mcpServer);
 
   const transport = new StdioServerTransport();
-  await server.connect(transport);
+  await mcpServer.connect(transport);
 
   process.on("SIGINT", async () => {
-    await server.close();
+    await mcpServer.close();
     process.exit(0);
   });
 
   process.on("SIGTERM", async () => {
-    await server.close();
+    await mcpServer.close();
     process.exit(0);
   });
 }

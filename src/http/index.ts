@@ -8,9 +8,9 @@
  */
 
 import express, { Request, Response } from "express";
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { registerTools } from "../server.js";
+import { registerToolsAndPrompts } from "../server.js";
 import { loadSettings } from "../config/index.js";
 import { setSettings, initializeAuth } from "../auth/index.js";
 
@@ -32,13 +32,13 @@ async function ensureInitialized(): Promise<void> {
  * Create a new MCP server instance.
  * Each request gets its own server for stateless operation.
  */
-function createMcpServer(): Server {
-  const server = new Server(
+function createMcpServer(): McpServer {
+  const mcpServer = new McpServer(
     { name: "logicapps-mcp", version: "0.2.0" },
     { capabilities: { tools: {}, prompts: {} } }
   );
-  registerTools(server);
-  return server;
+  registerToolsAndPrompts(mcpServer);
+  return mcpServer;
 }
 
 /**
@@ -49,17 +49,17 @@ async function handleMcpPost(req: Request, res: Response): Promise<void> {
   try {
     await ensureInitialized();
 
-    const server = createMcpServer();
+    const mcpServer = createMcpServer();
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined, // Stateless mode
     });
 
-    await server.connect(transport);
+    await mcpServer.connect(transport);
     await transport.handleRequest(req, res, req.body);
 
     res.on("close", () => {
       transport.close();
-      server.close();
+      mcpServer.close();
     });
   } catch (error) {
     console.error("Error handling MCP request:", error);
