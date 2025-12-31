@@ -46,6 +46,7 @@ import {
   getReference,
   getWorkflowInstructions,
 } from "./knowledge.js";
+import { cancelRuns, batchEnableWorkflows, batchDisableWorkflows } from "./batch.js";
 import { McpError, formatError } from "../utils/errors.js";
 
 export async function handleToolCall(
@@ -317,6 +318,34 @@ export async function handleToolCall(
           args.logicAppName as string,
           args.runId as string,
           args.workflowName as string | undefined
+        );
+        break;
+      case "cancel_runs":
+        result = await cancelRuns(
+          args.subscriptionId as string,
+          args.resourceGroupName as string,
+          args.logicAppName as string,
+          args.runIds as string[],
+          args.workflowName as string | undefined,
+          args.concurrency as number | undefined
+        );
+        break;
+      case "batch_enable_workflows":
+        result = await batchEnableWorkflows(
+          args.subscriptionId as string,
+          args.resourceGroupName as string,
+          args.logicAppName as string,
+          args.workflowNames as string[],
+          args.concurrency as number | undefined
+        );
+        break;
+      case "batch_disable_workflows":
+        result = await batchDisableWorkflows(
+          args.subscriptionId as string,
+          args.resourceGroupName as string,
+          args.logicAppName as string,
+          args.workflowNames as string[],
+          args.concurrency as number | undefined
         );
         break;
       case "create_workflow":
