@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { vfsRequest } from "./http.js";
+import { vfsRequest, setRetryConfig } from "./http.js";
 import { McpError } from "./errors.js";
 
 // Mock the token manager
@@ -20,10 +20,14 @@ describe("http", () => {
 
     beforeEach(() => {
       vi.clearAllMocks();
+      // Disable retries for unit tests to avoid timeouts
+      setRetryConfig({ maxRetries: 0, timeoutMs: 5000 });
     });
 
     afterEach(() => {
       global.fetch = originalFetch;
+      // Reset to defaults
+      setRetryConfig({ maxRetries: 3, baseDelayMs: 1000, maxDelayMs: 30000, timeoutMs: 30000 });
     });
 
     it("should throw ConflictError on 412 Precondition Failed", async () => {
@@ -165,6 +169,122 @@ describe("http", () => {
           }),
         })
       );
+    });
+  });
+
+  describe("retry behavior", () => {
+    const originalFetch = global.fetch;
+
+    beforeEach(() => {
+      vi.clearAllMocks();
+    });
+
+    afterEach(() => {
+      global.fetch = originalFetch;
+      setRetryConfig({ maxRetries: 3, baseDelayMs: 1000, maxDelayMs: 30000, timeoutMs: 30000 });
+    });
+
+    it("should retry on 500 errors", async () => {
+      setRetryConfig({ maxRetries: 2, baseDelayMs: 10, maxDelayMs: 100, timeoutMs: 5000 });
+
+      let callCount = 0;
+      global.fetch = vi.fn().mockImplementation(() => {
+        callCount++;
+        if (callCount < 3) {
+          return Promise.resolve({
+            ok: false,
+            status: 500,
+            statusText: "Internal Server Error",
+            text: () => Promise.resolve(""),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+        });
+      });
+
+      await vfsRequest("myapp.azurewebsites.net", "/api/vfs/workflow.json", "master-key", {
+        method: "GET",
+      });
+
+      expect(callCount).toBe(3); // Initial + 2 retries
+    });
+
+    it("should retry on 429 rate limit", async () => {
+      setRetryConfig({ maxRetries: 1, baseDelayMs: 10, maxDelayMs: 100, timeoutMs: 5000 });
+
+      let callCount = 0;
+      global.fetch = vi.fn().mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) {
+          return Promise.resolve({
+            ok: false,
+            status: 429,
+            statusText: "Too Many Requests",
+            headers: new Headers({ "Retry-After": "1" }),
+            text: () => Promise.resolve(""),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+        });
+      });
+
+      await vfsRequest("myapp.azurewebsites.net", "/api/vfs/workflow.json", "master-key", {
+        method: "GET",
+      });
+
+      expect(callCount).toBe(2);
+    });
+
+    it("should not retry on 404 errors", async () => {
+      setRetryConfig({ maxRetries: 2, baseDelayMs: 10, maxDelayMs: 100, timeoutMs: 5000 });
+
+      let callCount = 0;
+      global.fetch = vi.fn().mockImplementation(() => {
+        callCount++;
+        return Promise.resolve({
+          ok: false,
+          status: 404,
+          statusText: "Not Found",
+          text: () => Promise.resolve(""),
+        });
+      });
+
+      try {
+        await vfsRequest("myapp.azurewebsites.net", "/api/vfs/workflow.json", "master-key", {
+          method: "GET",
+        });
+      } catch {
+        // Expected to throw
+      }
+
+      expect(callCount).toBe(1); // No retries for 404
+    });
+
+    it("should give up after max retries", async () => {
+      setRetryConfig({ maxRetries: 2, baseDelayMs: 10, maxDelayMs: 100, timeoutMs: 5000 });
+
+      let callCount = 0;
+      global.fetch = vi.fn().mockImplementation(() => {
+        callCount++;
+        return Promise.resolve({
+          ok: false,
+          status: 503,
+          statusText: "Service Unavailable",
+          text: () => Promise.resolve("Service down"),
+        });
+      });
+
+      await expect(
+        vfsRequest("myapp.azurewebsites.net", "/api/vfs/workflow.json", "master-key", {
+          method: "GET",
+        })
+      ).rejects.toThrow(McpError);
+
+      expect(callCount).toBe(3); // Initial + 2 retries, then gives up
     });
   });
 });
