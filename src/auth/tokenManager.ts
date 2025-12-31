@@ -1,13 +1,9 @@
 /**
- * Manages token lifecycle using Azure Identity SDK.
- * Works both locally (Azure CLI) and in Azure (Managed Identity).
- *
- * Supports passthrough authentication: if a bearer token is provided
- * via setPassthroughToken(), it will be used instead of DefaultAzureCredential.
+ * Token manager for passthrough authentication.
+ * Requires a bearer token from the client - no local credential fallback.
  */
 
 import { FlowieSettings } from "../config/settings.js";
-import { getToken, checkAuth, clearCache } from "./azureIdentity.js";
 import { McpError } from "../utils/errors.js";
 
 let cachedSettings: FlowieSettings | null = null;
@@ -19,7 +15,6 @@ export function setSettings(settings: FlowieSettings): void {
 
 /**
  * Sets a passthrough token to be used for ARM API calls.
- * When set, this token is used instead of DefaultAzureCredential.
  */
 export function setPassthroughToken(token: string): void {
   passthroughToken = token;
@@ -34,54 +29,33 @@ export function clearPassthroughToken(): void {
 }
 
 /**
- * Initializes authentication at server startup.
- * Verifies Azure credentials are available.
- * Throws if authentication fails.
+ * Initializes settings (no auth check needed - passthrough only).
  */
 export async function initializeAuth(): Promise<void> {
   if (!cachedSettings) {
     throw new McpError("AuthenticationError", "Settings not initialized");
   }
-
-  const authStatus = await checkAuth();
-
-  if (!authStatus.authenticated) {
-    throw new McpError(
-      "AuthenticationError",
-      `Azure authentication required. ${authStatus.error ?? "Please run: az login (locally) or configure Managed Identity (in Azure)"}`
-    );
-  }
-
-  console.error("Authenticated with Azure (using DefaultAzureCredential)");
+  console.error("MCP server ready (passthrough auth mode)");
 }
 
 /**
  * Gets a valid access token for Azure ARM API.
- * If a passthrough token is set, returns it directly.
- * Otherwise, uses DefaultAzureCredential (Managed Identity / Azure CLI).
+ * Requires a passthrough token - no fallback.
  */
 export async function getAccessToken(): Promise<string> {
-  // If passthrough token is set, use it
-  if (passthroughToken) {
-    return passthroughToken;
+  if (!passthroughToken) {
+    throw new McpError(
+      "AuthenticationError",
+      "Bearer token required. Provide Authorization header with ARM-scoped token."
+    );
   }
 
-  // Fall back to DefaultAzureCredential
-  if (!cachedSettings) {
-    throw new McpError("AuthenticationError", "Settings not initialized");
-  }
-
-  // Convert resource URL to scope format (.default suffix)
-  const audience = cachedSettings.cloud.authentication.tokenAudience;
-  const scope = audience.endsWith("/.default") ? audience : `${audience}/.default`;
-
-  return getToken(scope);
+  return passthroughToken;
 }
 
 /**
- * Clears cached tokens.
+ * No-op for passthrough mode.
  */
 export async function logout(): Promise<void> {
-  clearCache();
-  console.error("Cleared cached tokens.");
+  clearPassthroughToken();
 }

@@ -7,9 +7,9 @@
  * Uses WebStandardStreamableHTTPServerTransport which works directly with
  * Web Standard Request/Response objects that Azure Functions v4 supports.
  *
- * Supports passthrough authentication: if a bearer token is provided in
- * the Authorization header, it will be used for ARM API calls. Otherwise,
- * falls back to Managed Identity (in Azure) or Azure CLI (locally).
+ * Requires passthrough authentication: a bearer token must be provided in
+ * the Authorization header. This token is used for ARM API calls.
+ * No fallback to Managed Identity - user token is always required.
  */
 
 import {
@@ -142,16 +142,14 @@ async function mcpHandler(
   try {
     await ensureInitialized();
 
-    // Extract bearer token for passthrough auth
+    // Extract bearer token for passthrough auth (required)
     const authHeader = request.headers.get("authorization");
     const bearerToken = authHeader?.replace(/^Bearer\s+/i, "");
 
     if (bearerToken) {
-      context.log("Using passthrough authentication (bearer token provided)");
       setPassthroughToken(bearerToken);
-    } else {
-      context.log("Using default authentication (Managed Identity / Azure CLI)");
     }
+    // If no token, tools will fail with AuthenticationError when they try to get token
 
     try {
       // Convert Azure Functions request to Web Standard Request
