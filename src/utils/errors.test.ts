@@ -34,6 +34,16 @@ describe("errors", () => {
       expect(error.code).toBe("UnsupportedOperation");
       expect(error.message).toBe("This operation is not supported for Consumption Logic Apps");
     });
+
+    it("should create ConflictError for concurrent modifications", () => {
+      const error = new McpError(
+        "ConflictError",
+        "Resource was modified by another process. Please retry the operation."
+      );
+
+      expect(error.code).toBe("ConflictError");
+      expect(error.message).toBe("Resource was modified by another process. Please retry the operation.");
+    });
   });
 
   describe("formatError", () => {

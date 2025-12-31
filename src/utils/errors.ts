@@ -8,6 +8,7 @@ export type McpErrorCode =
   | "ResourceNotFound"
   | "InvalidParameter"
   | "UnsupportedOperation"
+  | "ConflictError"
   | "RateLimited"
   | "ServiceUnavailable"
   | "ServiceError"

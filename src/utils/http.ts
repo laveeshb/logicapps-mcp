@@ -193,6 +193,17 @@ export async function vfsRequest(
 
   if (!response.ok) {
     const errorText = await response.text().catch(() => "");
+
+    // Handle conflict errors (409 Conflict, 412 Precondition Failed)
+    if (response.status === 409 || response.status === 412) {
+      throw new McpError(
+        "ConflictError",
+        response.status === 412
+          ? "Resource was modified by another process. Please retry the operation."
+          : `Conflict: ${errorText || "Resource already exists or is in a conflicting state."}`
+      );
+    }
+
     throw new McpError(
       "ServiceError",
       `VFS API error: ${response.status} ${response.statusText}${errorText ? ` - ${errorText}` : ""}`
