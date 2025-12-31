@@ -444,16 +444,58 @@ export async function getActionIO(
  * These URLs include SAS tokens so no additional auth is needed.
  */
 async function fetchContentLink(url: string): Promise<unknown> {
-  const response = await fetch(url);
+  const TIMEOUT_MS = 30000; // 30 second timeout
+  const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10MB limit
 
-  if (!response.ok) {
-    throw new McpError(
-      "ServiceError",
-      `Failed to fetch content link: ${response.status} ${response.statusText}`
-    );
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+
+    if (!response.ok) {
+      throw new McpError(
+        "ServiceError",
+        `Failed to fetch content link: ${response.status} ${response.statusText}`
+      );
+    }
+
+    // Check content length before reading body
+    const contentLength = response.headers.get("content-length");
+    if (contentLength && parseInt(contentLength, 10) > MAX_SIZE_BYTES) {
+      throw new McpError(
+        "ServiceError",
+        `Content too large (${Math.round(parseInt(contentLength, 10) / 1024 / 1024)}MB). Maximum size is 10MB.`
+      );
+    }
+
+    const text = await response.text();
+
+    // Check actual size (content-length may be missing)
+    if (text.length > MAX_SIZE_BYTES) {
+      throw new McpError(
+        "ServiceError",
+        `Content too large (${Math.round(text.length / 1024 / 1024)}MB). Maximum size is 10MB.`
+      );
+    }
+
+    try {
+      return JSON.parse(text);
+    } catch {
+      // Return raw text if not valid JSON
+      return text;
+    }
+  } catch (error) {
+    if (error instanceof McpError) {
+      throw error;
+    }
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new McpError("ServiceError", `Request timed out after ${TIMEOUT_MS / 1000} seconds`);
+    }
+    throw new McpError("ServiceError", `Failed to fetch content: ${error}`);
+  } finally {
+    clearTimeout(timeout);
   }
-
-  return response.json();
 }
 
 export interface SearchRunsResult {
