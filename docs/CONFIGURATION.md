@@ -10,7 +10,8 @@ Advanced configuration options for the local MCP server. Most users won't need t
 | `AZURE_CLIENT_ID` | Use a custom app registration | Uses Azure CLI's public client ID |
 | `AZURE_SUBSCRIPTION_ID` | Set a default subscription | None - you'll specify subscription in each request |
 | `AZURE_CLOUD` | Connect to sovereign clouds | `AzurePublic` |
-| `LOG_LEVEL` | Control verbosity (debug, info, warn, error) | `info` |
+| `LOGICAPPS_MCP_LOG_LEVEL` | Control verbosity (debug, info, warn, error) | `info` |
+| `LOGICAPPS_MCP_CACHE_TTL` | Cache duration in seconds | `300` |
 
 ### When to use these
 
