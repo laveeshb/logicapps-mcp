@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createConnection } from "./connections.js";
+import { createConnection, redactSensitiveParameters } from "./connections.js";
 import { McpError } from "../utils/errors.js";
 
 // Mock the http module
@@ -193,6 +193,161 @@ describe("connections", () => {
 
       const result = await createConnection("sub-123", "rg", exactName, "azureblob", "westus2");
       expect(result.connectionName).toBe(exactName);
+    });
+  });
+
+  describe("redactSensitiveParameters", () => {
+    it("should return undefined for undefined input", () => {
+      expect(redactSensitiveParameters(undefined)).toBeUndefined();
+    });
+
+    it("should return empty object for empty input", () => {
+      expect(redactSensitiveParameters({})).toEqual({});
+    });
+
+    it("should redact password fields", () => {
+      const input = { password: "secret123", username: "admin" };
+      const result = redactSensitiveParameters(input);
+      expect(result).toEqual({ password: "***REDACTED***", username: "admin" });
+    });
+
+    it("should redact apiKey fields", () => {
+      const input = { apiKey: "key-123", endpoint: "https://api.example.com" };
+      const result = redactSensitiveParameters(input);
+      expect(result).toEqual({ apiKey: "***REDACTED***", endpoint: "https://api.example.com" });
+    });
+
+    it("should redact accessKey fields (case insensitive)", () => {
+      const input = { accessKey: "abc123", primaryAccessKey: "def456", name: "test" };
+      const result = redactSensitiveParameters(input);
+      expect(result).toEqual({
+        accessKey: "***REDACTED***",
+        primaryAccessKey: "***REDACTED***",
+        name: "test",
+      });
+    });
+
+    it("should redact secret fields", () => {
+      const input = { clientSecret: "secret", clientId: "id123" };
+      const result = redactSensitiveParameters(input);
+      expect(result).toEqual({ clientSecret: "***REDACTED***", clientId: "id123" });
+    });
+
+    it("should redact token fields", () => {
+      const input = { accessToken: "token123", refreshToken: "refresh456", scope: "read" };
+      const result = redactSensitiveParameters(input);
+      expect(result).toEqual({
+        accessToken: "***REDACTED***",
+        refreshToken: "***REDACTED***",
+        scope: "read",
+      });
+    });
+
+    it("should redact connectionString fields", () => {
+      const input = {
+        connectionString: "Server=localhost;Database=test;Password=secret",
+        databaseName: "test",
+      };
+      const result = redactSensitiveParameters(input);
+      expect(result).toEqual({
+        connectionString: "***REDACTED***",
+        databaseName: "test",
+      });
+    });
+
+    it("should redact credential fields", () => {
+      const input = { credential: "cred123", userCredential: "user-cred" };
+      const result = redactSensitiveParameters(input);
+      expect(result).toEqual({
+        credential: "***REDACTED***",
+        userCredential: "***REDACTED***",
+      });
+    });
+
+    it("should redact auth and authorization fields", () => {
+      const input = { auth: "Bearer xyz", authorization: "Basic abc", authMethod: "oauth" };
+      const result = redactSensitiveParameters(input);
+      expect(result).toEqual({
+        auth: "***REDACTED***",
+        authorization: "***REDACTED***",
+        authMethod: "oauth", // authMethod doesn't match patterns
+      });
+    });
+
+    it("should redact certificate and passphrase fields", () => {
+      const input = { certificate: "cert-data", passphrase: "phrase123", name: "cert1" };
+      const result = redactSensitiveParameters(input);
+      expect(result).toEqual({
+        certificate: "***REDACTED***",
+        passphrase: "***REDACTED***",
+        name: "cert1",
+      });
+    });
+
+    it("should redact privateKey but not publicKey", () => {
+      const input = { privateKey: "key-data", publicKey: "pub-data" };
+      const result = redactSensitiveParameters(input);
+      expect(result).toEqual({
+        privateKey: "***REDACTED***",
+        publicKey: "pub-data", // publicKey is not sensitive
+      });
+    });
+
+    it("should handle nested objects recursively", () => {
+      const input = {
+        connection: {
+          password: "secret123",
+          host: "localhost",
+          settings: {
+            apiKey: "key-456",
+            username: "admin",
+          },
+        },
+        name: "my-connection",
+      };
+      const result = redactSensitiveParameters(input);
+      expect(result).toEqual({
+        connection: {
+          password: "***REDACTED***",
+          host: "localhost",
+          settings: {
+            apiKey: "***REDACTED***",
+            username: "admin",
+          },
+        },
+        name: "my-connection",
+      });
+    });
+
+    it("should preserve arrays without modification", () => {
+      const input = { scopes: ["read", "write"], apiKey: "secret" };
+      const result = redactSensitiveParameters(input);
+      expect(result).toEqual({
+        scopes: ["read", "write"],
+        apiKey: "***REDACTED***",
+      });
+    });
+
+    it("should preserve null values for non-sensitive fields", () => {
+      const input = { endpoint: null, username: "admin" };
+      const result = redactSensitiveParameters(input as Record<string, unknown>);
+      expect(result).toEqual({ endpoint: null, username: "admin" });
+    });
+
+    it("should redact sensitive fields even when value is null", () => {
+      const input = { password: null, username: "admin" };
+      const result = redactSensitiveParameters(input as Record<string, unknown>);
+      expect(result).toEqual({ password: "***REDACTED***", username: "admin" });
+    });
+
+    it("should be case insensitive for pattern matching", () => {
+      const input = { PASSWORD: "secret", ApiKey: "key", AccessToken: "tok" };
+      const result = redactSensitiveParameters(input);
+      expect(result).toEqual({
+        PASSWORD: "***REDACTED***",
+        ApiKey: "***REDACTED***",
+        AccessToken: "***REDACTED***",
+      });
     });
   });
 });

@@ -8,6 +8,69 @@ import { getAccessToken } from "../auth/tokenManager.js";
 import { getCloudEndpoints } from "../config/clouds.js";
 import { McpError } from "../utils/errors.js";
 
+// ============================================================================
+// Sensitive Parameter Redaction
+// ============================================================================
+
+/**
+ * Patterns that indicate a parameter contains sensitive data.
+ * Case-insensitive matching is used.
+ */
+const SENSITIVE_PATTERNS = [
+  /password/i,
+  /secret/i,
+  /^apikey$/i, // exact match for apiKey
+  /accesskey/i, // accessKey, primaryAccessKey, etc.
+  /^token$/i, // exact match for token
+  /accesstoken/i,
+  /refreshtoken/i,
+  /connectionstring/i,
+  /^auth$/i, // exact match for auth
+  /authorization/i,
+  /privatekey/i, // privateKey specifically, not publicKey
+  /^certificate$/i,
+  /passphrase/i,
+  /clientsecret/i,
+  /accountkey/i,
+  /storagekey/i,
+  /sastoken/i,
+  /credential/i, // credential, userCredential, etc.
+];
+
+const REDACTED_VALUE = "***REDACTED***";
+
+/**
+ * Check if a parameter name indicates sensitive data.
+ */
+function isSensitiveParameter(name: string): boolean {
+  return SENSITIVE_PATTERNS.some((pattern) => pattern.test(name));
+}
+
+/**
+ * Redact sensitive values from a parameter object.
+ * Preserves the structure and field names but replaces sensitive values.
+ */
+export function redactSensitiveParameters(
+  params: Record<string, unknown> | undefined
+): Record<string, unknown> | undefined {
+  if (!params) return undefined;
+
+  const redacted: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(params)) {
+    if (isSensitiveParameter(key)) {
+      redacted[key] = REDACTED_VALUE;
+    } else if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+      // Recursively redact nested objects
+      redacted[key] = redactSensitiveParameters(value as Record<string, unknown>);
+    } else {
+      redacted[key] = value;
+    }
+  }
+
+  return redacted;
+}
+
 export interface GetConnectionsResult {
   connections: Array<{
     id: string;
@@ -98,8 +161,8 @@ export async function getConnectionDetails(
     statuses: conn.properties.statuses ?? [],
     createdTime: conn.properties.createdTime,
     changedTime: conn.properties.changedTime,
-    parameterValues: conn.properties.parameterValues,
-    customParameterValues: conn.properties.customParameterValues,
+    parameterValues: redactSensitiveParameters(conn.properties.parameterValues),
+    customParameterValues: redactSensitiveParameters(conn.properties.customParameterValues),
     testLinks: conn.properties.testLinks,
   };
 }
