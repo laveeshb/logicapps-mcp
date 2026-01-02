@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased] - 0.3.0
+## [0.3.0] - 2026-01-02
 
 ### Added
 
@@ -74,6 +74,6 @@
 - Dual deployment modes: stdio (local) and HTTP (Azure Functions)
 - Azure authentication via Azure CLI or service principal
 
-[Unreleased]: https://github.com/laveeshb/logicapps-mcp/compare/v0.2.0...HEAD
-[0.2.0]: https://github.com/laveeshb/logicapps-mcp/compare/v0.1.0...v0.2.0
+[0.3.0]: https://github.com/laveeshb/logicapps-mcp/releases/tag/v0.3.0
+[0.2.0]: https://github.com/laveeshb/logicapps-mcp/releases/tag/v0.2.0
 [0.1.0]: https://github.com/laveeshb/logicapps-mcp/releases/tag/v0.1.0
