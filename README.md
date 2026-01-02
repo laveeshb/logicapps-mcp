@@ -78,6 +78,7 @@ curl -H "Authorization: Bearer $token" https://<app>.azurewebsites.net/api/healt
 - [Getting Started Guide](docs/GETTING_STARTED.md) - Setup for Claude, Copilot, Cloud MCP Server
 - [Available Tools](docs/TOOLS.md) - All 37 tools with descriptions
 - [Configuration](docs/CONFIGURATION.md) - Environment variables, auth, SKU differences
+- [Changelog](CHANGELOG.md) - Release history
 
 ## Development
 
