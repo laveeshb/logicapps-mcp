@@ -406,7 +406,7 @@ Cancel a running or waiting execution.
 
 Clone a Consumption Logic App to a Standard Logic App workflow.
 
-**When:** Migrate workflows from Consumption to Standard SKU, copy workflow definitions between environments.
+**When:** Clone workflows from Consumption to Standard SKU, copy workflow definitions between environments.
 
 **Parameters:**
 | Name | Required | Description |
