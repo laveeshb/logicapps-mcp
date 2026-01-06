@@ -1146,6 +1146,58 @@ export const TOOL_DEFINITIONS: Tool[] = [
       ],
     },
   },
+  {
+    name: "validate_clone_workflow",
+    description:
+      "Validate if a Consumption Logic App workflow can be cloned to a Standard Logic App without actually performing the clone. This checks for unsupported operations, connection compatibility, and other potential issues. Use this before clone_workflow to identify any problems that need to be addressed.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        subscriptionId: {
+          type: "string",
+          description: "Source Consumption Logic App subscription ID",
+        },
+        resourceGroupName: {
+          type: "string",
+          description: "Source Consumption Logic App resource group name",
+        },
+        logicAppName: {
+          type: "string",
+          description: "Source Consumption Logic App name",
+        },
+        targetSubscriptionId: {
+          type: "string",
+          description:
+            "Target Standard Logic App subscription ID (defaults to source subscription if not provided)",
+        },
+        targetResourceGroupName: {
+          type: "string",
+          description: "Target Standard Logic App resource group name",
+        },
+        targetLogicAppName: {
+          type: "string",
+          description: "Target Standard Logic App name (must already exist)",
+        },
+        targetWorkflowName: {
+          type: "string",
+          description: "Name for the new workflow in the Standard Logic App",
+        },
+        targetKind: {
+          type: "string",
+          enum: ["Stateful", "Stateless"],
+          description: "Workflow kind for the target (default: 'Stateful')",
+        },
+      },
+      required: [
+        "subscriptionId",
+        "resourceGroupName",
+        "logicAppName",
+        "targetResourceGroupName",
+        "targetLogicAppName",
+        "targetWorkflowName",
+      ],
+    },
+  },
   // Knowledge Tools - provide access to bundled documentation
   {
     name: "get_troubleshooting_guide",
