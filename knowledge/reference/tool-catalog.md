@@ -434,6 +434,13 @@ clone_workflow(
 
 **Note:** Use `validate_clone_workflow` first to check for potential issues before cloning.
 
+**Post-Clone Steps:**
+After cloning, API connections must be reconfigured in the target Standard Logic App:
+1. Standard uses V2 connections with `connectionRuntimeUrl` (different from Consumption V1)
+2. Create new connections in the target resource group using `create_connection`
+3. Update the workflow's `connections.json` file to reference the new connections
+4. For OAuth connectors (Office 365, etc.), complete the consent flow in the Azure portal
+
 ---
 
 ### validate_clone_workflow
