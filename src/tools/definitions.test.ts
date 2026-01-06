@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import { TOOL_DEFINITIONS } from "./definitions.js";
 
 describe("tool definitions", () => {
-  it("should have all 37 tools defined", () => {
-    expect(TOOL_DEFINITIONS).toHaveLength(37);
+  it("should have all 39 tools defined", () => {
+    expect(TOOL_DEFINITIONS).toHaveLength(39);
   });
 
   it("should have unique tool names", () => {
@@ -330,6 +330,70 @@ describe("tool definitions", () => {
     it("should have optional workflowName parameter", () => {
       expect(tool?.inputSchema.properties).toHaveProperty("workflowName");
       expect(tool?.inputSchema.required).not.toContain("workflowName");
+    });
+  });
+
+  describe("clone_workflow", () => {
+    const tool = TOOL_DEFINITIONS.find((t) => t.name === "clone_workflow");
+
+    it("should be defined", () => {
+      expect(tool).toBeDefined();
+    });
+
+    it("should require source parameters", () => {
+      expect(tool?.inputSchema.required).toContain("subscriptionId");
+      expect(tool?.inputSchema.required).toContain("resourceGroupName");
+      expect(tool?.inputSchema.required).toContain("logicAppName");
+    });
+
+    it("should require target parameters", () => {
+      expect(tool?.inputSchema.required).toContain("targetResourceGroupName");
+      expect(tool?.inputSchema.required).toContain("targetLogicAppName");
+      expect(tool?.inputSchema.required).toContain("targetWorkflowName");
+    });
+
+    it("should have optional targetSubscriptionId parameter", () => {
+      expect(tool?.inputSchema.properties).toHaveProperty("targetSubscriptionId");
+      expect(tool?.inputSchema.required).not.toContain("targetSubscriptionId");
+    });
+
+    it("should have optional targetKind parameter with enum", () => {
+      expect(tool?.inputSchema.properties).toHaveProperty("targetKind");
+      expect(tool?.inputSchema.required).not.toContain("targetKind");
+      const kindProperty = tool?.inputSchema.properties?.targetKind as { enum?: string[] };
+      expect(kindProperty?.enum).toEqual(["Stateful", "Stateless"]);
+    });
+  });
+
+  describe("validate_clone_workflow", () => {
+    const tool = TOOL_DEFINITIONS.find((t) => t.name === "validate_clone_workflow");
+
+    it("should be defined", () => {
+      expect(tool).toBeDefined();
+    });
+
+    it("should require source parameters", () => {
+      expect(tool?.inputSchema.required).toContain("subscriptionId");
+      expect(tool?.inputSchema.required).toContain("resourceGroupName");
+      expect(tool?.inputSchema.required).toContain("logicAppName");
+    });
+
+    it("should require target parameters", () => {
+      expect(tool?.inputSchema.required).toContain("targetResourceGroupName");
+      expect(tool?.inputSchema.required).toContain("targetLogicAppName");
+      expect(tool?.inputSchema.required).toContain("targetWorkflowName");
+    });
+
+    it("should have optional targetSubscriptionId parameter", () => {
+      expect(tool?.inputSchema.properties).toHaveProperty("targetSubscriptionId");
+      expect(tool?.inputSchema.required).not.toContain("targetSubscriptionId");
+    });
+
+    it("should have optional targetKind parameter with enum", () => {
+      expect(tool?.inputSchema.properties).toHaveProperty("targetKind");
+      expect(tool?.inputSchema.required).not.toContain("targetKind");
+      const kindProperty = tool?.inputSchema.properties?.targetKind as { enum?: string[] };
+      expect(kindProperty?.enum).toEqual(["Stateful", "Stateless"]);
     });
   });
 });
