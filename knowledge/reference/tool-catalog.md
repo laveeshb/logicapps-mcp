@@ -5,7 +5,7 @@ lastUpdated: 2025-12-26
 
 # Tool Catalog
 
-Complete reference for all 36 MCP tools available in `@laveeshb/logicapps-mcp`.
+Complete reference for all 38 MCP tools available in `@laveeshb/logicapps-mcp`.
 
 **Microsoft Docs:**
 - [Logic Apps REST API reference](https://learn.microsoft.com/rest/api/logic/)
@@ -399,6 +399,67 @@ Cancel a running or waiting execution.
 **When:** Stop stuck workflow, abort long-running process.
 
 **Only works on:** `Running` or `Waiting` status.
+
+---
+
+### clone_workflow
+
+Clone a Consumption Logic App to a Standard Logic App workflow.
+
+**When:** Migrate workflows from Consumption to Standard SKU, copy workflow definitions between environments.
+
+**Parameters:**
+| Name | Required | Description |
+|------|----------|-------------|
+| subscriptionId, resourceGroupName, logicAppName | Yes | Source Consumption Logic App identifiers |
+| targetSubscriptionId | Yes | Target Standard Logic App subscription ID |
+| targetResourceGroupName | Yes | Target Standard Logic App resource group |
+| targetLogicAppName | Yes | Target Standard Logic App name |
+| targetWorkflowName | Yes | Name for the new workflow in the target Logic App |
+| targetKind | No | Workflow kind: `Stateful` (default) or `Stateless` |
+
+**Example:**
+```
+clone_workflow(
+  subscriptionId='source-sub',
+  resourceGroupName='source-rg',
+  logicAppName='my-consumption-app',
+  targetSubscriptionId='target-sub',
+  targetResourceGroupName='target-rg',
+  targetLogicAppName='my-standard-app',
+  targetWorkflowName='cloned-workflow',
+  targetKind='Stateful'
+)
+```
+
+**Note:** Use `validate_clone_workflow` first to check for potential issues before cloning.
+
+---
+
+### validate_clone_workflow
+
+Validate a Consumption Logic App can be cloned to a Standard Logic App.
+
+**When:** Check for compatibility issues before cloning, identify blockers and warnings.
+
+**Parameters:**
+| Name | Required | Description |
+|------|----------|-------------|
+| subscriptionId, resourceGroupName, logicAppName | Yes | Source Consumption Logic App identifiers |
+| targetSubscriptionId | Yes | Target Standard Logic App subscription ID |
+| targetResourceGroupName | Yes | Target Standard Logic App resource group |
+| targetLogicAppName | Yes | Target Standard Logic App name |
+| targetWorkflowName | Yes | Name for the new workflow in the target Logic App |
+| targetKind | No | Workflow kind: `Stateful` (default) or `Stateless` |
+
+**Returns:**
+- `isValid`: Whether cloning can proceed
+- `errors`: Blocking issues that prevent cloning
+- `warnings`: Non-blocking issues to be aware of
+
+**Common Issues Detected:**
+- Integration Account usage (not supported in Standard)
+- API connection compatibility
 
 ---
 
