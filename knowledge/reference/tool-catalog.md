@@ -5,7 +5,7 @@ lastUpdated: 2025-12-26
 
 # Tool Catalog
 
-Complete reference for all 38 MCP tools available in `@laveeshb/logicapps-mcp`.
+Complete reference for all 39 MCP tools available in `@laveeshb/logicapps-mcp`.
 
 **Microsoft Docs:**
 - [Logic Apps REST API reference](https://learn.microsoft.com/rest/api/logic/)

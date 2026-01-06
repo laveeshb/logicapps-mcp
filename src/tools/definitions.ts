@@ -1097,7 +1097,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: "clone_workflow",
     description:
-      "Clone a Consumption Logic App workflow to a Standard Logic App. This copies the workflow definition from a Consumption Logic App to a new workflow in an existing Standard Logic App. The target Standard Logic App must already exist. Note: Some operations may not be supported in Standard and connections may need to be reconfigured.",
+      "Clone a Consumption Logic App workflow to a Standard Logic App. IMPORTANT: Always run validate_clone_workflow first to check for compatibility issues before cloning. This copies the workflow definition from a Consumption Logic App to a new workflow in an existing Standard Logic App. The target Standard Logic App must already exist and the target workflow name must not already exist. Connections will need to be reconfigured after cloning.",
     inputSchema: {
       type: "object",
       properties: {
