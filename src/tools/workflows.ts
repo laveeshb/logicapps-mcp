@@ -743,3 +743,98 @@ export async function deleteWorkflow(
     message: `Workflow '${workflowName}' has been deleted from '${logicAppName}'.`,
   };
 }
+
+export interface CloneWorkflowResult {
+  success: boolean;
+  sourceWorkflow: string;
+  targetWorkflow: string;
+  targetLogicApp: string;
+  message: string;
+}
+
+/**
+ * Clone a Consumption Logic App workflow to a Standard Logic App.
+ * This copies the workflow definition from a Consumption Logic App to a new workflow
+ * in an existing Standard Logic App.
+ */
+export async function cloneWorkflow(
+  subscriptionId: string,
+  resourceGroupName: string,
+  logicAppName: string,
+  targetResourceGroupName: string,
+  targetLogicAppName: string,
+  targetWorkflowName: string,
+  targetSubscriptionId?: string,
+  targetKind?: string
+): Promise<CloneWorkflowResult> {
+  // Validate source is Consumption
+  const sourceSku = await detectLogicAppSku(subscriptionId, resourceGroupName, logicAppName);
+  if (sourceSku !== "consumption") {
+    throw new McpError(
+      "InvalidParameter",
+      "Clone is only supported from Consumption Logic Apps to Standard Logic Apps. The source must be a Consumption Logic App."
+    );
+  }
+
+  // Use source subscription if target not specified
+  const effectiveTargetSubscriptionId = targetSubscriptionId || subscriptionId;
+
+  // Validate target is Standard
+  const targetSku = await detectLogicAppSku(
+    effectiveTargetSubscriptionId,
+    targetResourceGroupName,
+    targetLogicAppName
+  );
+  if (targetSku !== "standard") {
+    throw new McpError(
+      "InvalidParameter",
+      "Clone target must be a Standard Logic App. The target Logic App must already exist."
+    );
+  }
+
+  // Get the source workflow definition
+  const sourceWorkflow = await armRequest<ConsumptionLogicApp>(
+    `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}`,
+    { queryParams: { "api-version": "2019-05-01" } }
+  );
+
+  const sourceDefinition = sourceWorkflow.properties.definition;
+  if (!sourceDefinition) {
+    throw new McpError(
+      "WorkflowNotFound",
+      `Source workflow '${logicAppName}' does not have a definition.`
+    );
+  }
+
+  // Get access to target Standard Logic App
+  const { hostname, masterKey } = await getStandardAppAccess(
+    effectiveTargetSubscriptionId,
+    targetResourceGroupName,
+    targetLogicAppName
+  );
+
+  // Create the workflow in the target Standard Logic App
+  const workflowContent: StandardWorkflowDefinitionFile = {
+    definition: sourceDefinition,
+    kind: (targetKind as "Stateful" | "Stateless") ?? "Stateful",
+  };
+
+  // Use VFS API to create the workflow.json file
+  await vfsRequest(
+    hostname,
+    `/admin/vfs/site/wwwroot/${targetWorkflowName}/workflow.json`,
+    masterKey,
+    {
+      method: "PUT",
+      body: workflowContent,
+    }
+  );
+
+  return {
+    success: true,
+    sourceWorkflow: logicAppName,
+    targetWorkflow: targetWorkflowName,
+    targetLogicApp: targetLogicAppName,
+    message: `Successfully cloned Consumption workflow '${logicAppName}' to Standard workflow '${targetWorkflowName}' in '${targetLogicAppName}'. Note: Connections may need to be reconfigured in the target Logic App.`,
+  };
+}

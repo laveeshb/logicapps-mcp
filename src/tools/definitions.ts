@@ -1094,6 +1094,58 @@ export const TOOL_DEFINITIONS: Tool[] = [
       required: ["subscriptionId", "resourceGroupName", "logicAppName"],
     },
   },
+  {
+    name: "clone_workflow",
+    description:
+      "Clone a Consumption Logic App workflow to a Standard Logic App. This copies the workflow definition from a Consumption Logic App to a new workflow in an existing Standard Logic App. The target Standard Logic App must already exist. Note: Some operations may not be supported in Standard and connections may need to be reconfigured.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        subscriptionId: {
+          type: "string",
+          description: "Source Consumption Logic App subscription ID",
+        },
+        resourceGroupName: {
+          type: "string",
+          description: "Source Consumption Logic App resource group name",
+        },
+        logicAppName: {
+          type: "string",
+          description: "Source Consumption Logic App name",
+        },
+        targetSubscriptionId: {
+          type: "string",
+          description:
+            "Target Standard Logic App subscription ID (defaults to source subscription if not provided)",
+        },
+        targetResourceGroupName: {
+          type: "string",
+          description: "Target Standard Logic App resource group name",
+        },
+        targetLogicAppName: {
+          type: "string",
+          description: "Target Standard Logic App name (must already exist)",
+        },
+        targetWorkflowName: {
+          type: "string",
+          description: "Name for the new workflow in the Standard Logic App",
+        },
+        targetKind: {
+          type: "string",
+          enum: ["Stateful", "Stateless"],
+          description: "Workflow kind for the target (default: 'Stateful')",
+        },
+      },
+      required: [
+        "subscriptionId",
+        "resourceGroupName",
+        "logicAppName",
+        "targetResourceGroupName",
+        "targetLogicAppName",
+        "targetWorkflowName",
+      ],
+    },
+  },
   // Knowledge Tools - provide access to bundled documentation
   {
     name: "get_troubleshooting_guide",
