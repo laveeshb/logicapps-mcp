@@ -32,7 +32,7 @@ export async function getConnections(
     connections: connections.map((conn) => ({
       id: conn.id,
       name: conn.name,
-      apiName: conn.properties.api.name,
+      apiName: conn.properties.api?.name ?? "unknown",
       displayName: conn.properties.displayName,
       status: conn.properties.statuses?.[0]?.status ?? "Unknown",
       createdTime: conn.properties.createdTime,
