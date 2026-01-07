@@ -285,6 +285,47 @@ export async function workflowMgmtRequest<T>(
 }
 
 /**
+ * Make a paginated request to the Workflow Management API for Standard Logic Apps.
+ * Follows nextLink pagination to retrieve all results.
+ */
+export async function workflowMgmtRequestAllPages<T>(
+  logicAppHostname: string,
+  path: string,
+  masterKey: string
+): Promise<T[]> {
+  const results: T[] = [];
+  let url: string | undefined = `https://${logicAppHostname}${path}`;
+
+  while (url) {
+    const response = await fetchWithRetry(url, {
+      method: "GET",
+      headers: {
+        "x-functions-key": masterKey,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      const error = (await response.json().catch(() => ({}))) as {
+        message?: string;
+      };
+      throw new McpError(
+        "ServiceError",
+        error.message ?? `Workflow management API error: ${response.status}`
+      );
+    }
+
+    const data = (await response.json()) as { value?: T[]; nextLink?: string };
+    if (data.value) {
+      results.push(...data.value);
+    }
+    url = data.nextLink;
+  }
+
+  return results;
+}
+
+/**
  * Make a request to the VFS (Kudu) API for Standard Logic Apps.
  * Used for creating, updating, and deleting workflow files.
  */

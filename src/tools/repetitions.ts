@@ -2,7 +2,7 @@
  * Action and scope repetition tools for debugging loops and conditional branches.
  */
 
-import { armRequest, armRequestAllPages, workflowMgmtRequest } from "../utils/http.js";
+import { armRequest, armRequestAllPages, workflowMgmtRequest, workflowMgmtRequestAllPages } from "../utils/http.js";
 import { McpError } from "../utils/errors.js";
 import { detectLogicAppSku, getStandardAppAccess } from "./shared.js";
 
@@ -212,11 +212,12 @@ async function getActionRepetitionsStandard(
     };
   }
 
-  const response = await workflowMgmtRequest<{
-    value?: ActionRepetitionEntry[];
-  }>(hostname, `${basePath}?api-version=2020-05-01-preview`, masterKey);
-
-  const repetitions = response.value ?? [];
+  // Use paginated request to handle loops with >100 iterations
+  const repetitions = await workflowMgmtRequestAllPages<ActionRepetitionEntry>(
+    hostname,
+    `${basePath}?api-version=2020-05-01-preview`,
+    masterKey
+  );
 
   return {
     actionName,
@@ -314,11 +315,12 @@ async function getScopeRepetitionsStandard(
 
   const basePath = `/runtime/webhooks/workflow/api/management/workflows/${workflowName}/runs/${runId}/actions/${actionName}/scopeRepetitions`;
 
-  const response = await workflowMgmtRequest<{
-    value?: ScopeRepetitionEntry[];
-  }>(hostname, `${basePath}?api-version=2020-05-01-preview`, masterKey);
-
-  const repetitions = response.value ?? [];
+  // Use paginated request to handle scopes with many repetitions
+  const repetitions = await workflowMgmtRequestAllPages<ScopeRepetitionEntry>(
+    hostname,
+    `${basePath}?api-version=2020-05-01-preview`,
+    masterKey
+  );
 
   return {
     actionName,
