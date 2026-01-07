@@ -61,23 +61,22 @@ describe("triggers", () => {
 
     it("should respect top parameter for Consumption SKU", async () => {
       const { detectLogicAppSku } = await import("./shared.js");
-      const { armRequestAllPages } = await import("../utils/http.js");
+      const { armRequest } = await import("../utils/http.js");
 
       vi.mocked(detectLogicAppSku).mockResolvedValue("consumption");
 
-      // Return more results than requested
-      vi.mocked(armRequestAllPages).mockResolvedValue([
-        { name: "hist1", properties: { status: "Succeeded", startTime: "2024-01-01", fired: true } },
-        { name: "hist2", properties: { status: "Succeeded", startTime: "2024-01-02", fired: true } },
-        { name: "hist3", properties: { status: "Failed", startTime: "2024-01-03", fired: true } },
-        { name: "hist4", properties: { status: "Succeeded", startTime: "2024-01-04", fired: true } },
-        { name: "hist5", properties: { status: "Skipped", startTime: "2024-01-05", fired: false } },
-      ]);
+      // armRequest now returns { value: [...] } format
+      vi.mocked(armRequest).mockResolvedValue({
+        value: [
+          { name: "hist1", properties: { status: "Succeeded", startTime: "2024-01-01", fired: true } },
+          { name: "hist2", properties: { status: "Succeeded", startTime: "2024-01-02", fired: true } },
+        ],
+      });
 
       // Request only 2 results
       const result = await getTriggerHistory("sub-123", "rg", "myapp", "manual", undefined, 2);
 
-      // Should only return 2 results even though API returned 5
+      // Should return the 2 results from API (API respects $top)
       expect(result.histories).toHaveLength(2);
       expect(result.histories[0].name).toBe("hist1");
       expect(result.histories[1].name).toBe("hist2");
