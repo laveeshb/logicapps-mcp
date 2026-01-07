@@ -60,3 +60,5 @@ export type { GetExpressionTracesResult } from "./expressions.js";
 
 export { getWorkflowSwagger } from "./swagger.js";
 export type { GetWorkflowSwaggerResult } from "./swagger.js";
+
+export { setCacheTtl } from "./shared.js";

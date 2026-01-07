@@ -13,6 +13,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { registerToolsAndPrompts } from "../server.js";
 import { loadSettings } from "../config/index.js";
 import { setSettings, initializeAuth } from "../auth/index.js";
+import { setCacheTtl } from "../tools/index.js";
 import { VERSION } from "../version.js";
 
 let initialized = false;
@@ -25,6 +26,7 @@ async function ensureInitialized(): Promise<void> {
 
   const settings = await loadSettings();
   setSettings(settings);
+  setCacheTtl(settings.cacheTtlSeconds);
   await initializeAuth();
   initialized = true;
 }
