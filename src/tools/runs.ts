@@ -7,6 +7,7 @@ import {
   armRequestVoid,
   armRequestAllPages,
   workflowMgmtRequest,
+  workflowMgmtRequestAllPages,
 } from "../utils/http.js";
 import { WorkflowRun, RunAction, ConsumptionLogicApp } from "../types/logicApp.js";
 import { McpError } from "../utils/errors.js";
@@ -363,13 +364,12 @@ async function getRunActionsStandard(
     };
   }
 
-  const response = await workflowMgmtRequest<{ value?: RunAction[] }>(
+  // Use paginated request to handle workflows with >100 actions
+  const actionsList = await workflowMgmtRequestAllPages<RunAction>(
     hostname,
     `${basePath}?api-version=2020-05-01-preview`,
     masterKey
   );
-
-  const actionsList = response.value ?? [];
 
   return {
     actions: actionsList.map((action) => ({
