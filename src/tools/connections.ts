@@ -2,7 +2,7 @@
  * API Connection operations.
  */
 
-import { armRequest, armRequestAllPages, fetchWithRetry } from "../utils/http.js";
+import { armRequest, fetchWithRetry } from "../utils/http.js";
 import { ApiConnection } from "../types/logicApp.js";
 import { getAccessToken } from "../auth/tokenManager.js";
 import { getCloudEndpoints } from "../config/clouds.js";
@@ -17,16 +17,19 @@ export interface GetConnectionsResult {
     status: string;
     createdTime: string;
   }>;
+  nextLink?: string;
 }
 
 export async function getConnections(
   subscriptionId: string,
   resourceGroupName: string
 ): Promise<GetConnectionsResult> {
-  const connections = await armRequestAllPages<ApiConnection>(
+  const response = await armRequest<{ value: ApiConnection[]; nextLink?: string }>(
     `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Web/connections`,
-    { "api-version": "2018-07-01-preview" }
+    { queryParams: { "api-version": "2018-07-01-preview" } }
   );
+
+  const connections = response.value ?? [];
 
   return {
     connections: connections.map((conn) => ({
@@ -37,6 +40,7 @@ export async function getConnections(
       status: conn.properties.statuses?.[0]?.status ?? "Unknown",
       createdTime: conn.properties.createdTime,
     })),
+    nextLink: response.nextLink,
   };
 }
 

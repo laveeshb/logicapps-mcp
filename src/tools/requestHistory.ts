@@ -2,7 +2,7 @@
  * Action request history tools for debugging HTTP connector calls.
  */
 
-import { armRequest, armRequestAllPages, workflowMgmtRequest, workflowMgmtRequestAllPages } from "../utils/http.js";
+import { armRequest, workflowMgmtRequest } from "../utils/http.js";
 import { McpError } from "../utils/errors.js";
 import { detectLogicAppSku, getStandardAppAccess } from "./shared.js";
 
@@ -56,6 +56,7 @@ export interface GetActionRequestHistoryResult {
       message: string;
     };
   }>;
+  nextLink?: string;
 }
 
 /**
@@ -121,13 +122,16 @@ async function getRequestHistoryConsumption(
     };
   }
 
-  const entries = await armRequestAllPages<RequestHistoryEntry>(basePath, {
-    "api-version": "2019-05-01",
+  const response = await armRequest<{ value: RequestHistoryEntry[]; nextLink?: string }>(basePath, {
+    queryParams: { "api-version": "2019-05-01" },
   });
+
+  const entries = response.value ?? [];
 
   return {
     actionName,
     requestHistories: entries.map(mapRequestHistory),
+    nextLink: response.nextLink,
   };
 }
 
@@ -161,16 +165,19 @@ async function getRequestHistoryStandard(
     };
   }
 
-  // Use paginated request to handle actions with many retries
-  const entries = await workflowMgmtRequestAllPages<RequestHistoryEntry>(
+  // Use single-page request - return nextLink for caller-controlled pagination
+  const response = await workflowMgmtRequest<{ value: RequestHistoryEntry[]; nextLink?: string }>(
     hostname,
     `${basePath}?api-version=2020-05-01-preview`,
     masterKey
   );
 
+  const entries = response.value ?? [];
+
   return {
     actionName,
     requestHistories: entries.map(mapRequestHistory),
+    nextLink: response.nextLink,
   };
 }
 
