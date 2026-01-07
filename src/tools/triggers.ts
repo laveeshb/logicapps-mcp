@@ -48,6 +48,7 @@ export interface GetTriggerHistoryResult {
       message: string;
     };
   }>;
+  nextLink?: string;
 }
 
 /**
@@ -153,15 +154,17 @@ async function getTriggerHistoryStandard(
     path += `&$filter=${encodeURIComponent(filter)}`;
   }
 
+  // Fetch single page - return nextLink for caller-controlled pagination
   const response = await workflowMgmtRequest<{
     value?: TriggerHistoryEntry[];
+    nextLink?: string;
   }>(hostname, path, masterKey);
 
   const histories = response.value ?? [];
 
   return {
     triggerName,
-    histories: histories.slice(0, top).map((h) => ({
+    histories: histories.map((h) => ({
       name: h.name,
       status: h.properties.status,
       startTime: h.properties.startTime,
@@ -171,6 +174,7 @@ async function getTriggerHistoryStandard(
       runId: h.properties.run?.name,
       error: h.properties.error,
     })),
+    nextLink: response.nextLink,
   };
 }
 

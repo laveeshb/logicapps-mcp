@@ -5,9 +5,7 @@ import { listRunHistory, getRunDetails, getRunActions } from "./runs.js";
 vi.mock("../utils/http.js", () => ({
   armRequest: vi.fn(),
   armRequestVoid: vi.fn(),
-  armRequestAllPages: vi.fn(),
   workflowMgmtRequest: vi.fn(),
-  workflowMgmtRequestAllPages: vi.fn(),
 }));
 
 // Mock the shared module
@@ -291,30 +289,32 @@ describe("runs", () => {
   describe("getRunActions", () => {
     it("should get run actions for Consumption SKU", async () => {
       const { detectLogicAppSku } = await import("./shared.js");
-      const { armRequestAllPages } = await import("../utils/http.js");
+      const { armRequest } = await import("../utils/http.js");
 
       vi.mocked(detectLogicAppSku).mockResolvedValue("consumption");
-      vi.mocked(armRequestAllPages).mockResolvedValue([
-        {
-          name: "HTTP",
-          type: "Http",
-          properties: {
-            status: "Succeeded",
-            startTime: "2024-01-01T00:00:00Z",
-            endTime: "2024-01-01T00:00:01Z",
-            trackedProperties: { key: "value" },
+      vi.mocked(armRequest).mockResolvedValue({
+        value: [
+          {
+            name: "HTTP",
+            type: "Http",
+            properties: {
+              status: "Succeeded",
+              startTime: "2024-01-01T00:00:00Z",
+              endTime: "2024-01-01T00:00:01Z",
+              trackedProperties: { key: "value" },
+            },
           },
-        },
-        {
-          name: "Response",
-          type: "Response",
-          properties: {
-            status: "Succeeded",
-            startTime: "2024-01-01T00:00:01Z",
-            endTime: "2024-01-01T00:00:02Z",
+          {
+            name: "Response",
+            type: "Response",
+            properties: {
+              status: "Succeeded",
+              startTime: "2024-01-01T00:00:01Z",
+              endTime: "2024-01-01T00:00:02Z",
+            },
           },
-        },
-      ]);
+        ],
+      });
 
       const result = await getRunActions("sub-123", "rg", "myapp", "run1");
 
@@ -349,23 +349,25 @@ describe("runs", () => {
 
     it("should get run actions for Standard SKU with pagination", async () => {
       const { detectLogicAppSku, getStandardAppAccess } = await import("./shared.js");
-      const { workflowMgmtRequestAllPages } = await import("../utils/http.js");
+      const { workflowMgmtRequest } = await import("../utils/http.js");
 
       vi.mocked(detectLogicAppSku).mockResolvedValue("standard");
       vi.mocked(getStandardAppAccess).mockResolvedValue({
         hostname: "myapp.azurewebsites.net",
         masterKey: "test-key",
       });
-      vi.mocked(workflowMgmtRequestAllPages).mockResolvedValue([
-        {
-          name: "Compose",
-          type: "Compose",
-          properties: {
-            status: "Succeeded",
-            startTime: "2024-01-01T00:00:00Z",
+      vi.mocked(workflowMgmtRequest).mockResolvedValue({
+        value: [
+          {
+            name: "Compose",
+            type: "Compose",
+            properties: {
+              status: "Succeeded",
+              startTime: "2024-01-01T00:00:00Z",
+            },
           },
-        },
-      ]);
+        ],
+      });
 
       const result = await getRunActions("sub-123", "rg", "myapp", "run1", "workflow1");
 
@@ -385,10 +387,10 @@ describe("runs", () => {
 
     it("should handle empty actions list", async () => {
       const { detectLogicAppSku } = await import("./shared.js");
-      const { armRequestAllPages } = await import("../utils/http.js");
+      const { armRequest } = await import("../utils/http.js");
 
       vi.mocked(detectLogicAppSku).mockResolvedValue("consumption");
-      vi.mocked(armRequestAllPages).mockResolvedValue([]);
+      vi.mocked(armRequest).mockResolvedValue({ value: [] });
 
       const result = await getRunActions("sub-123", "rg", "myapp", "run1");
 

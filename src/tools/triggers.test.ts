@@ -5,7 +5,6 @@ import { getTriggerHistory } from "./triggers.js";
 vi.mock("../utils/http.js", () => ({
   armRequest: vi.fn(),
   armRequestVoid: vi.fn(),
-  armRequestAllPages: vi.fn(),
   workflowMgmtRequest: vi.fn(),
 }));
 
@@ -31,15 +30,14 @@ describe("triggers", () => {
         masterKey: "test-key",
       });
 
-      // Return more results than requested
+      // Return results with nextLink for pagination
       vi.mocked(workflowMgmtRequest).mockResolvedValue({
         value: [
           { name: "hist1", properties: { status: "Succeeded", startTime: "2024-01-01", fired: true } },
           { name: "hist2", properties: { status: "Succeeded", startTime: "2024-01-02", fired: true } },
           { name: "hist3", properties: { status: "Failed", startTime: "2024-01-03", fired: true } },
-          { name: "hist4", properties: { status: "Succeeded", startTime: "2024-01-04", fired: true } },
-          { name: "hist5", properties: { status: "Skipped", startTime: "2024-01-05", fired: false } },
         ],
+        nextLink: "https://next-page-url",
       });
 
       // Request only 3 results
@@ -52,11 +50,13 @@ describe("triggers", () => {
         3
       );
 
-      // Should only return 3 results even though API returned 5
+      // Returns all items from page - single page fetch
       expect(result.histories).toHaveLength(3);
       expect(result.histories[0].name).toBe("hist1");
       expect(result.histories[1].name).toBe("hist2");
       expect(result.histories[2].name).toBe("hist3");
+      // nextLink returned for caller-controlled pagination
+      expect(result.nextLink).toBe("https://next-page-url");
     });
 
     it("should respect top parameter for Consumption SKU", async () => {

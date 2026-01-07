@@ -12,7 +12,6 @@ import {
 vi.mock("../utils/http.js", () => ({
   armRequest: vi.fn(),
   armRequestVoid: vi.fn(),
-  armRequestAllPages: vi.fn(),
   vfsRequest: vi.fn(),
   workflowMgmtRequest: vi.fn(),
 }));
@@ -441,29 +440,31 @@ describe("workflows", () => {
   describe("getWorkflowTriggers", () => {
     it("should get triggers for Consumption SKU", async () => {
       const { detectLogicAppSku } = await import("./shared.js");
-      const { armRequestAllPages } = await import("../utils/http.js");
+      const { armRequest } = await import("../utils/http.js");
 
       vi.mocked(detectLogicAppSku).mockResolvedValue("consumption");
-      vi.mocked(armRequestAllPages).mockResolvedValue([
-        {
-          name: "manual",
-          type: "Request",
-          properties: {
-            state: "Enabled",
-            lastExecutionTime: "2024-01-01T00:00:00Z",
-            nextExecutionTime: null,
+      vi.mocked(armRequest).mockResolvedValue({
+        value: [
+          {
+            name: "manual",
+            type: "Request",
+            properties: {
+              state: "Enabled",
+              lastExecutionTime: "2024-01-01T00:00:00Z",
+              nextExecutionTime: null,
+            },
           },
-        },
-        {
-          name: "Recurrence",
-          type: "Recurrence",
-          properties: {
-            state: "Enabled",
-            lastExecutionTime: "2024-01-01T00:00:00Z",
-            nextExecutionTime: "2024-01-02T00:00:00Z",
+          {
+            name: "Recurrence",
+            type: "Recurrence",
+            properties: {
+              state: "Enabled",
+              lastExecutionTime: "2024-01-01T00:00:00Z",
+              nextExecutionTime: "2024-01-02T00:00:00Z",
+            },
           },
-        },
-      ]);
+        ],
+      });
 
       const result = await getWorkflowTriggers("sub-123", "rg", "myapp");
 
@@ -513,10 +514,10 @@ describe("workflows", () => {
 
     it("should handle empty triggers list", async () => {
       const { detectLogicAppSku } = await import("./shared.js");
-      const { armRequestAllPages } = await import("../utils/http.js");
+      const { armRequest } = await import("../utils/http.js");
 
       vi.mocked(detectLogicAppSku).mockResolvedValue("consumption");
-      vi.mocked(armRequestAllPages).mockResolvedValue([]);
+      vi.mocked(armRequest).mockResolvedValue({ value: [] });
 
       const result = await getWorkflowTriggers("sub-123", "rg", "myapp");
 
@@ -527,27 +528,29 @@ describe("workflows", () => {
   describe("listWorkflowVersions", () => {
     it("should list versions for Consumption SKU", async () => {
       const { detectLogicAppSku } = await import("./shared.js");
-      const { armRequestAllPages } = await import("../utils/http.js");
+      const { armRequest } = await import("../utils/http.js");
 
       vi.mocked(detectLogicAppSku).mockResolvedValue("consumption");
-      vi.mocked(armRequestAllPages).mockResolvedValue([
-        {
-          name: "08585123456789",
-          properties: {
-            createdTime: "2024-01-01T00:00:00Z",
-            changedTime: "2024-01-01T00:00:00Z",
-            state: "Enabled",
+      vi.mocked(armRequest).mockResolvedValue({
+        value: [
+          {
+            name: "08585123456789",
+            properties: {
+              createdTime: "2024-01-01T00:00:00Z",
+              changedTime: "2024-01-01T00:00:00Z",
+              state: "Enabled",
+            },
           },
-        },
-        {
-          name: "08585123456788",
-          properties: {
-            createdTime: "2024-01-02T00:00:00Z",
-            changedTime: "2024-01-02T00:00:00Z",
-            state: "Enabled",
+          {
+            name: "08585123456788",
+            properties: {
+              createdTime: "2024-01-02T00:00:00Z",
+              changedTime: "2024-01-02T00:00:00Z",
+              state: "Enabled",
+            },
           },
-        },
-      ]);
+        ],
+      });
 
       const result = await listWorkflowVersions("sub-123", "rg", "myapp");
 
@@ -568,10 +571,10 @@ describe("workflows", () => {
 
     it("should handle empty versions list", async () => {
       const { detectLogicAppSku } = await import("./shared.js");
-      const { armRequestAllPages } = await import("../utils/http.js");
+      const { armRequest } = await import("../utils/http.js");
 
       vi.mocked(detectLogicAppSku).mockResolvedValue("consumption");
-      vi.mocked(armRequestAllPages).mockResolvedValue([]);
+      vi.mocked(armRequest).mockResolvedValue({ value: [] });
 
       const result = await listWorkflowVersions("sub-123", "rg", "myapp");
 

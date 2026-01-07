@@ -5,7 +5,6 @@ import { McpError } from "../utils/errors.js";
 // Mock the http module
 vi.mock("../utils/http.js", () => ({
   armRequest: vi.fn(),
-  armRequestAllPages: vi.fn(),
 }));
 
 // Mock the token manager

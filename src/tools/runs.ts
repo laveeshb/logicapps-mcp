@@ -5,9 +5,7 @@
 import {
   armRequest,
   armRequestVoid,
-  armRequestAllPages,
   workflowMgmtRequest,
-  workflowMgmtRequestAllPages,
 } from "../utils/http.js";
 import { WorkflowRun, RunAction, ConsumptionLogicApp } from "../types/logicApp.js";
 import { McpError } from "../utils/errors.js";
@@ -67,6 +65,7 @@ export interface GetRunActionsResult {
     };
     trackedProperties?: Record<string, unknown>;
   }>;
+  nextLink?: string;
 }
 
 export async function listRunHistory(
@@ -310,9 +309,11 @@ async function getRunActionsConsumption(
     };
   }
 
-  const actions = await armRequestAllPages<RunAction>(basePath, {
-    "api-version": "2019-05-01",
+  const response = await armRequest<{ value: RunAction[]; nextLink?: string }>(basePath, {
+    queryParams: { "api-version": "2019-05-01" },
   });
+
+  const actions = response.value ?? [];
 
   return {
     actions: actions.map((action) => ({
@@ -324,6 +325,7 @@ async function getRunActionsConsumption(
       error: action.properties.error,
       trackedProperties: action.properties.trackedProperties,
     })),
+    nextLink: response.nextLink,
   };
 }
 
@@ -364,12 +366,14 @@ async function getRunActionsStandard(
     };
   }
 
-  // Use paginated request to handle workflows with >100 actions
-  const actionsList = await workflowMgmtRequestAllPages<RunAction>(
+  // Use single-page request - return nextLink for caller-controlled pagination
+  const response = await workflowMgmtRequest<{ value: RunAction[]; nextLink?: string }>(
     hostname,
     `${basePath}?api-version=2020-05-01-preview`,
     masterKey
   );
+
+  const actionsList = response.value ?? [];
 
   return {
     actions: actionsList.map((action) => ({
@@ -381,6 +385,7 @@ async function getRunActionsStandard(
       error: action.properties.error,
       trackedProperties: action.properties.trackedProperties,
     })),
+    nextLink: response.nextLink,
   };
 }
 

@@ -2,7 +2,7 @@
  * Action and scope repetition tools for debugging loops and conditional branches.
  */
 
-import { armRequest, armRequestAllPages, workflowMgmtRequest, workflowMgmtRequestAllPages } from "../utils/http.js";
+import { armRequest, workflowMgmtRequest } from "../utils/http.js";
 import { McpError } from "../utils/errors.js";
 import { detectLogicAppSku, getStandardAppAccess } from "./shared.js";
 
@@ -59,6 +59,7 @@ export interface GetActionRepetitionsResult {
     };
     trackedProperties?: Record<string, unknown>;
   }>;
+  nextLink?: string;
 }
 
 export interface GetScopeRepetitionsResult {
@@ -73,6 +74,7 @@ export interface GetScopeRepetitionsResult {
       message: string;
     };
   }>;
+  nextLink?: string;
 }
 
 /**
@@ -150,9 +152,11 @@ async function getActionRepetitionsConsumption(
     };
   }
 
-  const repetitions = await armRequestAllPages<ActionRepetitionEntry>(basePath, {
-    "api-version": "2019-05-01",
+  const response = await armRequest<{ value: ActionRepetitionEntry[]; nextLink?: string }>(basePath, {
+    queryParams: { "api-version": "2019-05-01" },
   });
+
+  const repetitions = response.value ?? [];
 
   return {
     actionName,
@@ -167,6 +171,7 @@ async function getActionRepetitionsConsumption(
       error: r.properties.error,
       trackedProperties: r.properties.trackedProperties,
     })),
+    nextLink: response.nextLink,
   };
 }
 
@@ -212,12 +217,14 @@ async function getActionRepetitionsStandard(
     };
   }
 
-  // Use paginated request to handle loops with >100 iterations
-  const repetitions = await workflowMgmtRequestAllPages<ActionRepetitionEntry>(
+  // Use single-page request - return nextLink for caller-controlled pagination
+  const response = await workflowMgmtRequest<{ value: ActionRepetitionEntry[]; nextLink?: string }>(
     hostname,
     `${basePath}?api-version=2020-05-01-preview`,
     masterKey
   );
+
+  const repetitions = response.value ?? [];
 
   return {
     actionName,
@@ -232,6 +239,7 @@ async function getActionRepetitionsStandard(
       error: r.properties.error,
       trackedProperties: r.properties.trackedProperties,
     })),
+    nextLink: response.nextLink,
   };
 }
 
@@ -283,9 +291,11 @@ async function getScopeRepetitionsConsumption(
 ): Promise<GetScopeRepetitionsResult> {
   const basePath = `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}/runs/${runId}/actions/${actionName}/scopeRepetitions`;
 
-  const repetitions = await armRequestAllPages<ScopeRepetitionEntry>(basePath, {
-    "api-version": "2019-05-01",
+  const response = await armRequest<{ value: ScopeRepetitionEntry[]; nextLink?: string }>(basePath, {
+    queryParams: { "api-version": "2019-05-01" },
   });
+
+  const repetitions = response.value ?? [];
 
   return {
     actionName,
@@ -296,6 +306,7 @@ async function getScopeRepetitionsConsumption(
       endTime: r.properties.endTime,
       error: r.properties.error,
     })),
+    nextLink: response.nextLink,
   };
 }
 
@@ -315,12 +326,14 @@ async function getScopeRepetitionsStandard(
 
   const basePath = `/runtime/webhooks/workflow/api/management/workflows/${workflowName}/runs/${runId}/actions/${actionName}/scopeRepetitions`;
 
-  // Use paginated request to handle scopes with many repetitions
-  const repetitions = await workflowMgmtRequestAllPages<ScopeRepetitionEntry>(
+  // Use single-page request - return nextLink for caller-controlled pagination
+  const response = await workflowMgmtRequest<{ value: ScopeRepetitionEntry[]; nextLink?: string }>(
     hostname,
     `${basePath}?api-version=2020-05-01-preview`,
     masterKey
   );
+
+  const repetitions = response.value ?? [];
 
   return {
     actionName,
@@ -331,5 +344,6 @@ async function getScopeRepetitionsStandard(
       endTime: r.properties.endTime,
       error: r.properties.error,
     })),
+    nextLink: response.nextLink,
   };
 }

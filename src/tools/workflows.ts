@@ -5,7 +5,6 @@
 import {
   armRequest,
   armRequestVoid,
-  armRequestAllPages,
   vfsRequest,
   workflowMgmtRequest,
 } from "../utils/http.js";
@@ -43,6 +42,7 @@ export interface GetWorkflowTriggersResult {
     lastExecutionTime?: string;
     nextExecutionTime?: string;
   }>;
+  nextLink?: string;
 }
 
 export interface ListWorkflowVersionsResult {
@@ -52,6 +52,7 @@ export interface ListWorkflowVersionsResult {
     changedTime: string;
     state: string;
   }>;
+  nextLink?: string;
 }
 
 /**
@@ -162,10 +163,12 @@ export async function getWorkflowTriggers(
   const sku = await detectLogicAppSku(subscriptionId, resourceGroupName, logicAppName);
 
   if (sku === "consumption") {
-    const triggers = await armRequestAllPages<TriggerState>(
+    const response = await armRequest<{ value: TriggerState[]; nextLink?: string }>(
       `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}/triggers`,
-      { "api-version": "2019-05-01" }
+      { queryParams: { "api-version": "2019-05-01" } }
     );
+
+    const triggers = response.value ?? [];
 
     return {
       triggers: triggers.map((t) => ({
@@ -175,6 +178,7 @@ export async function getWorkflowTriggers(
         lastExecutionTime: t.properties.lastExecutionTime,
         nextExecutionTime: t.properties.nextExecutionTime,
       })),
+      nextLink: response.nextLink,
     };
   }
 
@@ -228,10 +232,12 @@ export async function listWorkflowVersions(
     queryParams["$top"] = String(top);
   }
 
-  const versions = await armRequestAllPages<WorkflowVersion>(
+  const response = await armRequest<{ value: WorkflowVersion[]; nextLink?: string }>(
     `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}/versions`,
-    queryParams
+    { queryParams }
   );
+
+  const versions = response.value ?? [];
 
   return {
     versions: versions.map((v) => ({
@@ -240,6 +246,7 @@ export async function listWorkflowVersions(
       changedTime: v.properties.changedTime,
       state: v.properties.state,
     })),
+    nextLink: response.nextLink,
   };
 }
 

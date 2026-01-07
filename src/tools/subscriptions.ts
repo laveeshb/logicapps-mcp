@@ -2,7 +2,7 @@
  * List accessible Azure subscriptions.
  */
 
-import { armRequestAllPages } from "../utils/http.js";
+import { armRequest } from "../utils/http.js";
 
 interface SubscriptionResponse {
   subscriptionId: string;
@@ -17,12 +17,16 @@ export interface SubscriptionResult {
     displayName: string;
     state: string;
   }>;
+  nextLink?: string;
 }
 
 export async function listSubscriptions(): Promise<SubscriptionResult> {
-  const subscriptions = await armRequestAllPages<SubscriptionResponse>("/subscriptions", {
-    "api-version": "2022-12-01",
-  });
+  const response = await armRequest<{ value: SubscriptionResponse[]; nextLink?: string }>(
+    "/subscriptions",
+    { queryParams: { "api-version": "2022-12-01" } }
+  );
+
+  const subscriptions = response.value ?? [];
 
   return {
     subscriptions: subscriptions.map((sub) => ({
@@ -30,5 +34,6 @@ export async function listSubscriptions(): Promise<SubscriptionResult> {
       displayName: sub.displayName,
       state: sub.state,
     })),
+    nextLink: response.nextLink,
   };
 }
