@@ -157,7 +157,14 @@ export async function armRequest<T>(
     throw new McpError("ServiceError", "Unexpected empty response body when data was expected");
   }
 
-  return JSON.parse(text) as T;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new McpError(
+      "InvalidResponse",
+      `Failed to parse JSON response: ${text.slice(0, 200)}${text.length > 200 ? "..." : ""}`
+    );
+  }
 }
 
 /**
