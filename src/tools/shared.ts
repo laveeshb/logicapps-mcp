@@ -126,8 +126,13 @@ export function clearCache(
     return;
   }
 
+  // Validate: if logicAppName is provided, resourceGroupName is required
+  if (logicAppName && !resourceGroupName) {
+    throw new Error("resourceGroupName is required when logicAppName is provided");
+  }
+
   const prefix = logicAppName
-    ? getCacheKey(subscriptionId, resourceGroupName!, logicAppName)
+    ? getCacheKey(subscriptionId, resourceGroupName ?? "", logicAppName)
     : `${subscriptionId}/${resourceGroupName ?? ""}`.toLowerCase();
 
   skuCache.deleteByPrefix(prefix);
