@@ -18,6 +18,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { loadSettings } from "./config/index.js";
 import { setSettings, initializeAuth } from "./auth/index.js";
 import { registerToolsAndPrompts } from "./server.js";
+import { VERSION } from "./version.js";
 
 /**
  * Run MCP server in stdio mode (for local MCP clients).
@@ -28,7 +29,7 @@ async function runStdioMode(): Promise<void> {
   await initializeAuth();
 
   const mcpServer = new McpServer(
-    { name: "logicapps-mcp", version: "0.2.0" },
+    { name: "logicapps-mcp", version: VERSION },
     { capabilities: { tools: {}, prompts: {} } }
   );
 
