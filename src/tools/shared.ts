@@ -6,7 +6,7 @@ import { armRequest } from "../utils/http.js";
 import { McpError } from "../utils/errors.js";
 
 // ============================================================================
-// Cache Implementation
+// LRU Cache Implementation
 // ============================================================================
 
 interface CacheEntry<T> {
@@ -14,9 +14,80 @@ interface CacheEntry<T> {
   expiresAt: number;
 }
 
-// In-memory caches
-const skuCache = new Map<string, CacheEntry<"consumption" | "standard">>();
-const accessCache = new Map<string, CacheEntry<{ hostname: string; masterKey: string }>>();
+// Maximum cache size (default: 100 entries per cache)
+const MAX_CACHE_SIZE = 100;
+
+/**
+ * LRU Cache with TTL support.
+ * Uses Map's insertion order for LRU tracking - recently accessed items are re-inserted.
+ */
+class LRUCache<T> {
+  private cache = new Map<string, CacheEntry<T>>();
+  private maxSize: number;
+
+  constructor(maxSize: number = MAX_CACHE_SIZE) {
+    this.maxSize = maxSize;
+  }
+
+  get(key: string): T | undefined {
+    const entry = this.cache.get(key);
+    if (!entry) return undefined;
+
+    // Check if expired
+    if (entry.expiresAt <= Date.now()) {
+      this.cache.delete(key);
+      return undefined;
+    }
+
+    // Move to end (most recently used) by re-inserting
+    this.cache.delete(key);
+    this.cache.set(key, entry);
+
+    return entry.value;
+  }
+
+  set(key: string, value: T, ttlMs: number): void {
+    // Remove if exists (to update position)
+    this.cache.delete(key);
+
+    // Evict oldest entries if at capacity
+    while (this.cache.size >= this.maxSize) {
+      const oldestKey = this.cache.keys().next().value;
+      if (oldestKey !== undefined) {
+        this.cache.delete(oldestKey);
+      }
+    }
+
+    this.cache.set(key, {
+      value,
+      expiresAt: Date.now() + ttlMs,
+    });
+  }
+
+  delete(key: string): boolean {
+    return this.cache.delete(key);
+  }
+
+  deleteByPrefix(prefix: string): void {
+    for (const key of this.cache.keys()) {
+      if (key.startsWith(prefix)) {
+        this.cache.delete(key);
+      }
+    }
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+
+  get size(): number {
+    return this.cache.size;
+  }
+}
+
+// In-memory LRU caches
+const skuCache = new LRUCache<"consumption" | "standard">();
+const accessCache = new LRUCache<{ hostname: string; masterKey: string }>();
 
 // Default TTL: 5 minutes (matches LOGICAPPS_MCP_CACHE_TTL default)
 let cacheTtlMs = 5 * 60 * 1000;
@@ -55,16 +126,8 @@ export function clearCache(
     ? getCacheKey(subscriptionId, resourceGroupName!, logicAppName)
     : `${subscriptionId}/${resourceGroupName ?? ""}`.toLowerCase();
 
-  for (const key of skuCache.keys()) {
-    if (key.startsWith(prefix)) {
-      skuCache.delete(key);
-    }
-  }
-  for (const key of accessCache.keys()) {
-    if (key.startsWith(prefix)) {
-      accessCache.delete(key);
-    }
-  }
+  skuCache.deleteByPrefix(prefix);
+  accessCache.deleteByPrefix(prefix);
 }
 
 // ============================================================================
@@ -90,20 +153,17 @@ export async function detectLogicAppSku(
 ): Promise<"consumption" | "standard"> {
   const cacheKey = getCacheKey(subscriptionId, resourceGroupName, logicAppName);
 
-  // Check cache first
+  // Check cache first (LRUCache handles TTL internally)
   const cached = skuCache.get(cacheKey);
-  if (cached && cached.expiresAt > Date.now()) {
-    return cached.value;
+  if (cached) {
+    return cached;
   }
 
   // Detect SKU from API
   const sku = await detectSkuFromApi(subscriptionId, resourceGroupName, logicAppName);
 
   // Cache the result
-  skuCache.set(cacheKey, {
-    value: sku,
-    expiresAt: Date.now() + cacheTtlMs,
-  });
+  skuCache.set(cacheKey, sku, cacheTtlMs);
 
   return sku;
 }
@@ -165,10 +225,10 @@ export async function getStandardAppAccess(
 ): Promise<{ hostname: string; masterKey: string }> {
   const cacheKey = getCacheKey(subscriptionId, resourceGroupName, logicAppName);
 
-  // Check cache first
+  // Check cache first (LRUCache handles TTL internally)
   const cached = accessCache.get(cacheKey);
-  if (cached && cached.expiresAt > Date.now()) {
-    return cached.value;
+  if (cached) {
+    return cached;
   }
 
   // Fetch from API (in parallel for better performance)
@@ -189,10 +249,7 @@ export async function getStandardAppAccess(
   };
 
   // Cache the result
-  accessCache.set(cacheKey, {
-    value: result,
-    expiresAt: Date.now() + cacheTtlMs,
-  });
+  accessCache.set(cacheKey, result, cacheTtlMs);
 
   return result;
 }
