@@ -102,11 +102,12 @@ async function getExpressionTracesStandard(
     logicAppName
   );
 
-  // Standard uses workflow management API
+  // Standard uses workflow management API - listExpressionTraces is a POST endpoint
   const response = await workflowMgmtRequest<{ inputs?: ExpressionTraceEntry[] }>(
     hostname,
     `/runtime/webhooks/workflow/api/management/workflows/${workflowName}/runs/${runId}/actions/${actionName}/listExpressionTraces?api-version=2020-05-01-preview`,
-    masterKey
+    masterKey,
+    { method: "POST" }
   );
 
   const traces = response.inputs ?? [];
