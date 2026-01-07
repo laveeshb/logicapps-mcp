@@ -17,6 +17,8 @@ export {
   getWorkflowTriggers,
   listWorkflowVersions,
   getWorkflowVersion,
+  cloneWorkflow,
+  validateCloneWorkflow,
 } from "./workflows.js";
 export type {
   ListWorkflowsResult,
@@ -24,6 +26,8 @@ export type {
   GetWorkflowTriggersResult,
   ListWorkflowVersionsResult,
   GetWorkflowVersionResult,
+  CloneWorkflowResult,
+  ValidateCloneWorkflowResult,
 } from "./workflows.js";
 
 export { listRunHistory, getRunDetails, getRunActions, getActionIO, searchRuns } from "./runs.js";

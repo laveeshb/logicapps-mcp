@@ -1,6 +1,6 @@
 # Available Tools
 
-This MCP server provides 37 tools for managing Azure Logic Apps.
+This MCP server provides 39 tools for managing Azure Logic Apps.
 
 ## Discovery & Navigation
 
@@ -63,6 +63,8 @@ This MCP server provides 37 tools for managing Azure Logic Apps.
 | `create_workflow` | Create a new workflow (Consumption: new Logic App; Standard: new workflow) |
 | `update_workflow` | Update an existing workflow's definition |
 | `delete_workflow` | Delete a workflow (use with caution) |
+| `clone_workflow` | Clone a Consumption Logic App to a Standard Logic App workflow |
+| `validate_clone_workflow` | Validate a Consumption Logic App can be cloned to Standard |
 
 ## Host & Diagnostics (Standard SKU)
 

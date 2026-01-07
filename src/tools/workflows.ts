@@ -743,3 +743,132 @@ export async function deleteWorkflow(
     message: `Workflow '${workflowName}' has been deleted from '${logicAppName}'.`,
   };
 }
+
+export interface CloneWorkflowResult {
+  success: boolean;
+  sourceWorkflow: string;
+  targetWorkflow: string;
+  targetLogicApp: string;
+  message: string;
+}
+
+/**
+ * Request body for the clone API.
+ */
+interface CloneRequestBody {
+  target: {
+    resourceGroup: { id: string };
+    app: { id: string };
+    workflowName: string;
+    kind: "Stateful" | "Stateless";
+  };
+}
+
+/**
+ * Clone a Consumption Logic App workflow to a Standard Logic App.
+ * Uses the official Logic Apps clone API.
+ */
+export async function cloneWorkflow(
+  subscriptionId: string,
+  resourceGroupName: string,
+  logicAppName: string,
+  targetResourceGroupName: string,
+  targetLogicAppName: string,
+  targetWorkflowName: string,
+  targetSubscriptionId?: string,
+  targetKind?: string
+): Promise<CloneWorkflowResult> {
+  // Use source subscription if target not specified
+  const effectiveTargetSubscriptionId = targetSubscriptionId || subscriptionId;
+
+  // Build the clone request body
+  const cloneRequest: CloneRequestBody = {
+    target: {
+      resourceGroup: {
+        id: `/subscriptions/${effectiveTargetSubscriptionId}/resourceGroups/${targetResourceGroupName}`,
+      },
+      app: {
+        id: `/subscriptions/${effectiveTargetSubscriptionId}/resourceGroups/${targetResourceGroupName}/providers/Microsoft.Web/sites/${targetLogicAppName}`,
+      },
+      workflowName: targetWorkflowName,
+      kind: (targetKind as "Stateful" | "Stateless") ?? "Stateful",
+    },
+  };
+
+  // Call the official clone API
+  await armRequestVoid(
+    `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}/clone`,
+    {
+      method: "POST",
+      queryParams: { "api-version": "2019-05-01" },
+      body: cloneRequest,
+    }
+  );
+
+  return {
+    success: true,
+    sourceWorkflow: logicAppName,
+    targetWorkflow: targetWorkflowName,
+    targetLogicApp: targetLogicAppName,
+    message: `Successfully cloned Consumption workflow '${logicAppName}' to Standard workflow '${targetWorkflowName}' in '${targetLogicAppName}'. Note: Connections may need to be reconfigured in the target Logic App.`,
+  };
+}
+
+export interface ValidateCloneWorkflowResult {
+  isValid: boolean;
+  sourceWorkflow: string;
+  targetWorkflow: string;
+  targetLogicApp: string;
+  message: string;
+}
+
+/**
+ * Validate if a Consumption Logic App workflow can be cloned to a Standard Logic App.
+ * Uses the official Logic Apps validateClone API.
+ */
+export async function validateCloneWorkflow(
+  subscriptionId: string,
+  resourceGroupName: string,
+  logicAppName: string,
+  targetResourceGroupName: string,
+  targetLogicAppName: string,
+  targetWorkflowName: string,
+  targetSubscriptionId?: string,
+  targetKind?: string
+): Promise<ValidateCloneWorkflowResult> {
+  // Use source subscription if target not specified
+  const effectiveTargetSubscriptionId = targetSubscriptionId || subscriptionId;
+
+  // Build the clone request body (same format as clone API)
+  const cloneRequest: CloneRequestBody = {
+    target: {
+      resourceGroup: {
+        id: `/subscriptions/${effectiveTargetSubscriptionId}/resourceGroups/${targetResourceGroupName}`,
+      },
+      app: {
+        id: `/subscriptions/${effectiveTargetSubscriptionId}/resourceGroups/${targetResourceGroupName}/providers/Microsoft.Web/sites/${targetLogicAppName}`,
+      },
+      workflowName: targetWorkflowName,
+      kind: (targetKind as "Stateful" | "Stateless") ?? "Stateful",
+    },
+  };
+
+  // Call the official validateClone API
+  await armRequestVoid(
+    `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}/validateClone`,
+    {
+      method: "POST",
+      queryParams: { "api-version": "2019-05-01" },
+      body: cloneRequest,
+    }
+  );
+
+  // If we get here without an error, validation passed
+  return {
+    isValid: true,
+    sourceWorkflow: logicAppName,
+    targetWorkflow: targetWorkflowName,
+    targetLogicApp: targetLogicAppName,
+    message: `Validation passed. Workflow '${logicAppName}' can be cloned to '${targetWorkflowName}' in '${targetLogicAppName}'.`,
+  };
+}

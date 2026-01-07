@@ -11,6 +11,7 @@ Step-by-step instructions for handling common user requests. These guide you thr
 | "Show me what's running" | [monitor-workflows.md](monitor-workflows.md) |
 | "Create a workflow that..." | [create-workflow.md](create-workflow.md) |
 | "Fix this workflow" | [fix-workflow.md](fix-workflow.md) |
+| "Clone to Standard" | [../operations/clone.md](../operations/clone.md) |
 
 ## When to Use These
 

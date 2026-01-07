@@ -17,6 +17,8 @@ import {
   createWorkflow,
   updateWorkflow,
   deleteWorkflow,
+  cloneWorkflow,
+  validateCloneWorkflow,
 } from "./workflows.js";
 import { getTriggerHistory, getTriggerCallbackUrl, runTrigger } from "./triggers.js";
 import {
@@ -348,6 +350,30 @@ export async function handleToolCall(
           args.resourceGroupName as string,
           args.logicAppName as string,
           args.workflowName as string | undefined
+        );
+        break;
+      case "clone_workflow":
+        result = await cloneWorkflow(
+          args.subscriptionId as string,
+          args.resourceGroupName as string,
+          args.logicAppName as string,
+          args.targetResourceGroupName as string,
+          args.targetLogicAppName as string,
+          args.targetWorkflowName as string,
+          args.targetSubscriptionId as string | undefined,
+          args.targetKind as string | undefined
+        );
+        break;
+      case "validate_clone_workflow":
+        result = await validateCloneWorkflow(
+          args.subscriptionId as string,
+          args.resourceGroupName as string,
+          args.logicAppName as string,
+          args.targetResourceGroupName as string,
+          args.targetLogicAppName as string,
+          args.targetWorkflowName as string,
+          args.targetSubscriptionId as string | undefined,
+          args.targetKind as string | undefined
         );
         break;
       // Knowledge tools
