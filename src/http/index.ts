@@ -13,6 +13,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { registerToolsAndPrompts } from "../server.js";
 import { loadSettings } from "../config/index.js";
 import { setSettings, initializeAuth } from "../auth/index.js";
+import { VERSION } from "../version.js";
 
 let initialized = false;
 
@@ -34,7 +35,7 @@ async function ensureInitialized(): Promise<void> {
  */
 function createMcpServer(): McpServer {
   const mcpServer = new McpServer(
-    { name: "logicapps-mcp", version: "0.2.0" },
+    { name: "logicapps-mcp", version: VERSION },
     { capabilities: { tools: {}, prompts: {} } }
   );
   registerToolsAndPrompts(mcpServer);
@@ -102,7 +103,7 @@ export function createMcpApp(): express.Application {
 
   // Health check endpoint
   app.get("/health", (_req, res) => {
-    res.json({ status: "ok", version: "0.2.0" });
+    res.json({ status: "ok", version: VERSION });
   });
 
   // MCP endpoints

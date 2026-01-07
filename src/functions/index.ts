@@ -23,6 +23,7 @@ import {
   setPassthroughToken,
   clearPassthroughToken,
 } from "../auth/index.js";
+import { VERSION } from "../version.js";
 
 let initialized = false;
 
@@ -43,7 +44,7 @@ async function ensureInitialized(): Promise<void> {
  */
 function createMcpServer(): McpServer {
   const mcpServer = new McpServer(
-    { name: "logicapps-mcp", version: "0.2.0" },
+    { name: "logicapps-mcp", version: VERSION },
     { capabilities: { tools: {}, prompts: {} } }
   );
   registerToolsAndPrompts(mcpServer);
@@ -207,6 +208,6 @@ app.http("health", {
   route: "health",
   handler: async () => ({
     status: 200,
-    jsonBody: { status: "ok", version: "0.2.0" },
+    jsonBody: { status: "ok", version: VERSION },
   }),
 });
