@@ -89,6 +89,10 @@ class LRUCache<T> {
 const skuCache = new LRUCache<"consumption" | "standard">();
 const accessCache = new LRUCache<{ hostname: string; masterKey: string }>();
 
+// In-flight promises for cache stampede protection
+const skuInFlight = new Map<string, Promise<"consumption" | "standard">>();
+const accessInFlight = new Map<string, Promise<{ hostname: string; masterKey: string }>>();
+
 // Default TTL: 5 minutes (matches LOGICAPPS_MCP_CACHE_TTL default)
 let cacheTtlMs = 5 * 60 * 1000;
 
@@ -145,6 +149,7 @@ export function extractResourceGroup(resourceId: string): string {
 /**
  * Detect if Logic App is Consumption or Standard SKU.
  * Results are cached to reduce API calls.
+ * Uses in-flight tracking to prevent cache stampede.
  */
 export async function detectLogicAppSku(
   subscriptionId: string,
@@ -159,13 +164,26 @@ export async function detectLogicAppSku(
     return cached;
   }
 
-  // Detect SKU from API
-  const sku = await detectSkuFromApi(subscriptionId, resourceGroupName, logicAppName);
+  // Check if there's already an in-flight request for this key
+  const inFlight = skuInFlight.get(cacheKey);
+  if (inFlight) {
+    return inFlight;
+  }
 
-  // Cache the result
-  skuCache.set(cacheKey, sku, cacheTtlMs);
+  // Create promise and track it to prevent concurrent duplicate requests
+  const promise = detectSkuFromApi(subscriptionId, resourceGroupName, logicAppName)
+    .then((sku) => {
+      // Cache the result
+      skuCache.set(cacheKey, sku, cacheTtlMs);
+      return sku;
+    })
+    .finally(() => {
+      // Clean up in-flight tracking
+      skuInFlight.delete(cacheKey);
+    });
 
-  return sku;
+  skuInFlight.set(cacheKey, promise);
+  return promise;
 }
 
 /**
@@ -217,6 +235,7 @@ async function detectSkuFromApi(
 /**
  * Get Standard Logic App hostname and master key for Workflow Management API.
  * Results are cached to reduce API calls.
+ * Uses in-flight tracking to prevent cache stampede.
  */
 export async function getStandardAppAccess(
   subscriptionId: string,
@@ -231,6 +250,40 @@ export async function getStandardAppAccess(
     return cached;
   }
 
+  // Check if there's already an in-flight request for this key
+  const inFlight = accessInFlight.get(cacheKey);
+  if (inFlight) {
+    return inFlight;
+  }
+
+  // Create promise and track it to prevent concurrent duplicate requests
+  const promise = fetchStandardAppAccessFromApi(
+    subscriptionId,
+    resourceGroupName,
+    logicAppName
+  )
+    .then((result) => {
+      // Cache the result
+      accessCache.set(cacheKey, result, cacheTtlMs);
+      return result;
+    })
+    .finally(() => {
+      // Clean up in-flight tracking
+      accessInFlight.delete(cacheKey);
+    });
+
+  accessInFlight.set(cacheKey, promise);
+  return promise;
+}
+
+/**
+ * Internal: Fetch Standard Logic App access from API.
+ */
+async function fetchStandardAppAccessFromApi(
+  subscriptionId: string,
+  resourceGroupName: string,
+  logicAppName: string
+): Promise<{ hostname: string; masterKey: string }> {
   // Fetch from API (in parallel for better performance)
   const [site, keys] = await Promise.all([
     armRequest<{ properties: { defaultHostName: string } }>(
@@ -243,15 +296,10 @@ export async function getStandardAppAccess(
     ),
   ]);
 
-  const result = {
+  return {
     hostname: site.properties.defaultHostName,
     masterKey: keys.masterKey,
   };
-
-  // Cache the result
-  accessCache.set(cacheKey, result, cacheTtlMs);
-
-  return result;
 }
 
 /**
