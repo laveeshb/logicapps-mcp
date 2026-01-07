@@ -466,9 +466,14 @@ export async function createWorkflow(
   let sku: "consumption" | "standard" = "consumption";
   try {
     sku = await detectLogicAppSku(subscriptionId, resourceGroupName, logicAppName);
-  } catch {
-    // If detection fails, assume Consumption (creating new Logic App)
-    sku = "consumption";
+  } catch (error) {
+    // Only assume Consumption for ResourceNotFound (creating new Logic App)
+    // Propagate auth errors, network failures, rate limits, etc.
+    if (error instanceof McpError && error.code === "ResourceNotFound") {
+      sku = "consumption";
+    } else {
+      throw error;
+    }
   }
 
   if (sku === "consumption" || !workflowName) {
