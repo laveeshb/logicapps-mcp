@@ -53,41 +53,34 @@ describe("Clone Workflow Integration Tests", () => {
       expect(result.sourceWorkflow).toBe(TEST_CONFIG.consumptionLogicApp);
       expect(result.targetWorkflow).toBe("cloned-test-workflow");
       expect(result.targetLogicApp).toBe(TEST_CONFIG.standardLogicApp);
-      expect(result.errors).toHaveLength(0);
     });
 
     it("should fail validation when source is Standard", async () => {
-      const result = await validateCloneWorkflow(
-        TEST_CONFIG.subscriptionId,
-        TEST_CONFIG.resourceGroup,
-        TEST_CONFIG.standardLogicApp, // Standard as source
-        TEST_CONFIG.resourceGroup,
-        TEST_CONFIG.standardLogicApp,
-        "cloned-test-workflow"
-      );
-
-      console.log("Validation result:", JSON.stringify(result, null, 2));
-
-      expect(result.isValid).toBe(false);
-      expect(result.errors.length).toBeGreaterThan(0);
-      expect(result.errors.some((e) => e.includes("Consumption"))).toBe(true);
+      // Official API throws an error for invalid clone requests
+      await expect(
+        validateCloneWorkflow(
+          TEST_CONFIG.subscriptionId,
+          TEST_CONFIG.resourceGroup,
+          TEST_CONFIG.standardLogicApp, // Standard as source - not a Consumption Logic App
+          TEST_CONFIG.resourceGroup,
+          TEST_CONFIG.standardLogicApp,
+          "cloned-test-workflow"
+        )
+      ).rejects.toThrow();
     });
 
     it("should fail validation when target is Consumption", async () => {
-      const result = await validateCloneWorkflow(
-        TEST_CONFIG.subscriptionId,
-        TEST_CONFIG.resourceGroup,
-        TEST_CONFIG.consumptionLogicApp,
-        TEST_CONFIG.resourceGroup,
-        TEST_CONFIG.consumptionLogicApp, // Consumption as target
-        "cloned-test-workflow"
-      );
-
-      console.log("Validation result:", JSON.stringify(result, null, 2));
-
-      expect(result.isValid).toBe(false);
-      expect(result.errors.length).toBeGreaterThan(0);
-      expect(result.errors.some((e) => e.includes("Standard"))).toBe(true);
+      // Official API throws an error for invalid clone requests
+      await expect(
+        validateCloneWorkflow(
+          TEST_CONFIG.subscriptionId,
+          TEST_CONFIG.resourceGroup,
+          TEST_CONFIG.consumptionLogicApp,
+          TEST_CONFIG.resourceGroup,
+          TEST_CONFIG.consumptionLogicApp, // Consumption as target - not a Standard Logic App
+          "cloned-test-workflow"
+        )
+      ).rejects.toThrow();
     });
   });
 
@@ -120,19 +113,22 @@ describe("Clone Workflow Integration Tests", () => {
     });
 
     it("should reject cloning from Standard Logic App", async () => {
+      // Standard Logic Apps are Microsoft.Web/sites, not Microsoft.Logic/workflows
+      // So the clone API returns "not found" since it only works on Consumption
       await expect(
         cloneWorkflow(
           TEST_CONFIG.subscriptionId,
           TEST_CONFIG.resourceGroup,
-          TEST_CONFIG.standardLogicApp, // Standard as source
+          TEST_CONFIG.standardLogicApp, // Standard as source - not a valid clone source
           TEST_CONFIG.resourceGroup,
           TEST_CONFIG.standardLogicApp,
           "should-not-create"
         )
-      ).rejects.toThrow("Consumption");
+      ).rejects.toThrow(); // API returns "not found" for Standard Logic Apps
     });
 
     it("should reject cloning to Consumption Logic App", async () => {
+      // Consumption Logic Apps can't be clone targets - API validates this
       await expect(
         cloneWorkflow(
           TEST_CONFIG.subscriptionId,
@@ -142,7 +138,7 @@ describe("Clone Workflow Integration Tests", () => {
           TEST_CONFIG.consumptionLogicApp, // Consumption as target
           "should-not-create"
         )
-      ).rejects.toThrow("Standard");
+      ).rejects.toThrow(); // API returns error for invalid target
     });
   });
 });

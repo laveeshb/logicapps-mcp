@@ -753,9 +753,20 @@ export interface CloneWorkflowResult {
 }
 
 /**
+ * Request body for the clone API.
+ */
+interface CloneRequestBody {
+  target: {
+    resourceGroup: { id: string };
+    app: { id: string };
+    workflowName: string;
+    kind: "Stateful" | "Stateless";
+  };
+}
+
+/**
  * Clone a Consumption Logic App workflow to a Standard Logic App.
- * This copies the workflow definition from a Consumption Logic App to a new workflow
- * in an existing Standard Logic App.
+ * Uses the official Logic Apps clone API.
  */
 export async function cloneWorkflow(
   subscriptionId: string,
@@ -767,66 +778,30 @@ export async function cloneWorkflow(
   targetSubscriptionId?: string,
   targetKind?: string
 ): Promise<CloneWorkflowResult> {
-  // Validate source is Consumption
-  const sourceSku = await detectLogicAppSku(subscriptionId, resourceGroupName, logicAppName);
-  if (sourceSku !== "consumption") {
-    throw new McpError(
-      "InvalidParameter",
-      "Clone is only supported from Consumption Logic Apps to Standard Logic Apps. The source must be a Consumption Logic App."
-    );
-  }
-
   // Use source subscription if target not specified
   const effectiveTargetSubscriptionId = targetSubscriptionId || subscriptionId;
 
-  // Validate target is Standard
-  const targetSku = await detectLogicAppSku(
-    effectiveTargetSubscriptionId,
-    targetResourceGroupName,
-    targetLogicAppName
-  );
-  if (targetSku !== "standard") {
-    throw new McpError(
-      "InvalidParameter",
-      "Clone target must be a Standard Logic App. The target Logic App must already exist."
-    );
-  }
-
-  // Get the source workflow definition
-  const sourceWorkflow = await armRequest<ConsumptionLogicApp>(
-    `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}`,
-    { queryParams: { "api-version": "2019-05-01" } }
-  );
-
-  const sourceDefinition = sourceWorkflow.properties.definition;
-  if (!sourceDefinition) {
-    throw new McpError(
-      "WorkflowNotFound",
-      `Source workflow '${logicAppName}' does not have a definition.`
-    );
-  }
-
-  // Get access to target Standard Logic App
-  const { hostname, masterKey } = await getStandardAppAccess(
-    effectiveTargetSubscriptionId,
-    targetResourceGroupName,
-    targetLogicAppName
-  );
-
-  // Create the workflow in the target Standard Logic App
-  const workflowContent: StandardWorkflowDefinitionFile = {
-    definition: sourceDefinition,
-    kind: (targetKind as "Stateful" | "Stateless") ?? "Stateful",
+  // Build the clone request body
+  const cloneRequest: CloneRequestBody = {
+    target: {
+      resourceGroup: {
+        id: `/subscriptions/${effectiveTargetSubscriptionId}/resourceGroups/${targetResourceGroupName}`,
+      },
+      app: {
+        id: `/subscriptions/${effectiveTargetSubscriptionId}/resourceGroups/${targetResourceGroupName}/providers/Microsoft.Web/sites/${targetLogicAppName}`,
+      },
+      workflowName: targetWorkflowName,
+      kind: (targetKind as "Stateful" | "Stateless") ?? "Stateful",
+    },
   };
 
-  // Use VFS API to create the workflow.json file
-  await vfsRequest(
-    hostname,
-    `/admin/vfs/site/wwwroot/${targetWorkflowName}/workflow.json`,
-    masterKey,
+  // Call the official clone API
+  await armRequestVoid(
+    `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}/clone`,
     {
-      method: "PUT",
-      body: workflowContent,
+      method: "POST",
+      queryParams: { "api-version": "2019-05-01" },
+      body: cloneRequest,
     }
   );
 
@@ -844,14 +819,12 @@ export interface ValidateCloneWorkflowResult {
   sourceWorkflow: string;
   targetWorkflow: string;
   targetLogicApp: string;
-  warnings: string[];
-  errors: string[];
   message: string;
 }
 
 /**
  * Validate if a Consumption Logic App workflow can be cloned to a Standard Logic App.
- * This performs validation without actually performing the clone.
+ * Uses the official Logic Apps validateClone API.
  */
 export async function validateCloneWorkflow(
   subscriptionId: string,
@@ -863,94 +836,39 @@ export async function validateCloneWorkflow(
   targetSubscriptionId?: string,
   targetKind?: string
 ): Promise<ValidateCloneWorkflowResult> {
-  const warnings: string[] = [];
-  const errors: string[] = [];
-
-  // Validate source is Consumption
-  const sourceSku = await detectLogicAppSku(subscriptionId, resourceGroupName, logicAppName);
-  if (sourceSku !== "consumption") {
-    errors.push(
-      "Clone is only supported from Consumption Logic Apps to Standard Logic Apps. The source must be a Consumption Logic App."
-    );
-  }
-
   // Use source subscription if target not specified
   const effectiveTargetSubscriptionId = targetSubscriptionId || subscriptionId;
 
-  // Validate target is Standard
-  try {
-    const targetSku = await detectLogicAppSku(
-      effectiveTargetSubscriptionId,
-      targetResourceGroupName,
-      targetLogicAppName
-    );
-    if (targetSku !== "standard") {
-      errors.push(
-        "Clone target must be a Standard Logic App. The target Logic App must already exist."
-      );
+  // Build the clone request body (same format as clone API)
+  const cloneRequest: CloneRequestBody = {
+    target: {
+      resourceGroup: {
+        id: `/subscriptions/${effectiveTargetSubscriptionId}/resourceGroups/${targetResourceGroupName}`,
+      },
+      app: {
+        id: `/subscriptions/${effectiveTargetSubscriptionId}/resourceGroups/${targetResourceGroupName}/providers/Microsoft.Web/sites/${targetLogicAppName}`,
+      },
+      workflowName: targetWorkflowName,
+      kind: (targetKind as "Stateful" | "Stateless") ?? "Stateful",
+    },
+  };
+
+  // Call the official validateClone API
+  await armRequestVoid(
+    `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}/validateClone`,
+    {
+      method: "POST",
+      queryParams: { "api-version": "2019-05-01" },
+      body: cloneRequest,
     }
-  } catch {
-    errors.push(
-      `Target Logic App '${targetLogicAppName}' not found in resource group '${targetResourceGroupName}'.`
-    );
-  }
+  );
 
-  // Get the source workflow definition for validation
-  let sourceDefinition: WorkflowDefinition | undefined;
-  try {
-    const sourceWorkflow = await armRequest<ConsumptionLogicApp>(
-      `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}`,
-      { queryParams: { "api-version": "2019-05-01" } }
-    );
-    sourceDefinition = sourceWorkflow.properties.definition;
-
-    if (!sourceDefinition) {
-      errors.push(`Source workflow '${logicAppName}' does not have a definition.`);
-    }
-  } catch {
-    errors.push(`Source workflow '${logicAppName}' not found or inaccessible.`);
-  }
-
-  // Check for potential issues in the workflow definition
-  if (sourceDefinition) {
-    // Check for Integration Account usage
-    if (sourceDefinition.$schema?.includes("integrationAccount")) {
-      warnings.push(
-        "Workflow uses Integration Account features. These may need to be reconfigured in the target Standard Logic App."
-      );
-    }
-
-    // Check actions for potential compatibility issues
-    const actions = sourceDefinition.actions || {};
-    for (const [actionName, action] of Object.entries(actions)) {
-      const actionType = (action as { type?: string }).type?.toLowerCase();
-
-      // Check for ISE-specific connectors
-      if (actionType === "apiconnection") {
-        warnings.push(
-          `Action '${actionName}' uses an API connection. Connections will need to be reconfigured in the target Standard Logic App.`
-        );
-        break; // Only warn once about connections
-      }
-    }
-
-    // Validate target kind
-    if (targetKind && !["Stateful", "Stateless"].includes(targetKind)) {
-      errors.push(`Invalid target kind '${targetKind}'. Must be 'Stateful' or 'Stateless'.`);
-    }
-  }
-
-  const isValid = errors.length === 0;
-
+  // If we get here without an error, validation passed
   return {
-    isValid,
+    isValid: true,
     sourceWorkflow: logicAppName,
     targetWorkflow: targetWorkflowName,
     targetLogicApp: targetLogicAppName,
-    warnings,
-    errors,
-    message: isValid
-      ? `Validation passed. Workflow '${logicAppName}' can be cloned to '${targetWorkflowName}' in '${targetLogicAppName}'.${warnings.length > 0 ? " Review warnings before proceeding." : ""}`
-      : `Validation failed with ${errors.length} error(s). Please address the errors before cloning.`,
+    message: `Validation passed. Workflow '${logicAppName}' can be cloned to '${targetWorkflowName}' in '${targetLogicAppName}'.`,
   };
 }
