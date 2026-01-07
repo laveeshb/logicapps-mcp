@@ -2,7 +2,7 @@
  * Action request history tools for debugging HTTP connector calls.
  */
 
-import { armRequest, armRequestAllPages, workflowMgmtRequest } from "../utils/http.js";
+import { armRequest, armRequestAllPages, workflowMgmtRequest, workflowMgmtRequestAllPages } from "../utils/http.js";
 import { McpError } from "../utils/errors.js";
 import { detectLogicAppSku, getStandardAppAccess } from "./shared.js";
 
@@ -161,11 +161,12 @@ async function getRequestHistoryStandard(
     };
   }
 
-  const response = await workflowMgmtRequest<{
-    value?: RequestHistoryEntry[];
-  }>(hostname, `${basePath}?api-version=2020-05-01-preview`, masterKey);
-
-  const entries = response.value ?? [];
+  // Use paginated request to handle actions with many retries
+  const entries = await workflowMgmtRequestAllPages<RequestHistoryEntry>(
+    hostname,
+    `${basePath}?api-version=2020-05-01-preview`,
+    masterKey
+  );
 
   return {
     actionName,
