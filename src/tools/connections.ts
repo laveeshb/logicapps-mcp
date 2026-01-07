@@ -2,7 +2,7 @@
  * API Connection operations.
  */
 
-import { armRequest, armRequestAllPages } from "../utils/http.js";
+import { armRequest, armRequestAllPages, fetchWithRetry } from "../utils/http.js";
 import { ApiConnection } from "../types/logicApp.js";
 import { getAccessToken } from "../auth/tokenManager.js";
 import { getCloudEndpoints } from "../config/clouds.js";
@@ -156,7 +156,7 @@ export async function testConnection(
     try {
       // The testLink requestUri is a relative path
       const url = `${cloud.resourceManager}${testLink.requestUri}`;
-      const response = await fetch(url, {
+      const response = await fetchWithRetry(url, {
         method: testLink.method,
         headers: {
           Authorization: `Bearer ${token}`,

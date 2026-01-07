@@ -53,7 +53,7 @@ async function getSwaggerConsumption(
 ): Promise<GetWorkflowSwaggerResult> {
   const swagger = await armRequest<Record<string, unknown>>(
     `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}/listSwagger`,
-    { method: "POST", queryParams: { "api-version": "2019-05-01" } }
+    { method: "POST", queryParams: { "api-version": "2019-05-01" }, body: {} }
   );
 
   return {
