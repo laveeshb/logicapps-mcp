@@ -5,7 +5,6 @@
 import {
   armRequest,
   armRequestVoid,
-  armRequestAllPages,
   workflowMgmtRequest,
 } from "../utils/http.js";
 import { McpError } from "../utils/errors.js";
@@ -111,14 +110,17 @@ async function getTriggerHistoryConsumption(
     queryParams["$filter"] = filter;
   }
 
-  const histories = await armRequestAllPages<TriggerHistoryEntry>(
+  // Use armRequest (not armRequestAllPages) to respect $top and avoid fetching all pages
+  const response = await armRequest<{ value: TriggerHistoryEntry[] }>(
     `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}/triggers/${triggerName}/histories`,
-    queryParams
+    { queryParams }
   );
+
+  const histories = response.value ?? [];
 
   return {
     triggerName,
-    histories: histories.slice(0, top).map((h) => ({
+    histories: histories.map((h) => ({
       name: h.name,
       status: h.properties.status,
       startTime: h.properties.startTime,
