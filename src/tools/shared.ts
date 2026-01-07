@@ -207,13 +207,15 @@ export function getConsumptionRunPortalUrl(
   runId: string,
   location: string
 ): string {
+  // Normalize location to lowercase with no spaces (e.g., "West US 2" -> "westus2")
+  const normalizedLocation = location.toLowerCase().replace(/\s+/g, "");
   const workflowId = encodeURIComponent(
     `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}`
   );
   const fullRunId = encodeURIComponent(
     `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}/runs/${runId}`
   );
-  return `https://portal.azure.com/#view/Microsoft_Azure_EMA/DesignerEditorConsumption.ReactView/id/${workflowId}/location/${location}/isReadOnly~/true/isMonitoringView~/true/runId/${fullRunId}`;
+  return `https://portal.azure.com/#view/Microsoft_Azure_EMA/DesignerEditorConsumption.ReactView/id/${workflowId}/location/${normalizedLocation}/isReadOnly~/true/isMonitoringView~/true/runId/${fullRunId}`;
 }
 
 /**
