@@ -46,7 +46,7 @@ function sleep(ms: number): Promise<void> {
 /**
  * Fetch with retry logic, exponential backoff, and timeout.
  */
-async function fetchWithRetry(url: string, options: RequestInit): Promise<Response> {
+export async function fetchWithRetry(url: string, options: RequestInit): Promise<Response> {
   let lastError: Error | undefined;
 
   for (let attempt = 0; attempt <= retryConfig.maxRetries; attempt++) {

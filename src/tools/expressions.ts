@@ -107,7 +107,7 @@ async function getExpressionTracesStandard(
     hostname,
     `/runtime/webhooks/workflow/api/management/workflows/${workflowName}/runs/${runId}/actions/${actionName}/listExpressionTraces?api-version=2020-05-01-preview`,
     masterKey,
-    { method: "POST" }
+    { method: "POST", body: {} }
   );
 
   const traces = response.inputs ?? [];
