@@ -2,17 +2,13 @@ import { describe, it, expect } from "vitest";
 import { TOOL_DEFINITIONS } from "./definitions.js";
 
 describe("tool definitions", () => {
-  it("should have all 39 tools defined", () => {
+  it("should have all 39 tools with unique names and required schema properties", () => {
     expect(TOOL_DEFINITIONS).toHaveLength(39);
-  });
-
-  it("should have unique tool names", () => {
+    
     const names = TOOL_DEFINITIONS.map((t) => t.name);
     const uniqueNames = new Set(names);
     expect(uniqueNames.size).toBe(names.length);
-  });
-
-  it("should have required tool schema properties", () => {
+    
     for (const tool of TOOL_DEFINITIONS) {
       expect(tool.name).toBeDefined();
       expect(tool.description).toBeDefined();
@@ -22,378 +18,56 @@ describe("tool definitions", () => {
     }
   });
 
-  describe("list_subscriptions", () => {
-    const tool = TOOL_DEFINITIONS.find((t) => t.name === "list_subscriptions");
-
-    it("should be defined", () => {
-      expect(tool).toBeDefined();
-    });
-
-    it("should have no required parameters", () => {
-      expect(tool?.inputSchema.required).toEqual([]);
-    });
-  });
-
-  describe("list_logic_apps", () => {
-    const tool = TOOL_DEFINITIONS.find((t) => t.name === "list_logic_apps");
-
-    it("should be defined", () => {
-      expect(tool).toBeDefined();
-    });
-
-    it("should require subscriptionId", () => {
-      expect(tool?.inputSchema.required).toContain("subscriptionId");
-    });
-
-    it("should have sku enum property", () => {
-      const skuProp = tool?.inputSchema.properties?.sku as {
-        enum?: string[];
-      };
-      expect(skuProp?.enum).toEqual(["consumption", "standard", "all"]);
-    });
-  });
-
-  describe("list_workflows", () => {
-    const tool = TOOL_DEFINITIONS.find((t) => t.name === "list_workflows");
-
-    it("should require subscriptionId, resourceGroupName, and logicAppName", () => {
-      expect(tool?.inputSchema.required).toContain("subscriptionId");
-      expect(tool?.inputSchema.required).toContain("resourceGroupName");
-      expect(tool?.inputSchema.required).toContain("logicAppName");
-    });
-  });
-
-  describe("get_workflow_definition", () => {
-    const tool = TOOL_DEFINITIONS.find((t) => t.name === "get_workflow_definition");
-
-    it("should have optional workflowName parameter", () => {
-      expect(tool?.inputSchema.properties?.workflowName).toBeDefined();
-      expect(tool?.inputSchema.required).not.toContain("workflowName");
-    });
-  });
-
-  describe("list_run_history", () => {
-    const tool = TOOL_DEFINITIONS.find((t) => t.name === "list_run_history");
-
-    it("should have top and filter parameters", () => {
-      expect(tool?.inputSchema.properties?.top).toBeDefined();
-      expect(tool?.inputSchema.properties?.filter).toBeDefined();
-    });
-  });
-
-  describe("get_run_details", () => {
-    const tool = TOOL_DEFINITIONS.find((t) => t.name === "get_run_details");
-
-    it("should require runId", () => {
-      expect(tool?.inputSchema.required).toContain("runId");
-    });
-  });
-
-  describe("get_run_actions", () => {
-    const tool = TOOL_DEFINITIONS.find((t) => t.name === "get_run_actions");
-
-    it("should have optional actionName parameter", () => {
-      expect(tool?.inputSchema.properties?.actionName).toBeDefined();
-      expect(tool?.inputSchema.required).not.toContain("actionName");
-    });
-  });
-
-  describe("get_connections", () => {
-    const tool = TOOL_DEFINITIONS.find((t) => t.name === "get_connections");
-
-    it("should require subscriptionId and resourceGroupName", () => {
-      expect(tool?.inputSchema.required).toContain("subscriptionId");
-      expect(tool?.inputSchema.required).toContain("resourceGroupName");
-    });
-  });
-
-  describe("get_action_io", () => {
-    const tool = TOOL_DEFINITIONS.find((t) => t.name === "get_action_io");
-
-    it("should be defined", () => {
-      expect(tool).toBeDefined();
-    });
-
-    it("should require subscriptionId, resourceGroupName, logicAppName, runId, and actionName", () => {
-      expect(tool?.inputSchema.required).toContain("subscriptionId");
-      expect(tool?.inputSchema.required).toContain("resourceGroupName");
-      expect(tool?.inputSchema.required).toContain("logicAppName");
-      expect(tool?.inputSchema.required).toContain("runId");
-      expect(tool?.inputSchema.required).toContain("actionName");
-    });
-
-    it("should have optional type parameter with enum", () => {
-      expect(tool?.inputSchema.properties?.type).toBeDefined();
-      const typeProperty = tool?.inputSchema.properties?.type as { enum?: string[] };
-      expect(typeProperty?.enum).toEqual(["inputs", "outputs", "both"]);
-    });
-  });
-
-  describe("search_runs", () => {
-    const tool = TOOL_DEFINITIONS.find((t) => t.name === "search_runs");
-
-    it("should be defined", () => {
-      expect(tool).toBeDefined();
-    });
-
-    it("should require subscriptionId, resourceGroupName, and logicAppName", () => {
-      expect(tool?.inputSchema.required).toContain("subscriptionId");
-      expect(tool?.inputSchema.required).toContain("resourceGroupName");
-      expect(tool?.inputSchema.required).toContain("logicAppName");
-    });
-
-    it("should have optional status parameter with enum", () => {
-      const statusProperty = tool?.inputSchema.properties?.status as { enum?: string[] };
-      expect(statusProperty?.enum).toEqual(["Succeeded", "Failed", "Cancelled", "Running"]);
-    });
-
-    it("should have optional time range parameters", () => {
-      expect(tool?.inputSchema.properties?.startTime).toBeDefined();
-      expect(tool?.inputSchema.properties?.endTime).toBeDefined();
-    });
-  });
-
-  describe("get_workflow_version", () => {
-    const tool = TOOL_DEFINITIONS.find((t) => t.name === "get_workflow_version");
-
-    it("should be defined", () => {
-      expect(tool).toBeDefined();
-    });
-
-    it("should require versionId", () => {
-      expect(tool?.inputSchema.required).toContain("versionId");
-    });
-  });
-
-  describe("get_connection_details", () => {
-    const tool = TOOL_DEFINITIONS.find((t) => t.name === "get_connection_details");
-
-    it("should be defined", () => {
-      expect(tool).toBeDefined();
-    });
-
-    it("should require connectionName", () => {
-      expect(tool?.inputSchema.required).toContain("connectionName");
-    });
-  });
-
-  describe("test_connection", () => {
-    const tool = TOOL_DEFINITIONS.find((t) => t.name === "test_connection");
-
-    it("should be defined", () => {
-      expect(tool).toBeDefined();
-    });
-
-    it("should require connectionName", () => {
-      expect(tool?.inputSchema.required).toContain("connectionName");
-    });
-  });
-
-  // Write Operations
-  describe("enable_workflow", () => {
-    const tool = TOOL_DEFINITIONS.find((t) => t.name === "enable_workflow");
-
-    it("should be defined", () => {
-      expect(tool).toBeDefined();
-    });
-
-    it("should require subscriptionId, resourceGroupName, and logicAppName", () => {
-      expect(tool?.inputSchema.required).toContain("subscriptionId");
-      expect(tool?.inputSchema.required).toContain("resourceGroupName");
-      expect(tool?.inputSchema.required).toContain("logicAppName");
-    });
-
-    it("should have optional workflowName parameter", () => {
-      expect(tool?.inputSchema.properties).toHaveProperty("workflowName");
-      expect(tool?.inputSchema.required).not.toContain("workflowName");
-    });
-  });
-
-  describe("disable_workflow", () => {
-    const tool = TOOL_DEFINITIONS.find((t) => t.name === "disable_workflow");
-
-    it("should be defined", () => {
-      expect(tool).toBeDefined();
-    });
-
-    it("should require subscriptionId, resourceGroupName, and logicAppName", () => {
-      expect(tool?.inputSchema.required).toContain("subscriptionId");
-      expect(tool?.inputSchema.required).toContain("resourceGroupName");
-      expect(tool?.inputSchema.required).toContain("logicAppName");
-    });
-
-    it("should have optional workflowName parameter", () => {
-      expect(tool?.inputSchema.properties).toHaveProperty("workflowName");
-      expect(tool?.inputSchema.required).not.toContain("workflowName");
-    });
-  });
-
-  describe("run_trigger", () => {
-    const tool = TOOL_DEFINITIONS.find((t) => t.name === "run_trigger");
-
-    it("should be defined", () => {
-      expect(tool).toBeDefined();
-    });
-
-    it("should require subscriptionId, resourceGroupName, logicAppName, and triggerName", () => {
-      expect(tool?.inputSchema.required).toContain("subscriptionId");
-      expect(tool?.inputSchema.required).toContain("resourceGroupName");
-      expect(tool?.inputSchema.required).toContain("logicAppName");
-      expect(tool?.inputSchema.required).toContain("triggerName");
-    });
-
-    it("should have optional workflowName parameter", () => {
-      expect(tool?.inputSchema.properties).toHaveProperty("workflowName");
-      expect(tool?.inputSchema.required).not.toContain("workflowName");
-    });
-  });
-
-  describe("cancel_run", () => {
-    const tool = TOOL_DEFINITIONS.find((t) => t.name === "cancel_run");
-
-    it("should be defined", () => {
-      expect(tool).toBeDefined();
-    });
-
-    it("should require subscriptionId, resourceGroupName, logicAppName, and runId", () => {
-      expect(tool?.inputSchema.required).toContain("subscriptionId");
-      expect(tool?.inputSchema.required).toContain("resourceGroupName");
-      expect(tool?.inputSchema.required).toContain("logicAppName");
-      expect(tool?.inputSchema.required).toContain("runId");
-    });
-
-    it("should have optional workflowName parameter", () => {
-      expect(tool?.inputSchema.properties).toHaveProperty("workflowName");
-      expect(tool?.inputSchema.required).not.toContain("workflowName");
-    });
-  });
-
-  describe("create_workflow", () => {
-    const tool = TOOL_DEFINITIONS.find((t) => t.name === "create_workflow");
-
-    it("should be defined", () => {
-      expect(tool).toBeDefined();
-    });
-
-    it("should require subscriptionId, resourceGroupName, logicAppName, and definition", () => {
-      expect(tool?.inputSchema.required).toContain("subscriptionId");
-      expect(tool?.inputSchema.required).toContain("resourceGroupName");
-      expect(tool?.inputSchema.required).toContain("logicAppName");
-      expect(tool?.inputSchema.required).toContain("definition");
-    });
-
-    it("should have optional location, workflowName, and kind parameters", () => {
-      expect(tool?.inputSchema.properties).toHaveProperty("location");
-      expect(tool?.inputSchema.properties).toHaveProperty("workflowName");
-      expect(tool?.inputSchema.properties).toHaveProperty("kind");
-      expect(tool?.inputSchema.required).not.toContain("location");
-      expect(tool?.inputSchema.required).not.toContain("workflowName");
-      expect(tool?.inputSchema.required).not.toContain("kind");
-    });
-  });
-
-  describe("update_workflow", () => {
-    const tool = TOOL_DEFINITIONS.find((t) => t.name === "update_workflow");
-
-    it("should be defined", () => {
-      expect(tool).toBeDefined();
-    });
-
-    it("should require subscriptionId, resourceGroupName, logicAppName, and definition", () => {
-      expect(tool?.inputSchema.required).toContain("subscriptionId");
-      expect(tool?.inputSchema.required).toContain("resourceGroupName");
-      expect(tool?.inputSchema.required).toContain("logicAppName");
-      expect(tool?.inputSchema.required).toContain("definition");
-    });
-
-    it("should have optional workflowName and kind parameters", () => {
-      expect(tool?.inputSchema.properties).toHaveProperty("workflowName");
-      expect(tool?.inputSchema.properties).toHaveProperty("kind");
-      expect(tool?.inputSchema.required).not.toContain("workflowName");
-      expect(tool?.inputSchema.required).not.toContain("kind");
-    });
-  });
-
-  describe("delete_workflow", () => {
-    const tool = TOOL_DEFINITIONS.find((t) => t.name === "delete_workflow");
-
-    it("should be defined", () => {
-      expect(tool).toBeDefined();
-    });
-
-    it("should require subscriptionId, resourceGroupName, and logicAppName", () => {
-      expect(tool?.inputSchema.required).toContain("subscriptionId");
-      expect(tool?.inputSchema.required).toContain("resourceGroupName");
-      expect(tool?.inputSchema.required).toContain("logicAppName");
-    });
-
-    it("should have optional workflowName parameter", () => {
-      expect(tool?.inputSchema.properties).toHaveProperty("workflowName");
-      expect(tool?.inputSchema.required).not.toContain("workflowName");
-    });
-  });
-
-  describe("clone_workflow", () => {
-    const tool = TOOL_DEFINITIONS.find((t) => t.name === "clone_workflow");
-
-    it("should be defined", () => {
-      expect(tool).toBeDefined();
-    });
-
-    it("should require source parameters", () => {
-      expect(tool?.inputSchema.required).toContain("subscriptionId");
-      expect(tool?.inputSchema.required).toContain("resourceGroupName");
-      expect(tool?.inputSchema.required).toContain("logicAppName");
-    });
-
-    it("should require target parameters", () => {
-      expect(tool?.inputSchema.required).toContain("targetResourceGroupName");
-      expect(tool?.inputSchema.required).toContain("targetLogicAppName");
-      expect(tool?.inputSchema.required).toContain("targetWorkflowName");
-    });
-
-    it("should have optional targetSubscriptionId parameter", () => {
-      expect(tool?.inputSchema.properties).toHaveProperty("targetSubscriptionId");
-      expect(tool?.inputSchema.required).not.toContain("targetSubscriptionId");
-    });
-
-    it("should have optional targetKind parameter with enum", () => {
-      expect(tool?.inputSchema.properties).toHaveProperty("targetKind");
-      expect(tool?.inputSchema.required).not.toContain("targetKind");
-      const kindProperty = tool?.inputSchema.properties?.targetKind as { enum?: string[] };
-      expect(kindProperty?.enum).toEqual(["Stateful", "Stateless"]);
-    });
-  });
-
-  describe("validate_clone_workflow", () => {
-    const tool = TOOL_DEFINITIONS.find((t) => t.name === "validate_clone_workflow");
-
-    it("should be defined", () => {
-      expect(tool).toBeDefined();
-    });
-
-    it("should require source parameters", () => {
-      expect(tool?.inputSchema.required).toContain("subscriptionId");
-      expect(tool?.inputSchema.required).toContain("resourceGroupName");
-      expect(tool?.inputSchema.required).toContain("logicAppName");
-    });
-
-    it("should require target parameters", () => {
-      expect(tool?.inputSchema.required).toContain("targetResourceGroupName");
-      expect(tool?.inputSchema.required).toContain("targetLogicAppName");
-      expect(tool?.inputSchema.required).toContain("targetWorkflowName");
-    });
-
-    it("should have optional targetSubscriptionId parameter", () => {
-      expect(tool?.inputSchema.properties).toHaveProperty("targetSubscriptionId");
-      expect(tool?.inputSchema.required).not.toContain("targetSubscriptionId");
-    });
-
-    it("should have optional targetKind parameter with enum", () => {
-      expect(tool?.inputSchema.properties).toHaveProperty("targetKind");
-      expect(tool?.inputSchema.required).not.toContain("targetKind");
-      const kindProperty = tool?.inputSchema.properties?.targetKind as { enum?: string[] };
-      expect(kindProperty?.enum).toEqual(["Stateful", "Stateless"]);
-    });
+  // Test required parameters for key tools using parameterized approach
+  const toolRequirements: Array<{
+    name: string;
+    required: string[];
+    optional?: string[];
+    enums?: Record<string, string[]>;
+  }> = [
+    { name: "list_subscriptions", required: [] },
+    { name: "list_logic_apps", required: ["subscriptionId"], enums: { sku: ["consumption", "standard", "all"] } },
+    { name: "list_workflows", required: ["subscriptionId", "resourceGroupName", "logicAppName"] },
+    { name: "get_workflow_definition", required: ["subscriptionId", "resourceGroupName", "logicAppName"], optional: ["workflowName"] },
+    { name: "list_run_history", required: ["subscriptionId", "resourceGroupName", "logicAppName"], optional: ["top", "filter"] },
+    { name: "get_run_details", required: ["subscriptionId", "resourceGroupName", "logicAppName", "runId"] },
+    { name: "get_run_actions", required: ["subscriptionId", "resourceGroupName", "logicAppName", "runId"], optional: ["actionName"] },
+    { name: "get_connections", required: ["subscriptionId", "resourceGroupName"] },
+    { name: "get_action_io", required: ["subscriptionId", "resourceGroupName", "logicAppName", "runId", "actionName"], enums: { type: ["inputs", "outputs", "both"] } },
+    { name: "search_runs", required: ["subscriptionId", "resourceGroupName", "logicAppName"], optional: ["startTime", "endTime"], enums: { status: ["Succeeded", "Failed", "Cancelled", "Running"] } },
+    { name: "get_workflow_version", required: ["subscriptionId", "resourceGroupName", "logicAppName", "versionId"] },
+    { name: "get_connection_details", required: ["subscriptionId", "resourceGroupName", "connectionName"] },
+    { name: "test_connection", required: ["subscriptionId", "resourceGroupName", "connectionName"] },
+    { name: "enable_workflow", required: ["subscriptionId", "resourceGroupName", "logicAppName"], optional: ["workflowName"] },
+    { name: "disable_workflow", required: ["subscriptionId", "resourceGroupName", "logicAppName"], optional: ["workflowName"] },
+    { name: "run_trigger", required: ["subscriptionId", "resourceGroupName", "logicAppName", "triggerName"], optional: ["workflowName"] },
+    { name: "cancel_run", required: ["subscriptionId", "resourceGroupName", "logicAppName", "runId"], optional: ["workflowName"] },
+    { name: "create_workflow", required: ["subscriptionId", "resourceGroupName", "logicAppName", "definition"], optional: ["location", "workflowName", "kind"] },
+    { name: "update_workflow", required: ["subscriptionId", "resourceGroupName", "logicAppName", "definition"], optional: ["workflowName", "kind"] },
+    { name: "delete_workflow", required: ["subscriptionId", "resourceGroupName", "logicAppName"], optional: ["workflowName"] },
+    { name: "clone_workflow", required: ["subscriptionId", "resourceGroupName", "logicAppName", "targetResourceGroupName", "targetLogicAppName", "targetWorkflowName"], optional: ["targetSubscriptionId"], enums: { targetKind: ["Stateful", "Stateless"] } },
+    { name: "validate_clone_workflow", required: ["subscriptionId", "resourceGroupName", "logicAppName", "targetResourceGroupName", "targetLogicAppName", "targetWorkflowName"], optional: ["targetSubscriptionId"], enums: { targetKind: ["Stateful", "Stateless"] } },
+  ];
+
+  it.each(toolRequirements)("$name should have correct required/optional parameters", ({ name, required, optional, enums }) => {
+    const tool = TOOL_DEFINITIONS.find((t) => t.name === name);
+    expect(tool, `Tool ${name} should be defined`).toBeDefined();
+    
+    // Check required parameters
+    for (const param of required) {
+      expect(tool?.inputSchema.required).toContain(param);
+    }
+    
+    // Check optional parameters exist but are not required
+    for (const param of optional ?? []) {
+      expect(tool?.inputSchema.properties).toHaveProperty(param);
+      expect(tool?.inputSchema.required).not.toContain(param);
+    }
+    
+    // Check enum values
+    for (const [param, values] of Object.entries(enums ?? {})) {
+      const prop = tool?.inputSchema.properties?.[param] as { enum?: string[] };
+      expect(prop?.enum).toEqual(values);
+    }
   });
 });
