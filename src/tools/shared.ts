@@ -141,8 +141,11 @@ async function detectSkuFromApi(
     if (site.kind?.toLowerCase().includes("workflowapp")) {
       return "standard";
     }
-  } catch {
-    // Not found
+  } catch (error) {
+    // Only ignore ResourceNotFound, propagate auth/network errors
+    if (!(error instanceof McpError && error.code === "ResourceNotFound")) {
+      throw error;
+    }
   }
 
   throw new McpError(
