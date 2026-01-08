@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect, beforeAll } from "vitest";
-import { cloneWorkflow, validateCloneWorkflow, listWorkflows } from "../tools/workflows.js";
+import { cloneWorkflow, validateCloneWorkflow } from "../tools/workflows.js";
 import { getAzureCliToken } from "../auth/azureCli.js";
 import { setPassthroughToken } from "../auth/tokenManager.js";
 
