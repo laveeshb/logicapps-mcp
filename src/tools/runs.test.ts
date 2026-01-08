@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { listRunHistory, getRunDetails, getRunActions } from "./runs.js";
+import { listRunHistory, getRunDetails, getRunActions, resubmitRun } from "./runs.js";
 
 // Mock the http module
 vi.mock("../utils/http.js", () => ({
@@ -395,6 +395,91 @@ describe("runs", () => {
       const result = await getRunActions("sub-123", "rg", "myapp", "run1");
 
       expect(result.actions).toHaveLength(0);
+    });
+  });
+
+  describe("resubmitRun", () => {
+    it("should resubmit a run for Consumption SKU", async () => {
+      const { detectLogicAppSku } = await import("./shared.js");
+      const { armRequestVoid } = await import("../utils/http.js");
+
+      vi.mocked(detectLogicAppSku).mockResolvedValue("consumption");
+      vi.mocked(armRequestVoid).mockResolvedValue(undefined);
+
+      const result = await resubmitRun("sub-123", "rg", "myapp", "run123");
+
+      expect(result.success).toBe(true);
+      expect(result.originalRunId).toBe("run123");
+      expect(result.message).toContain("resubmitted");
+      expect(result.message).toContain("Consumption");
+      expect(result.message).toContain("myapp");
+
+      expect(armRequestVoid).toHaveBeenCalledWith(
+        "/subscriptions/sub-123/resourceGroups/rg/providers/Microsoft.Logic/workflows/myapp/runs/run123/resubmit",
+        expect.objectContaining({
+          method: "POST",
+          queryParams: { "api-version": "2019-05-01" },
+        })
+      );
+    });
+
+    it("should resubmit a run for Standard SKU", async () => {
+      const { detectLogicAppSku } = await import("./shared.js");
+      const { armRequestVoid } = await import("../utils/http.js");
+
+      vi.mocked(detectLogicAppSku).mockResolvedValue("standard");
+      vi.mocked(armRequestVoid).mockResolvedValue(undefined);
+
+      const result = await resubmitRun("sub-123", "rg", "myapp", "run456", "my-workflow");
+
+      expect(result.success).toBe(true);
+      expect(result.originalRunId).toBe("run456");
+      expect(result.message).toContain("resubmitted");
+      expect(result.message).toContain("Standard");
+      expect(result.message).toContain("my-workflow");
+      expect(result.message).toContain("myapp");
+
+      expect(armRequestVoid).toHaveBeenCalledWith(
+        "/subscriptions/sub-123/resourceGroups/rg/providers/Microsoft.Web/sites/myapp/hostruntime/runtime/webhooks/workflow/api/management/workflows/my-workflow/runs/run456/resubmit",
+        expect.objectContaining({
+          method: "POST",
+          queryParams: { "api-version": "2022-03-01" },
+        })
+      );
+    });
+
+    it("should throw error when workflowName missing for Standard SKU", async () => {
+      const { detectLogicAppSku } = await import("./shared.js");
+
+      vi.mocked(detectLogicAppSku).mockResolvedValue("standard");
+
+      await expect(resubmitRun("sub-123", "rg", "myapp", "run789")).rejects.toThrow(
+        "workflowName is required for Standard Logic Apps"
+      );
+    });
+
+    it("should propagate API errors for Consumption SKU", async () => {
+      const { detectLogicAppSku } = await import("./shared.js");
+      const { armRequestVoid } = await import("../utils/http.js");
+
+      vi.mocked(detectLogicAppSku).mockResolvedValue("consumption");
+      vi.mocked(armRequestVoid).mockRejectedValue(new Error("Run not found"));
+
+      await expect(resubmitRun("sub-123", "rg", "myapp", "invalid-run")).rejects.toThrow(
+        "Run not found"
+      );
+    });
+
+    it("should propagate API errors for Standard SKU", async () => {
+      const { detectLogicAppSku } = await import("./shared.js");
+      const { armRequestVoid } = await import("../utils/http.js");
+
+      vi.mocked(detectLogicAppSku).mockResolvedValue("standard");
+      vi.mocked(armRequestVoid).mockRejectedValue(new Error("Run cannot be resubmitted"));
+
+      await expect(
+        resubmitRun("sub-123", "rg", "myapp", "running-run", "my-workflow")
+      ).rejects.toThrow("Run cannot be resubmitted");
     });
   });
 });

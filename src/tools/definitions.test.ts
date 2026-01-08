@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import { TOOL_DEFINITIONS } from "./definitions.js";
 
 describe("tool definitions", () => {
-  it("should have all 39 tools with unique names and required schema properties", () => {
-    expect(TOOL_DEFINITIONS).toHaveLength(39);
+  it("should have all 40 tools with unique names and required schema properties", () => {
+    expect(TOOL_DEFINITIONS).toHaveLength(40);
     
     const names = TOOL_DEFINITIONS.map((t) => t.name);
     const uniqueNames = new Set(names);
@@ -42,6 +42,7 @@ describe("tool definitions", () => {
     { name: "disable_workflow", required: ["subscriptionId", "resourceGroupName", "logicAppName"], optional: ["workflowName"] },
     { name: "run_trigger", required: ["subscriptionId", "resourceGroupName", "logicAppName", "triggerName"], optional: ["workflowName"] },
     { name: "cancel_run", required: ["subscriptionId", "resourceGroupName", "logicAppName", "runId"], optional: ["workflowName"] },
+    { name: "resubmit_run", required: ["subscriptionId", "resourceGroupName", "logicAppName", "runId"], optional: ["workflowName"] },
     { name: "create_workflow", required: ["subscriptionId", "resourceGroupName", "logicAppName", "definition"], optional: ["location", "workflowName", "kind"] },
     { name: "update_workflow", required: ["subscriptionId", "resourceGroupName", "logicAppName", "definition"], optional: ["workflowName", "kind"] },
     { name: "delete_workflow", required: ["subscriptionId", "resourceGroupName", "logicAppName"], optional: ["workflowName"] },

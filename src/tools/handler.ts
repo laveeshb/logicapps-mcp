@@ -29,6 +29,7 @@ import {
   getActionIO,
   searchRuns,
   cancelRun,
+  resubmitRun,
 } from "./runs.js";
 import { getActionRepetitions, getScopeRepetitions } from "./repetitions.js";
 import { getActionRequestHistory } from "./requestHistory.js";
@@ -234,6 +235,11 @@ export async function handleToolCall(
       case "cancel_run": {
         const v = validateArgs<{ subscriptionId: string; resourceGroupName: string; logicAppName: string; runId: string; workflowName?: string }>(name, args);
         result = await cancelRun(v.subscriptionId, v.resourceGroupName, v.logicAppName, v.runId, v.workflowName);
+        break;
+      }
+      case "resubmit_run": {
+        const v = validateArgs<{ subscriptionId: string; resourceGroupName: string; logicAppName: string; runId: string; workflowName?: string }>(name, args);
+        result = await resubmitRun(v.subscriptionId, v.resourceGroupName, v.logicAppName, v.runId, v.workflowName);
         break;
       }
       case "create_workflow": {

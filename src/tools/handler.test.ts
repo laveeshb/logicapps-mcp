@@ -20,6 +20,7 @@ vi.mock("./runs.js", () => ({
   listRunHistory: vi.fn(),
   getRunDetails: vi.fn(),
   getRunActions: vi.fn(),
+  resubmitRun: vi.fn(),
 }));
 
 vi.mock("./connections.js", () => ({
@@ -29,7 +30,7 @@ vi.mock("./connections.js", () => ({
 import { listSubscriptions } from "./subscriptions.js";
 import { listLogicApps } from "./logicApps.js";
 import { listWorkflows, getWorkflowDefinition, getWorkflowTriggers } from "./workflows.js";
-import { listRunHistory, getRunDetails, getRunActions } from "./runs.js";
+import { listRunHistory, getRunDetails, getRunActions, resubmitRun } from "./runs.js";
 import { getConnections } from "./connections.js";
 
 describe("handleToolCall", () => {
@@ -191,6 +192,51 @@ describe("handleToolCall", () => {
     });
 
     expect(getConnections).toHaveBeenCalledWith("sub-123", "rg-test");
+  });
+
+  it("should call resubmitRun with correct parameters for Consumption", async () => {
+    const mockResult = {
+      success: true,
+      originalRunId: "run-123",
+      message: "Run 'run-123' has been resubmitted for Consumption workflow 'my-app'.",
+    };
+    vi.mocked(resubmitRun).mockResolvedValue(mockResult);
+
+    const result = await handleToolCall("resubmit_run", {
+      subscriptionId: "sub-123",
+      resourceGroupName: "rg-test",
+      logicAppName: "my-app",
+      runId: "run-123",
+    });
+
+    expect(resubmitRun).toHaveBeenCalledWith("sub-123", "rg-test", "my-app", "run-123", undefined);
+    expect(result.content[0].type).toBe("text");
+    expect(JSON.parse((result.content[0] as { text: string }).text)).toEqual(mockResult);
+  });
+
+  it("should call resubmitRun with workflowName for Standard", async () => {
+    const mockResult = {
+      success: true,
+      originalRunId: "run-456",
+      message: "Run 'run-456' has been resubmitted for Standard workflow 'my-workflow'.",
+    };
+    vi.mocked(resubmitRun).mockResolvedValue(mockResult);
+
+    await handleToolCall("resubmit_run", {
+      subscriptionId: "sub-123",
+      resourceGroupName: "rg-test",
+      logicAppName: "my-app",
+      runId: "run-456",
+      workflowName: "my-workflow",
+    });
+
+    expect(resubmitRun).toHaveBeenCalledWith(
+      "sub-123",
+      "rg-test",
+      "my-app",
+      "run-456",
+      "my-workflow"
+    );
   });
 
   it("should return error for unknown tool", async () => {

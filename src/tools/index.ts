@@ -30,13 +30,15 @@ export type {
   ValidateCloneWorkflowResult,
 } from "./workflows.js";
 
-export { listRunHistory, getRunDetails, getRunActions, getActionIO, searchRuns } from "./runs.js";
+export { listRunHistory, getRunDetails, getRunActions, getActionIO, searchRuns, cancelRun, resubmitRun } from "./runs.js";
 export type {
   ListRunHistoryResult,
   GetRunDetailsResult,
   GetRunActionsResult,
   GetActionIOResult,
   SearchRunsResult,
+  CancelRunResult,
+  ResubmitRunResult,
 } from "./runs.js";
 
 export { getConnections, getConnectionDetails, testConnection } from "./connections.js";

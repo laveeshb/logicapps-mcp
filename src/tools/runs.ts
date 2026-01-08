@@ -674,3 +674,53 @@ export async function cancelRun(
     message: `Run '${runId}' has been cancelled for Standard workflow '${workflowName}' in '${logicAppName}'.`,
   };
 }
+
+export interface ResubmitRunResult {
+  success: boolean;
+  originalRunId: string;
+  message: string;
+}
+
+/**
+ * Resubmit a failed or cancelled workflow run to retry execution with the original inputs.
+ * Only runs with status 'Failed', 'Cancelled', or 'Succeeded' can be resubmitted.
+ */
+export async function resubmitRun(
+  subscriptionId: string,
+  resourceGroupName: string,
+  logicAppName: string,
+  runId: string,
+  workflowName?: string
+): Promise<ResubmitRunResult> {
+  const sku = await detectLogicAppSku(subscriptionId, resourceGroupName, logicAppName);
+
+  if (sku === "consumption") {
+    await armRequestVoid(
+      `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Logic/workflows/${logicAppName}/runs/${runId}/resubmit`,
+      { method: "POST", queryParams: { "api-version": "2019-05-01" } }
+    );
+
+    return {
+      success: true,
+      originalRunId: runId,
+      message: `Run '${runId}' has been resubmitted for Consumption workflow '${logicAppName}'. A new run has been created.`,
+    };
+  }
+
+  // Standard requires workflowName
+  if (!workflowName) {
+    throw new McpError("InvalidParameter", "workflowName is required for Standard Logic Apps");
+  }
+
+  // For Standard, use the ARM API with hostruntime path
+  await armRequestVoid(
+    `/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Web/sites/${logicAppName}/hostruntime/runtime/webhooks/workflow/api/management/workflows/${workflowName}/runs/${runId}/resubmit`,
+    { method: "POST", queryParams: { "api-version": "2022-03-01" } }
+  );
+
+  return {
+    success: true,
+    originalRunId: runId,
+    message: `Run '${runId}' has been resubmitted for Standard workflow '${workflowName}' in '${logicAppName}'. A new run has been created.`,
+  };
+}
