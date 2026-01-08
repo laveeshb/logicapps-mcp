@@ -951,6 +951,37 @@ export const TOOL_DEFINITIONS: Tool[] = [
     },
   },
   {
+    name: "resubmit_run",
+    description:
+      "Resubmit a failed or cancelled workflow run to retry execution with the original inputs. Only runs with status 'Failed', 'Cancelled', or 'Succeeded' can be resubmitted. For Standard SKU, workflowName is required. Use get_run_details to check run status first.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        subscriptionId: {
+          type: "string",
+          description: "Azure subscription ID",
+        },
+        resourceGroupName: {
+          type: "string",
+          description: "Resource group name",
+        },
+        logicAppName: {
+          type: "string",
+          description: "Logic App resource name",
+        },
+        runId: {
+          type: "string",
+          description: "The run ID to resubmit",
+        },
+        workflowName: {
+          type: "string",
+          description: "Workflow name (required for Standard SKU)",
+        },
+      },
+      required: ["subscriptionId", "resourceGroupName", "logicAppName", "runId"],
+    },
+  },
+  {
     name: "create_workflow",
     description:
       "Create a new workflow. For Consumption SKU, creates a new Logic App resource. For Standard SKU, creates a new workflow within an existing Logic App. Requires a valid workflow definition JSON that follows the Logic Apps schema. IMPORTANT: When adding connector actions (e.g., SQL, Service Bus, MSN Weather), use get_connector_swagger first to discover the correct action paths and schemas. For Consumption SKU with connector actions, use the 'connections' parameter to wire up API connections.",
