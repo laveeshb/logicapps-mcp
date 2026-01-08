@@ -161,6 +161,14 @@ export const cancelRunSchema = z.object({
   workflowName: workflowName.optional(),
 });
 
+export const resubmitRunSchema = z.object({
+  subscriptionId,
+  resourceGroupName,
+  logicAppName,
+  runId,
+  workflowName: workflowName.optional(),
+});
+
 // ============================================================================
 // Trigger tools
 // ============================================================================
@@ -408,6 +416,7 @@ export const TOOL_SCHEMAS: Record<string, z.ZodSchema> = {
   get_action_io: getActionIOSchema,
   search_runs: searchRunsSchema,
   cancel_run: cancelRunSchema,
+  resubmit_run: resubmitRunSchema,
   get_trigger_history: getTriggerHistorySchema,
   get_trigger_callback_url: getTriggerCallbackUrlSchema,
   run_trigger: runTriggerSchema,
