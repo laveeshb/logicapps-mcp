@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createConnection } from "./connections.js";
-import { McpError } from "../utils/errors.js";
 
 // Mock the http module
 vi.mock("../utils/http.js", () => ({
