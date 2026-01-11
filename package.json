@@ -1,7 +1,9 @@
 {
-  "name": "@laveeshb/logicapps-mcp",
+  "name": "logicapps-mcp",
   "version": "0.4.0",
-  "description": "MCP server for Azure Logic Apps",
+  "description": "MCP server for Azure Logic Apps - debug workflows, manage runs, and create automations with AI assistants",
+  "author": "Laveesh Bansal <laveeshb@laveeshbansal.com>",
+  "homepage": "https://github.com/laveeshb/logicapps-mcp",
   "type": "module",
   "main": "dist/functions/index.js",
   "bin": {
@@ -16,7 +18,7 @@
     "url": "https://github.com/laveeshb/logicapps-mcp.git"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "registry": "https://registry.npmjs.org"
   },
   "scripts": {
     "build": "tsc",
@@ -59,9 +61,13 @@
   },
   "keywords": [
     "mcp",
+    "model-context-protocol",
     "azure",
     "logic-apps",
-    "workflow"
+    "workflow",
+    "automation",
+    "copilot",
+    "ai"
   ],
   "license": "MIT"
 }
