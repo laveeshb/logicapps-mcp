@@ -21,17 +21,7 @@ AI:   Done. Updated the workflow with retry policy. Want me to test it?
 
 Works with **GitHub Copilot**, **Claude Desktop**, or any MCP-compatible AI client. Supports both Consumption and Standard Logic Apps.
 
-## Choose Your Setup
-
-| | Local MCP Server | Cloud MCP Server |
-|--|------------------|------------------|
-| **Use when** | You have a local AI (Copilot, Claude) | You need a hosted MCP server for remote AI clients |
-| **Setup** | `npm install` + AI config | Deploy to Azure |
-| **Auth** | Your Azure CLI credentials | Passthrough (client provides bearer token) |
-
-See the [Getting Started Guide](docs/GETTING_STARTED.md) for detailed setup instructions.
-
-## Quick Start (Local MCP Server)
+## Quick Start
 
 ```bash
 # 1. Install
@@ -40,23 +30,25 @@ npm install -g logicapps-mcp
 # 2. Login to Azure
 az login
 
-# 3. Add to your AI assistant and restart (see Getting Started Guide)
+# 3. Configure your AI assistant (example for VS Code)
 ```
 
-## Quick Start (Cloud MCP Server)
+Add to `.vscode/mcp.json` in your workspace:
 
-Deploy a hosted MCP server with passthrough authentication. Clients must provide their own ARM-scoped bearer token.
-
-```bash
-# Deploy to Azure
-./deploy/deploy.ps1 -ResourceGroup my-rg -CreateResourceGroup
-
-# Test the endpoint
-$token = az account get-access-token --resource https://management.azure.com --query accessToken -o tsv
-curl -H "Authorization: Bearer $token" https://<app>.azurewebsites.net/api/health
+```json
+{
+  "servers": {
+    "logicapps": {
+      "type": "stdio",
+      "command": "logicapps-mcp"
+    }
+  }
+}
 ```
 
-**Authentication Model**: The cloud MCP server uses passthrough authentication. It does not have its own Azure access—clients must provide an ARM-scoped bearer token in the `Authorization` header. The server uses this token directly for all Azure Resource Manager API calls. Users only see resources they have access to with their own Azure credentials.
+Reload VS Code and start chatting with Copilot about your Logic Apps!
+
+> **Cloud MCP Server**: Need a hosted deployment? See the [Getting Started Guide](docs/GETTING_STARTED.md#cloud-mcp-server-setup) for Azure deployment instructions.
 
 ## Features
 

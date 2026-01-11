@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.3] - 2026-01-11
+
+### Changed
+- Simplified README to focus on local MCP server setup
+- Removed unused files: Azure Functions configs, test artifacts, M365 Copilot manifests
+- Moved `design/` to `docs/design/`
+- Moved `mcp.json` to `.vscode/mcp.json`
+
 ## [0.4.2] - 2026-01-11
 
 ### Added
