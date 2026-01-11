@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.4.0] - 2026-01-11
+
+### Added
+- `resubmit_run` tool for retrying failed workflow runs
+- `clone_workflow` and `validate_clone_workflow` tools
+- Runtime input validation with Zod
+
+### Fixed
+- Pagination now properly bounded across all operations (runs, actions, repetitions, request history)
+- Improved caching: LRU eviction, stampede protection, proper TTL initialization
+- Better error handling for JSON parsing, SKU detection, and null API responses
+- Standard SKU: use POST for expression traces endpoint
+
+### Changed
+- Version now read from package.json dynamically
+
 ## [0.3.0] - 2026-01-02
 
 ### Added
@@ -74,6 +90,7 @@
 - Dual deployment modes: stdio (local) and HTTP (Azure Functions)
 - Azure authentication via Azure CLI or service principal
 
+[0.4.0]: https://github.com/laveeshb/logicapps-mcp/releases/tag/v0.4.0
 [0.3.0]: https://github.com/laveeshb/logicapps-mcp/releases/tag/v0.3.0
 [0.2.0]: https://github.com/laveeshb/logicapps-mcp/releases/tag/v0.2.0
 [0.1.0]: https://github.com/laveeshb/logicapps-mcp/releases/tag/v0.1.0
