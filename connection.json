@@ -1,9 +1,0 @@
-{
-  "location": "westus2",
-  "properties": {
-    "api": {
-      "id": "/subscriptions/7246da25-bfbb-4bd2-acad-3658085e2e6d/providers/Microsoft.Web/locations/westus2/managedApis/msnweather"
-    },
-    "displayName": "MSN Weather"
-  }
-}

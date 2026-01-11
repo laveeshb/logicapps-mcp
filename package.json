@@ -1,6 +1,6 @@
 {
   "name": "logicapps-mcp",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "mcpName": "io.github.laveeshb/logicapps-mcp",
   "description": "MCP server for Azure Logic Apps - debug workflows, manage runs, and create automations with AI assistants",
   "author": "Laveesh Bansal <laveeshb@laveeshbansal.com>",
