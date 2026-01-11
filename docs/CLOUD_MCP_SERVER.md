@@ -202,5 +202,5 @@ curl -X POST "https://<app>.azurewebsites.net/api/mcp" \
 ## See Also
 
 - [Getting Started](GETTING_STARTED.md) - Setup guides and comparison with local MCP server
-- [Available Tools](TOOLS.md) - All 37 tools available via MCP
+- [Available Tools](TOOLS.md) - All 40 tools available via MCP
 - [Configuration](CONFIGURATION.md) - Environment variables and authentication

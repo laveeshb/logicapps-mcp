@@ -8,9 +8,9 @@
  * - http: For cloud deployment (Azure Functions, standalone server)
  *
  * Usage:
- *   npx @laveeshb/logicapps-mcp          # stdio mode (default)
- *   npx @laveeshb/logicapps-mcp --http   # HTTP server mode
- *   npx @laveeshb/logicapps-mcp --http --port 8080
+ *   npx logicapps-mcp          # stdio mode (default)
+ *   npx logicapps-mcp --http   # HTTP server mode
+ *   npx logicapps-mcp --http --port 8080
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
