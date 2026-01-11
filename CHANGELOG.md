@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.1] - 2026-01-11
+
+### Fixed
+- Documentation: corrected install commands to use npm package name `logicapps-mcp`
+- Documentation: updated tool count from 37 to 40 (36 operations + 4 knowledge tools)
+
 ## [0.4.0] - 2026-01-11
 
 ### Added

@@ -87,7 +87,7 @@ Add to your Claude Desktop configuration:
   "mcpServers": {
     "logicapps": {
       "command": "npx",
-      "args": ["github:laveeshb/logicapps-mcp"]
+      "args": ["-y", "logicapps-mcp"]
     }
   }
 }
@@ -196,5 +196,5 @@ $token = (Get-AzAccessToken -ResourceUrl https://management.azure.com).Token
 
 ## Next Steps
 
-- [Available Tools](TOOLS.md) - See all 37 tools
+- [Available Tools](TOOLS.md) - See all 40 tools
 - [Configuration](CONFIGURATION.md) - Environment variables and authentication
