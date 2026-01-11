@@ -32,7 +32,7 @@ See the [Getting Started Guide](docs/GETTING_STARTED.md) for detailed setup inst
 
 ```bash
 # 1. Install
-npm install -g github:laveeshb/logicapps-mcp
+npm install -g logicapps-mcp
 
 # 2. Login to Azure
 az login

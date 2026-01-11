@@ -42,7 +42,7 @@ Both options require Azure access (az login) to get credentials.
 ### Step 1: Install
 
 ```bash
-npm install -g github:laveeshb/logicapps-mcp
+npm install -g logicapps-mcp
 ```
 
 ### Step 2: Login to Azure
