@@ -1,0 +1,57 @@
+{
+  "name": "logicapps-mcp",
+  "displayName": "Azure Logic Apps MCP Server",
+  "description": "Configure the Azure Logic Apps MCP Server for GitHub Copilot Chat",
+  "version": "0.1.0",
+  "publisher": "laveeshb",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/laveeshb/logicapps-mcp.git"
+  },
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "categories": [
+    "AI",
+    "Azure",
+    "Chat"
+  ],
+  "keywords": [
+    "logic apps",
+    "azure",
+    "mcp",
+    "model context protocol",
+    "copilot",
+    "workflows"
+  ],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "logicapps-mcp.configure",
+        "title": "Configure Logic Apps MCP Server",
+        "category": "Logic Apps"
+      },
+      {
+        "command": "logicapps-mcp.remove",
+        "title": "Remove Logic Apps MCP Server Configuration",
+        "category": "Logic Apps"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.96.0",
+    "@vscode/vsce": "^3.0.0",
+    "typescript": "^5.7.0"
+  }
+}
