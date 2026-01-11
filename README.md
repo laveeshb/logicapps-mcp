@@ -1,5 +1,8 @@
 # Azure Logic Apps MCP Server
 
+[![MCP Registry](https://img.shields.io/badge/MCP%20Registry-io.github.laveeshb%2Flogicapps--mcp-blue)](https://registry.modelcontextprotocol.io/)
+[![npm](https://img.shields.io/npm/v/logicapps-mcp)](https://www.npmjs.com/package/logicapps-mcp)
+
 <img src="https://raw.githubusercontent.com/benc-uk/icon-collection/master/azure-icons/Logic-Apps.svg" alt="Azure Logic Apps" width="80" align="right">
 
 Manage and debug Azure Logic Apps using natural language. Ask your AI assistant to investigate failed runs, explain workflows, or make changes—no portal clicking required.
