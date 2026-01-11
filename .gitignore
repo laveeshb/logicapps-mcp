@@ -32,3 +32,6 @@ coverage/
 # Deployment artifacts
 *.zip
 **/logicapp-logs/
+
+# MCP Publisher CLI
+mcp-publisher.exe
