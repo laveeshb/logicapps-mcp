@@ -1,6 +1,6 @@
 {
   "name": "logicapps-mcp",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "MCP server for Azure Logic Apps - debug workflows, manage runs, and create automations with AI assistants",
   "author": "Laveesh Bansal <laveeshb@laveeshbansal.com>",
   "homepage": "https://github.com/laveeshb/logicapps-mcp",
@@ -11,7 +11,8 @@
   },
   "files": [
     "dist",
-    "knowledge"
+    "knowledge",
+    "README.md"
   ],
   "repository": {
     "type": "git",
