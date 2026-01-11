@@ -28,10 +28,10 @@ An npm package that implements the Model Context Protocol (MCP), enabling any MC
 │                                                                             │
 │  ┌─────────────────────┐    stdio    ┌────────────────────────────────────┐│
 │  │  AI Client          │◄───────────►│  MCP Server                        ││
-│  │  (Claude/Copilot/   │             │  @laveeshb/logicapps-mcp           ││
+│  │  (Claude/Copilot/   │             │  logicapps-mcp                     ││
 │  │   Cursor/Windsurf)  │             │                                    ││
-│  │                     │             │  ├── 33 Logic Apps tools           ││
-│  │  User's LLM         │             │  ├── 3 Knowledge tools             ││
+│  │                     │             │  ├── 36 Logic Apps tools           ││
+│  │  User's LLM         │             │  ├── 4 Knowledge tools             ││
 │  │  subscription       │             │  └── Bundled docs (~3,600 lines)   ││
 │  └─────────────────────┘             └────────────────────────────────────┘│
 │                                                   │                         │
@@ -57,7 +57,7 @@ An npm package that implements the Model Context Protocol (MCP), enabling any MC
 
 | Channel | Purpose |
 |---------|---------|
-| **npm** | `@laveeshb/logicapps-mcp` - Primary distribution |
+| **npm** | `logicapps-mcp` - Primary distribution |
 | **mcp.so** | Discoverability for Claude/MCP users |
 | **Smithery.ai** | MCP registry |
 | **GitHub** | Source code, issues, documentation |
@@ -68,10 +68,10 @@ An npm package that implements the Model Context Protocol (MCP), enabling any MC
 
 ```bash
 # Via npx (recommended - always latest)
-npx -y @laveeshb/logicapps-mcp
+npx -y logicapps-mcp
 
 # Via npm global install
-npm install -g @laveeshb/logicapps-mcp
+npm install -g logicapps-mcp
 logicapps-mcp
 ```
 
@@ -92,7 +92,7 @@ Command Palette → MCP: Open User Configuration
     "logicapps": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "@laveeshb/logicapps-mcp"]
+      "args": ["-y", "logicapps-mcp"]
     }
   }
 }
@@ -107,7 +107,7 @@ Command Palette → MCP: Open User Configuration
   "mcpServers": {
     "logicapps": {
       "command": "npx",
-      "args": ["-y", "@laveeshb/logicapps-mcp"]
+      "args": ["-y", "logicapps-mcp"]
     }
   }
 }
@@ -121,7 +121,7 @@ Command Palette → MCP: Open User Configuration
   "mcpServers": {
     "logicapps": {
       "command": "npx",
-      "args": ["-y", "@laveeshb/logicapps-mcp"]
+      "args": ["-y", "logicapps-mcp"]
     }
   }
 }
@@ -131,7 +131,7 @@ Command Palette → MCP: Open User Configuration
 
 ## Tool Architecture
 
-### Layer 1: Logic Apps Operations (33 tools)
+### Layer 1: Logic Apps Operations (36 tools)
 
 | Category | Tools | Description |
 |----------|-------|-------------|
@@ -194,7 +194,7 @@ export function getTroubleshootingGuide(topic: string): string {
 ## Package Structure
 
 ```
-@laveeshb/logicapps-mcp/
+logicapps-mcp/
 ├── package.json
 ├── README.md
 ├── dist/                    # Compiled TypeScript

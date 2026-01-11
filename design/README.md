@@ -26,7 +26,7 @@ This document describes the design for a Logic Apps MCP Server that enables AI a
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                        SHARED COMPONENTS                                    │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │  - 37 Tools (33 Logic Apps operations + 4 knowledge tools)          │   │
+│  │  - 40 Tools (36 Logic Apps operations + 4 knowledge tools)          │   │
 │  │  - Bundled documentation (~3,600 lines)                             │   │
 │  │  - Same TypeScript codebase                                         │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
@@ -51,7 +51,7 @@ This document describes the design for a Logic Apps MCP Server that enables AI a
 
 ### [Local MCP Server](LOCAL_MCP_SERVER.md)
 
-- npm package: `@laveeshb/logicapps-mcp`
+- npm package: `logicapps-mcp`
 - Works with: VS Code Copilot, Claude Desktop, Cursor, Windsurf
 - Distribution: npm, mcp.so, Smithery
 - Auth: Uses Azure CLI cached credentials (`az login`)
@@ -69,9 +69,9 @@ This document describes the design for a Logic Apps MCP Server that enables AI a
 
 ## Shared Tool Catalog
 
-Both solutions implement the same 37 tools:
+Both solutions implement the same 40 tools:
 
-### Logic Apps Operations (33 tools)
+### Logic Apps Operations (36 tools)
 
 | Category | Tools |
 |----------|-------|
