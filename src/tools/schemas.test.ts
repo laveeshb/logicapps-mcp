@@ -99,7 +99,7 @@ describe("Zod Schemas", () => {
 
     it("should return valid parsed results or throw ZodError", () => {
       // Test a valid call
-      const listResult = TOOL_SCHEMAS["list_logic_apps"].parse({ subscriptionId: "test-sub" });
+      const listResult = TOOL_SCHEMAS["list_logic_apps"].parse({ subscriptionId: "test-sub" }) as { subscriptionId: string };
       expect(listResult.subscriptionId).toBe("test-sub");
       
       // Test an invalid call

@@ -35,7 +35,7 @@ describe("connections", () => {
     ];
 
     it.each(emptyFieldCases)("should throw error when $field is empty", async ({ args, error }) => {
-      await expect(createConnection(...args)).rejects.toThrow(error);
+      await expect(createConnection(args[0], args[1], args[2], args[3], args[4])).rejects.toThrow(error);
     });
 
     // Parameterized tests for invalid connectionName formats
