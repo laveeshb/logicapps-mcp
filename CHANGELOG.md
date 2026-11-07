@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.4.4] - 2026-11-07
 
 ### Fixed
 - Local stdio mode now uses the Azure CLI login. In v0.3.0 and later releases, all tool calls failed with "Bearer token required" (#138)
