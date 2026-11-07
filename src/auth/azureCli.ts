@@ -9,6 +9,9 @@ import { McpError } from "../utils/errors.js";
 
 const execAsync = promisify(exec);
 
+// A stuck `az` must not block later calls, which share one pending token request.
+const AZ_TIMEOUT_MS = 30_000;
+
 export interface AzureCliToken {
   accessToken: string;
   expiresOn: Date;
@@ -35,7 +38,7 @@ export async function getAzureCliToken(
   try {
     // Use exec with shell to handle az.cmd on Windows
     const command = `az account get-access-token --resource "${resource}" --output json`;
-    const { stdout } = await execAsync(command);
+    const { stdout } = await execAsync(command, { timeout: AZ_TIMEOUT_MS });
 
     const response = JSON.parse(stdout) as AzureCliTokenResponse;
 

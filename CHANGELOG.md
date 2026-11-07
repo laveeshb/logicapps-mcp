@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- Local stdio mode now uses the Azure CLI login. In every npm release (0.4.0 to 0.4.3) every tool call failed with "Bearer token required" (#138)
+
 ## [0.4.3] - 2026-01-11
 
 ### Changed
