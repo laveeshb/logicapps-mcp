@@ -26,7 +26,9 @@ describe("azureCli", () => {
 
   describe("getAzureCliToken", () => {
     it("should pass a timeout to the az call", async () => {
+      let receivedOptions: unknown;
       mockExec.mockImplementation((_cmd: unknown, options?: unknown, callback?: unknown) => {
+        receivedOptions = options;
         if (typeof callback === "function") {
           callback(null, {
             stdout: JSON.stringify({
@@ -39,12 +41,13 @@ describe("azureCli", () => {
             stderr: "",
           });
         }
-        expect(options).toEqual({ timeout: 30000 });
         return {} as ReturnType<typeof exec>;
       });
 
       await getAzureCliToken();
+
       expect(mockExec).toHaveBeenCalledTimes(1);
+      expect(receivedOptions).toEqual({ timeout: 30000 });
     });
 
     it("should return token when Azure CLI returns valid response", async () => {

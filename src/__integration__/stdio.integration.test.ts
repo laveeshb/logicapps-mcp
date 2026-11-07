@@ -56,7 +56,7 @@ describe("stdio server integration", () => {
     expect(result.subscriptions.length).toBeGreaterThan(0);
   });
 
-  it("serves a second call from the cached token", async () => {
+  it("a second call also succeeds", async () => {
     const result = await listSubscriptionsViaServer();
 
     expect(result.subscriptions.length).toBeGreaterThan(0);
