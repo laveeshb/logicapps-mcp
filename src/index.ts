@@ -16,7 +16,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { loadSettings } from "./config/index.js";
-import { setSettings, initializeAuth } from "./auth/index.js";
+import { setSettings, initializeAuth, enableLocalCliAuth } from "./auth/index.js";
 import { setCacheTtl } from "./tools/index.js";
 import { registerToolsAndPrompts } from "./server.js";
 import { VERSION } from "./version.js";
@@ -28,6 +28,7 @@ async function runStdioMode(): Promise<void> {
   const settings = await loadSettings();
   setSettings(settings);
   setCacheTtl(settings.cacheTtlSeconds);
+  enableLocalCliAuth();
   await initializeAuth();
 
   const mcpServer = new McpServer(
