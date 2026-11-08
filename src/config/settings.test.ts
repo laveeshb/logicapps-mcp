@@ -26,6 +26,7 @@ describe("settings", () => {
     delete process.env.AZURE_CLOUD;
     delete process.env.LOGICAPPS_MCP_LOG_LEVEL;
     delete process.env.LOGICAPPS_MCP_CACHE_TTL;
+    delete process.env.LOGICAPPS_MCP_READ_ONLY;
   });
 
   afterEach(() => {
@@ -124,6 +125,94 @@ describe("settings", () => {
       const settings = await loadSettings();
 
       expect(settings.cacheTtlSeconds).toBe(600);
+    });
+  });
+
+  describe("readOnly", () => {
+    let errorSpy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      vi.mocked(fs.readFile).mockRejectedValue(new Error("ENOENT"));
+      errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      errorSpy.mockRestore();
+    });
+
+    it("is off by default", async () => {
+      expect((await loadSettings()).readOnly).toBe(false);
+    });
+
+    it.each(["true", "TRUE", " true ", "1", "yes", "on"])(
+      "is on for LOGICAPPS_MCP_READ_ONLY=%j, without a warning",
+      async (value) => {
+        process.env.LOGICAPPS_MCP_READ_ONLY = value;
+        expect((await loadSettings()).readOnly).toBe(true);
+        expect(errorSpy).not.toHaveBeenCalled();
+      }
+    );
+
+    it.each(["false", "FALSE", "0", "no", "off"])(
+      "is off for LOGICAPPS_MCP_READ_ONLY=%j, without a warning",
+      async (value) => {
+        process.env.LOGICAPPS_MCP_READ_ONLY = value;
+        expect((await loadSettings()).readOnly).toBe(false);
+        expect(errorSpy).not.toHaveBeenCalled();
+      }
+    );
+
+    it("turns on for a value it does not recognise, with a warning", async () => {
+      process.env.LOGICAPPS_MCP_READ_ONLY = "ture";
+
+      expect((await loadSettings()).readOnly).toBe(true);
+      expect(errorSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("treats an empty LOGICAPPS_MCP_READ_ONLY as not set", async () => {
+      process.env.LOGICAPPS_MCP_READ_ONLY = "";
+
+      // Not set, so the config file decides, in both directions.
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify({ readOnly: false }));
+      expect((await loadSettings()).readOnly).toBe(false);
+
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify({ readOnly: true }));
+      expect((await loadSettings()).readOnly).toBe(true);
+      expect(errorSpy).not.toHaveBeenCalled();
+    });
+
+    it("reads readOnly from the config file", async () => {
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify({ readOnly: true }));
+      expect((await loadSettings()).readOnly).toBe(true);
+
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify({ readOnly: false }));
+      expect((await loadSettings()).readOnly).toBe(false);
+    });
+
+    it("accepts the same words in the config file as a string", async () => {
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify({ readOnly: "true" }));
+      expect((await loadSettings()).readOnly).toBe(true);
+      expect(errorSpy).not.toHaveBeenCalled();
+    });
+
+    it("turns on for a config file value it does not recognise, with a warning", async () => {
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify({ readOnly: 5 }));
+
+      expect((await loadSettings()).readOnly).toBe(true);
+      expect(errorSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("prefers the environment variable over the config file", async () => {
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify({ readOnly: true }));
+      process.env.LOGICAPPS_MCP_READ_ONLY = "false";
+      expect((await loadSettings()).readOnly).toBe(false);
+    });
+
+    it("says so when the config file is not valid JSON", async () => {
+      vi.mocked(fs.readFile).mockResolvedValue('{ "readOnly": true, }');
+
+      expect((await loadSettings()).readOnly).toBe(false);
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("not valid JSON"));
     });
   });
 });

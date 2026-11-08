@@ -12,6 +12,7 @@ Advanced configuration options for the local MCP server. Most users won't need t
 | `AZURE_CLOUD` | Connect to sovereign clouds | `AzurePublic` |
 | `LOGICAPPS_MCP_LOG_LEVEL` | Control verbosity (debug, info, warn, error) | `info` |
 | `LOGICAPPS_MCP_CACHE_TTL` | Cache duration in seconds | `300` |
+| `LOGICAPPS_MCP_READ_ONLY` | Hide the tools that change or run anything (see [Read-only mode](#read-only-mode)) | `false` |
 
 ### When to use these
 
@@ -19,6 +20,27 @@ Advanced configuration options for the local MCP server. Most users won't need t
 - **Enterprise policies**: Set `AZURE_CLIENT_ID` if your org requires a specific app registration
 - **Single subscription**: Set `AZURE_SUBSCRIPTION_ID` to skip specifying it in every request
 - **Government/China clouds**: Set `AZURE_CLOUD` to `AzureGovernment` or `AzureChina`
+
+## Read-only mode
+
+Read-only mode lists only the tools that cannot change or run anything, so an AI client cannot call `delete_workflow` or `run_trigger` by mistake. Turn it on with any of:
+
+```bash
+logicapps-mcp --read-only
+LOGICAPPS_MCP_READ_ONLY=true logicapps-mcp
+```
+
+or `"readOnly": true` in the config file. Any non-empty value other than `false`, `0`, `no` or `off` turns read-only mode on, so a typo does not leave write tools available.
+
+These tools are not available in read-only mode:
+
+| Group | Tools |
+|-------|-------|
+| Create, change or delete | `create_workflow`, `update_workflow`, `delete_workflow`, `clone_workflow`, `enable_workflow`, `disable_workflow`, `create_connection` |
+| Run something | `run_trigger`, `cancel_run`, `resubmit_run`, `invoke_connector_operation` |
+| Returns a credential | `get_trigger_callback_url` (the signed URL can start the workflow) |
+
+Read-only mode hides tools. It does not limit what your Azure account can do, so use the `Logic App Reader` role if the account itself should not be able to make changes.
 
 ## Config File
 
@@ -28,7 +50,8 @@ Alternative to environment variables. Create `~/.logicapps-mcp/config.json`:
 {
   "tenantId": "your-tenant-id",
   "clientId": "your-client-id",
-  "defaultSubscriptionId": "your-subscription-id"
+  "defaultSubscriptionId": "your-subscription-id",
+  "readOnly": false
 }
 ```
 

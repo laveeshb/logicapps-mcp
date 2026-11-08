@@ -261,3 +261,58 @@ describe("handleToolCall", () => {
     expect(error.error.message).toBe("API Error");
   });
 });
+
+describe("handleToolCall in read-only mode", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("refuses a restricted tool and does not run it", async () => {
+    const result = await handleToolCall(
+      "resubmit_run",
+      { subscriptionId: "sub", resourceGroupName: "rg", logicAppName: "app", runId: "run" },
+      { readOnly: true }
+    );
+
+    expect(result.isError).toBe(true);
+    const body = JSON.parse((result.content[0] as { text: string }).text);
+    expect(body.error.code).toBe("ReadOnlyMode");
+    expect(body.error.message).toContain("resubmit_run");
+    expect(resubmitRun).not.toHaveBeenCalled();
+  });
+
+  it("reports a tool that does not exist as unknown, not as read-only", async () => {
+    const result = await handleToolCall("no_such_tool", {}, { readOnly: true });
+
+    expect(result.isError).toBe(true);
+    const body = JSON.parse((result.content[0] as { text: string }).text);
+    expect(body.error.code).toBe("InvalidTool");
+  });
+
+  it("still runs a read tool", async () => {
+    vi.mocked(listSubscriptions).mockResolvedValue({ subscriptions: [] });
+
+    const result = await handleToolCall("list_subscriptions", {}, { readOnly: true });
+
+    expect(result.isError).toBeFalsy();
+    expect(listSubscriptions).toHaveBeenCalled();
+  });
+
+  it("runs the restricted tool when read-only mode is off", async () => {
+    vi.mocked(resubmitRun).mockResolvedValue({
+      success: true,
+      originalRunId: "run",
+      message: "resubmitted",
+    });
+
+    const result = await handleToolCall("resubmit_run", {
+      subscriptionId: "sub",
+      resourceGroupName: "rg",
+      logicAppName: "app",
+      runId: "run",
+    });
+
+    expect(result.isError).toBeFalsy();
+    expect(resubmitRun).toHaveBeenCalled();
+  });
+});

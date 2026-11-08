@@ -124,3 +124,79 @@ describe("server", () => {
     });
   });
 });
+
+describe("server in read-only mode", () => {
+  let toolHandlers: Map<unknown, (...args: unknown[]) => unknown>;
+  let registeredPrompts: Map<string, { description?: string; callback: (...args: unknown[]) => unknown }>;
+
+  function register(readOnly: boolean) {
+    toolHandlers = new Map();
+    registeredPrompts = new Map();
+    const mcpServer = {
+      server: {
+        setRequestHandler: vi.fn((schema, handler) => {
+          toolHandlers.set(schema, handler);
+        }),
+      },
+      registerPrompt: vi.fn((name, _config, callback) => {
+        registeredPrompts.set(name, { callback });
+      }),
+    } as unknown as McpServer;
+    registerToolsAndPrompts(mcpServer, { readOnly });
+  }
+
+  async function listedNames(): Promise<string[]> {
+    const result = (await toolHandlers.get(ListToolsRequestSchema)!()) as {
+      tools: Array<{ name: string }>;
+    };
+    return result.tools.map((t) => t.name);
+  }
+
+  it("does not list tools that change or run workflows", async () => {
+    register(true);
+    const names = await listedNames();
+
+    expect(names).toContain("list_run_history");
+    for (const name of ["delete_workflow", "update_workflow", "run_trigger", "resubmit_run"]) {
+      expect(names).not.toContain(name);
+    }
+  });
+
+  it("lists every tool when read-only mode is off", async () => {
+    register(false);
+    const names = await listedNames();
+
+    expect(names).toContain("delete_workflow");
+    expect(names).toContain("run_trigger");
+  });
+
+  it("refuses a call to a hidden tool", async () => {
+    register(true);
+    const call = toolHandlers.get(CallToolRequestSchema)!;
+
+    const result = (await call({
+      params: { name: "delete_workflow", arguments: {} },
+    })) as { isError?: boolean; content: Array<{ text: string }> };
+
+    expect(result.isError).toBe(true);
+    expect(JSON.parse(result.content[0].text).error.code).toBe("ReadOnlyMode");
+  });
+
+  it("tells the model in the guide prompt that the server is read-only", async () => {
+    register(true);
+    const guide = (await registeredPrompts.get("logic-apps-guide")!.callback()) as {
+      messages: Array<{ content: { text: string } }>;
+    };
+
+    expect(guide.messages[0].content.text).toContain("read-only mode");
+  });
+
+  it("does not add that note when read-only mode is off", async () => {
+    register(false);
+    const guide = (await registeredPrompts.get("logic-apps-guide")!.callback()) as {
+      messages: Array<{ content: { text: string } }>;
+    };
+
+    expect(guide.messages[0].content.text).not.toContain("read-only mode");
+  });
+});

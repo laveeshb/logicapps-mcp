@@ -1,6 +1,6 @@
 # Available Tools
 
-This MCP server provides 39 tools for managing Azure Logic Apps.
+This MCP server provides 40 tools for managing Azure Logic Apps. In [read-only mode](CONFIGURATION.md#read-only-mode), the tools that change or run anything are not available.
 
 ## Discovery & Navigation
 

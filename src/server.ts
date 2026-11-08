@@ -6,6 +6,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { ListToolsRequestSchema, CallToolRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { TOOL_DEFINITIONS } from "./tools/definitions.js";
+import { getAvailableTools } from "./tools/access.js";
 import { handleToolCall } from "./tools/handler.js";
 
 const LOGIC_APPS_GUIDE = `# Azure Logic Apps MCP Server Guide
@@ -748,19 +749,28 @@ Multiple statuses (error handling):
 \`\`\`
 `;
 
-export function registerToolsAndPrompts(mcpServer: McpServer): void {
+const READ_ONLY_NOTE = `
+
+NOTE: This server is in read-only mode. Tools that create, change, delete or run workflows and connections are not available, so only inspect and debug.`;
+
+export function registerToolsAndPrompts(
+  mcpServer: McpServer,
+  options: { readOnly?: boolean } = {}
+): void {
+  const readOnly = options.readOnly === true;
+
   // Use underlying server for tools (JSON Schema-based definitions)
   // This is the recommended approach for advanced usage per McpServer docs
   const server = mcpServer.server;
 
   // List available tools
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: TOOL_DEFINITIONS,
+    tools: getAvailableTools(TOOL_DEFINITIONS, readOnly),
   }));
 
   // Handle tool calls
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    return handleToolCall(request.params.name, request.params.arguments ?? {});
+    return handleToolCall(request.params.name, request.params.arguments ?? {}, { readOnly });
   });
 
   // Register prompts using McpServer's high-level API
@@ -776,7 +786,7 @@ export function registerToolsAndPrompts(mcpServer: McpServer): void {
           role: "user",
           content: {
             type: "text",
-            text: LOGIC_APPS_GUIDE,
+            text: readOnly ? LOGIC_APPS_GUIDE + READ_ONLY_NOTE : LOGIC_APPS_GUIDE,
           },
         },
       ],

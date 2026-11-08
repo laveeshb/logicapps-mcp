@@ -10,6 +10,8 @@
 import express, { Request, Response } from "express";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { TOOL_DEFINITIONS } from "../tools/definitions.js";
+import { logReadOnlyMode } from "../tools/access.js";
 import { registerToolsAndPrompts } from "../server.js";
 import { loadSettings } from "../config/index.js";
 import { setSettings, initializeAuth } from "../auth/index.js";
@@ -17,6 +19,7 @@ import { setCacheTtl } from "../tools/index.js";
 import { VERSION } from "../version.js";
 
 let initialized = false;
+let readOnly = false;
 
 /**
  * Initialize auth and settings (called once on cold start).
@@ -27,6 +30,8 @@ async function ensureInitialized(): Promise<void> {
   const settings = await loadSettings();
   setSettings(settings);
   setCacheTtl(settings.cacheTtlSeconds);
+  readOnly = settings.readOnly;
+  logReadOnlyMode(TOOL_DEFINITIONS, readOnly);
   await initializeAuth();
   initialized = true;
 }
@@ -40,7 +45,7 @@ function createMcpServer(): McpServer {
     { name: "logicapps-mcp", version: VERSION },
     { capabilities: { tools: {}, prompts: {} } }
   );
-  registerToolsAndPrompts(mcpServer);
+  registerToolsAndPrompts(mcpServer, { readOnly });
   return mcpServer;
 }
 
