@@ -11,6 +11,7 @@
  *   npx logicapps-mcp          # stdio mode (default)
  *   npx logicapps-mcp --http   # HTTP server mode
  *   npx logicapps-mcp --http --port 8080
+ *   npx logicapps-mcp --read-only   # only tools that cannot change or run anything
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -19,6 +20,8 @@ import { loadSettings } from "./config/index.js";
 import { setSettings, initializeAuth, enableLocalCliAuth } from "./auth/index.js";
 import { setCacheTtl } from "./tools/index.js";
 import { registerToolsAndPrompts } from "./server.js";
+import { TOOL_DEFINITIONS } from "./tools/definitions.js";
+import { logReadOnlyMode } from "./tools/access.js";
 import { VERSION } from "./version.js";
 
 /**
@@ -36,7 +39,8 @@ async function runStdioMode(): Promise<void> {
     { capabilities: { tools: {}, prompts: {} } }
   );
 
-  registerToolsAndPrompts(mcpServer);
+  registerToolsAndPrompts(mcpServer, { readOnly: settings.readOnly });
+  logReadOnlyMode(TOOL_DEFINITIONS, settings.readOnly);
 
   const transport = new StdioServerTransport();
   await mcpServer.connect(transport);
@@ -87,6 +91,11 @@ function parseArgs(): { mode: "stdio" | "http"; port: number } {
 
 async function main(): Promise<void> {
   const { mode, port } = parseArgs();
+
+  // --read-only is the same as LOGICAPPS_MCP_READ_ONLY=true
+  if (process.argv.slice(2).includes("--read-only")) {
+    process.env.LOGICAPPS_MCP_READ_ONLY = "true";
+  }
 
   if (mode === "http") {
     await runHttpMode(port);

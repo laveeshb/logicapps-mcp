@@ -52,6 +52,7 @@ import {
 } from "./knowledge.js";
 import { McpError, formatError } from "../utils/errors.js";
 import { TOOL_SCHEMAS } from "./schemas.js";
+import { isToolAllowed } from "./access.js";
 
 /**
  * Format a ZodError into a user-friendly error response.
@@ -81,10 +82,15 @@ function validateArgs<T>(toolName: string, args: Record<string, unknown>): T {
 
 export async function handleToolCall(
   name: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  options: { readOnly?: boolean } = {}
 ): Promise<CallToolResult> {
   try {
     let result: unknown;
+
+    if (Object.hasOwn(TOOL_SCHEMAS, name) && !isToolAllowed(name, options.readOnly === true)) {
+      throw new McpError("ReadOnlyMode", `Tool '${name}' is not available in read-only mode.`);
+    }
 
     switch (name) {
       case "list_subscriptions":

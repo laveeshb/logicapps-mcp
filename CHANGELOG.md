@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- Read-only mode (`--read-only`, `LOGICAPPS_MCP_READ_ONLY=true` or `"readOnly": true` in the config file). It lists only the tools that cannot change or run anything (#139)
+
 ## [0.4.4] - 2026-11-07
 
 ### Fixed
